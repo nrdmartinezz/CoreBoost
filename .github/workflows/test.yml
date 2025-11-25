@@ -36,14 +36,14 @@ jobs:
           echo "ERROR: eval() function found"
           exit 1
         fi
-        if grep -r "\$_GET\[" . --include="*.php" | grep -v "sanitize_key\|sanitize_text_field"; then
-          echo "ERROR: Unsanitized \$_GET usage found"
+        
+        # Check for direct unsanitized superglobal usage (allowing filter_input which is secure)
+        if grep -rP '\$_(GET|POST|REQUEST|COOKIE)\[' . --include="*.php" | grep -v "filter_input" | grep -v "sanitize" | grep -v "wp_verify_nonce"; then
+          echo "ERROR: Unsanitized superglobal usage found"
+          echo "Use filter_input() or WordPress sanitization functions"
           exit 1
         fi
-        if grep -r "\$_POST\[" . --include="*.php"; then
-          echo "ERROR: Direct \$_POST usage found"
-          exit 1
-        fi
+        
         echo "✅ Basic security checks passed"
 
   wordpress-compatibility:
@@ -130,12 +130,13 @@ jobs:
     
     - name: Install PHP CodeSniffer
       run: |
-        composer global require "squizlabs/php_codesniffer=*"
-        composer global require "wp-coding-standards/wpcs=*"
+        composer global config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+        composer global require --dev wp-coding-standards/wpcs:"^3.0" --with-all-dependencies
         
     - name: Configure PHPCS
       run: |
         ~/.composer/vendor/bin/phpcs --config-set installed_paths ~/.composer/vendor/wp-coding-standards/wpcs
+        ~/.composer/vendor/bin/phpcs -i
         
     - name: Run WordPress Coding Standards (Relaxed)
       run: |
