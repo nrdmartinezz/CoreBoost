@@ -313,7 +313,10 @@ class CoreBoost {
     public function enable_foreground_conversion_callback() {
         $value = isset($this->options['enable_foreground_conversion']) ? $this->options['enable_foreground_conversion'] : false;
         echo '<input type="checkbox" name="coreboost_options[enable_foreground_conversion]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Add CSS to convert background images to foreground images for better performance.', 'npg    public function specific_pages_callback() {
+        echo '<p class="description">' . __('Add CSS to convert background images to foreground images for better performance.', 'coreboost') . '</p>';
+    }
+    
+    public function specific_pages_callback() {
         $value = isset($this->options['specific_pages']) ? $this->options['specific_pages'] : '';
         echo '<textarea name="coreboost_options[specific_pages]" rows="5" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
         echo '<p class="description">' . __('Enter one URL per line. For each URL, provide the image URL to preload. Format: `https://example.com/page/ https://example.com/image.jpg`', 'coreboost') . '</p>';
@@ -1424,7 +1427,6 @@ class CoreBoost {
         }
         ';
     }
-}
 
 // Initialize the plugin
 function coreboost_init() {
