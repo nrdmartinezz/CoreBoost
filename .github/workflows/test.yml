@@ -71,6 +71,20 @@ jobs:
         mysql database: 'wordpress_test'
         mysql root password: 'root'
     
+    - name: Wait for MySQL
+      run: |
+        echo "Waiting for MySQL to be ready..."
+        for i in {1..30}; do
+          if mysqladmin ping -h 127.0.0.1 -u root -proot --silent; then
+            echo "MySQL is ready!"
+            break
+          fi
+          echo "Waiting for MySQL... ($i/30)"
+          sleep 2
+        done
+        # Verify connection
+        mysql -h 127.0.0.1 -u root -proot -e "SELECT VERSION();" || exit 1
+    
     - name: Setup WordPress
       run: |
         # Download WordPress using WP-CLI for reliability
@@ -81,9 +95,12 @@ jobs:
         # Download and setup WordPress
         wp core download --version=${{ matrix.wordpress-version }} --path=/tmp/wordpress --allow-root
         
-        # Create wp-config.php
+        # Create wp-config.php with connection retry
         cd /tmp/wordpress
-        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root
+        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root --extra-php <<PHP
+define('DB_CHARSET', 'utf8mb4');
+define('DB_COLLATE', '');
+PHP
         
         # Install WordPress
         wp core install --url=http://localhost --title="Test Site" --admin_user=admin --admin_password=admin --admin_email=test@example.com --allow-root
