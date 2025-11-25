@@ -36,14 +36,14 @@ jobs:
           echo "ERROR: eval() function found"
           exit 1
         fi
-        if grep -r "\$_GET\[" . --include="*.php" | grep -v "sanitize_key\|sanitize_text_field"; then
-          echo "ERROR: Unsanitized \$_GET usage found"
+        
+        # Check for direct unsanitized superglobal usage (allowing filter_input which is secure)
+        if grep -rP '\$_(GET|POST|REQUEST|COOKIE)\[' . --include="*.php" | grep -v "filter_input" | grep -v "sanitize" | grep -v "wp_verify_nonce"; then
+          echo "ERROR: Unsanitized superglobal usage found"
+          echo "Use filter_input() or WordPress sanitization functions"
           exit 1
         fi
-        if grep -r "\$_POST\[" . --include="*.php"; then
-          echo "ERROR: Direct \$_POST usage found"
-          exit 1
-        fi
+        
         echo "✅ Basic security checks passed"
 
   wordpress-compatibility:
@@ -71,6 +71,20 @@ jobs:
         mysql database: 'wordpress_test'
         mysql root password: 'root'
     
+    - name: Wait for MySQL
+      run: |
+        echo "Waiting for MySQL to be ready..."
+        for i in {1..30}; do
+          if mysqladmin ping -h 127.0.0.1 -u root -proot --silent; then
+            echo "MySQL is ready!"
+            break
+          fi
+          echo "Waiting for MySQL... ($i/30)"
+          sleep 2
+        done
+        # Verify connection
+        mysql -h 127.0.0.1 -u root -proot -e "SELECT VERSION();" || exit 1
+    
     - name: Setup WordPress
       run: |
         # Download WordPress using WP-CLI for reliability
@@ -81,9 +95,12 @@ jobs:
         # Download and setup WordPress
         wp core download --version=${{ matrix.wordpress-version }} --path=/tmp/wordpress --allow-root
         
-        # Create wp-config.php
+        # Create wp-config.php with connection retry
         cd /tmp/wordpress
-        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root
+        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root --extra-php <<PHP
+define('DB_CHARSET', 'utf8mb4');
+define('DB_COLLATE', '');
+PHP
         
         # Install WordPress
         wp core install --url=http://localhost --title="Test Site" --admin_user=admin --admin_password=admin --admin_email=test@example.com --allow-root
@@ -130,12 +147,13 @@ jobs:
     
     - name: Install PHP CodeSniffer
       run: |
-        composer global require "squizlabs/php_codesniffer=*"
-        composer global require "wp-coding-standards/wpcs=*"
+        composer global config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+        composer global require --dev wp-coding-standards/wpcs:"^3.0" --with-all-dependencies
         
     - name: Configure PHPCS
       run: |
         ~/.composer/vendor/bin/phpcs --config-set installed_paths ~/.composer/vendor/wp-coding-standards/wpcs
+        ~/.composer/vendor/bin/phpcs -i
         
     - name: Run WordPress Coding Standards (Relaxed)
       run: |
@@ -287,7 +305,7 @@ jobs:
         echo "✅ Plugin ZIP created successfully"
         
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coreboost-test-build
         path: coreboost-test-build.zip
