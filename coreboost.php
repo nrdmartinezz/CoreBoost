@@ -118,27 +118,28 @@ class CoreBoost {
     }
     
     /**
+     * Helper: Flush all caches
+     */
+    private function flush_caches() {
+        $this->clear_all_hero_cache();
+        if (function_exists('wp_cache_flush')) {
+            wp_cache_flush();
+        }
+    }
+
+    /**
      * Plugin activation
      */
     public function activate() {
         add_option('coreboost_options', $this->get_default_options());
-        
-        // Clear any existing caches
-        if (function_exists('wp_cache_flush')) {
-            wp_cache_flush();
-        }
+        $this->flush_caches();
     }
     
     /**
      * Plugin deactivation
      */
     public function deactivate() {
-        // Clear caches
-        $this->clear_all_hero_cache();
-        
-        if (function_exists('wp_cache_flush')) {
-            wp_cache_flush();
-        }
+        $this->flush_caches();
     }
 
     /**
@@ -146,10 +147,8 @@ class CoreBoost {
      */
     public function maybe_disable_lazy_loading($default, $tag_name) {
         if ('img' === $tag_name && $this->is_lcp_candidate()) {
-            if ($this->options['debug_mode']) {
-                echo '<!-- CoreBoost: Lazy loading disabled for LCP candidate -->';
-            }
-            return false; // Don't lazy-load
+            $this->debug_comment('Lazy loading disabled for LCP candidate');
+            return false;
         }
         return $default;
     }
@@ -157,26 +156,16 @@ class CoreBoost {
     public function add_lcp_attributes($attr, $attachment, $size) {
         if ($this->is_lcp_candidate()) {
             $attr['fetchpriority'] = 'high';
-            if ($this->options['debug_mode']) {
-                echo '<!-- CoreBoost: fetchpriority="high" added to LCP candidate -->';
-            }
+            $this->debug_comment('fetchpriority="high" added to LCP candidate');
         }
         return $attr;
     }
 
     private function is_lcp_candidate() {
-        // Simple heuristic: if it's the first image on the page, it's a candidate.
-        // This can be improved with more advanced detection.
         static $image_count = 0;
         $image_count++;
-
         $exclude_count = isset($this->options['lazy_load_exclude_count']) ? (int)$this->options['lazy_load_exclude_count'] : 2;
-
-        if ($image_count <= $exclude_count) {
-            return true;
-        }
-
-        return false;
+        return $image_count <= $exclude_count;
     }
     
     /**
@@ -266,20 +255,58 @@ class CoreBoost {
     /**
      * Section callbacks
      */
+    /**
+     * Helper: Output section description
+     */
+    private function section_description($text) {
+        echo '<p>' . esc_html__($text, 'coreboost') . '</p>';
+    }
+    
+    /**
+     * Helper: Render checkbox field
+     */
+    private function render_checkbox($name, $default, $description) {
+        $value = isset($this->options[$name]) ? $this->options[$name] : $default;
+        echo '<input type="checkbox" name="coreboost_options[' . esc_attr($name) . ']" value="1"' . checked($value, true, false) . '>';
+        echo '<p class="description">' . esc_html__($description, 'coreboost') . '</p>';
+    }
+    
+    /**
+     * Helper: Render textarea field
+     */
+    private function render_textarea($name, $rows, $description, $class = 'large-text') {
+        $value = isset($this->options[$name]) ? $this->options[$name] : '';
+        echo '<textarea name="coreboost_options[' . esc_attr($name) . ']" rows="' . esc_attr($rows) . '" cols="50" class="' . esc_attr($class) . '">' . esc_textarea($value) . '</textarea>';
+        echo '<p class="description">' . esc_html__($description, 'coreboost') . '</p>';
+    }
+    
+    /**
+     * Helper: Render select field
+     */
+    private function render_select($name, $options, $default, $description) {
+        $value = isset($this->options[$name]) ? $this->options[$name] : $default;
+        echo '<select name="coreboost_options[' . esc_attr($name) . ']">';
+        foreach ($options as $key => $label) {
+            echo '<option value="' . esc_attr($key) . '"' . selected($value, $key, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select>';
+        echo '<p class="description">' . esc_html__($description, 'coreboost') . '</p>';
+    }
+
     public function hero_section_callback() {
-        echo '<p>' . __('Configure how hero images are detected and preloaded for optimal LCP performance.', 'coreboost') . '</p>';
+        $this->section_description('Configure how hero images are detected and preloaded for optimal LCP performance.');
     }
     
     public function script_section_callback() {
-        echo '<p>' . __('Optimize JavaScript loading by deferring non-critical resources.', 'coreboost') . '</p>';
+        $this->section_description('Optimize JavaScript loading by deferring non-critical resources.');
     }
     
     public function css_section_callback() {
-        echo '<p>' . __('Advanced CSS optimization with critical CSS inlining and non-critical CSS deferring.', 'coreboost') . '</p>';
+        $this->section_description('Advanced CSS optimization with critical CSS inlining and non-critical CSS deferring.');
     }
     
     public function advanced_section_callback() {
-        echo '<p>' . __('Advanced optimization settings and debugging options.', 'coreboost') . '</p>';
+        $this->section_description('Advanced optimization settings and debugging options.');
     }
     
     /**
@@ -305,15 +332,11 @@ class CoreBoost {
     }
     
     public function enable_responsive_preload_callback() {
-        $value = isset($this->options['enable_responsive_preload']) ? $this->options['enable_responsive_preload'] : true;
-        echo '<input type="checkbox" name="coreboost_options[enable_responsive_preload]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Preload different image sizes for mobile and tablet devices.', 'coreboost') . '</p>';
+        $this->render_checkbox('enable_responsive_preload', true, 'Preload different image sizes for mobile and tablet devices.');
     }
     
     public function enable_foreground_conversion_callback() {
-        $value = isset($this->options['enable_foreground_conversion']) ? $this->options['enable_foreground_conversion'] : false;
-        echo '<input type="checkbox" name="coreboost_options[enable_foreground_conversion]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Add CSS to convert background images to foreground images for better performance.', 'coreboost') . '</p>';
+        $this->render_checkbox('enable_foreground_conversion', false, 'Add CSS to convert background images to foreground images for better performance.');
     }
     
     public function specific_pages_callback() {
@@ -330,85 +353,56 @@ class CoreBoost {
     }
     
     public function enable_script_defer_callback() {
-        $value = isset($this->options['enable_script_defer']) ? $this->options['enable_script_defer'] : true;
-        echo '<input type="checkbox" name="coreboost_options[enable_script_defer]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Enable automatic script deferring for better performance.', 'coreboost') . '</p>';
+        $this->render_checkbox('enable_script_defer', true, 'Enable automatic script deferring for better performance.');
     }
     
     public function scripts_to_defer_callback() {
-        $value = isset($this->options['scripts_to_defer']) ? $this->options['scripts_to_defer'] : '';
-        echo '<textarea name="coreboost_options[scripts_to_defer]" rows="5" cols="50" class="large-text">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('Script handles to defer (one per line). Leave empty to defer all non-excluded scripts.', 'coreboost') . '</p>';
+        $this->render_textarea('scripts_to_defer', 5, 'Script handles to defer (one per line). Leave empty to defer all non-excluded scripts.');
     }
     
     public function exclude_scripts_callback() {
-        $value = isset($this->options['exclude_scripts']) ? $this->options['exclude_scripts'] : '';
-        echo '<textarea name="coreboost_options[exclude_scripts]" rows="3" cols="50" class="large-text">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('Script handles to never defer (one per line).', 'coreboost') . '</p>';
+        $this->render_textarea('exclude_scripts', 3, 'Script handles to never defer (one per line).');
     }
     
     public function enable_css_defer_callback() {
-        $value = isset($this->options['enable_css_defer']) ? $this->options['enable_css_defer'] : false;
-        echo '<input type="checkbox" name="coreboost_options[enable_css_defer]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Enable CSS deferring with critical CSS inlining.', 'coreboost') . '</p>';
+        $this->render_checkbox('enable_css_defer', false, 'Enable CSS deferring with critical CSS inlining.');
     }
     
     public function css_defer_method_callback() {
-        $value = isset($this->options['css_defer_method']) ? $this->options['css_defer_method'] : 'preload_with_critical';
         $methods = array(
             'preload_with_critical' => __('Preload with Critical CSS (Recommended)', 'coreboost'),
             'simple_defer' => __('Simple Defer (Basic)', 'coreboost')
         );
-        
-        echo '<select name="coreboost_options[css_defer_method]">';
-        foreach ($methods as $key => $label) {
-            echo '<option value="' . esc_attr($key) . '"' . selected($value, $key, false) . '>' . esc_html($label) . '</option>';
-        }
-        echo '</select>';
-        echo '<p class="description">' . __('Choose CSS deferring method. Preload with Critical CSS provides better performance.', 'coreboost') . '</p>';
+        $this->render_select('css_defer_method', $methods, 'preload_with_critical', 'Choose CSS deferring method. Preload with Critical CSS provides better performance.');
     }
     
     public function styles_to_defer_callback() {
-        $value = isset($this->options['styles_to_defer']) ? $this->options['styles_to_defer'] : '';
-        echo '<textarea name="coreboost_options[styles_to_defer]" rows="3" cols="50" class="large-text">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('CSS handles to defer (one per line).', 'coreboost') . '</p>';
+        $this->render_textarea('styles_to_defer', 3, 'CSS handles to defer (one per line).');
     }
     
     public function critical_css_global_callback() {
-        $value = isset($this->options['critical_css_global']) ? $this->options['critical_css_global'] : '';
-        echo '<textarea name="coreboost_options[critical_css_global]" rows="8" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('Global critical CSS applied to all pages. Include only above-the-fold styles.', 'coreboost') . '</p>';
+        $this->render_textarea('critical_css_global', 8, 'Global critical CSS applied to all pages. Include only above-the-fold styles.', 'large-text code');
         echo '<p class="description"><strong>' . __('Tip:', 'coreboost') . '</strong> ' . __('Use tools like Critical CSS Generator or manually extract essential styles.', 'coreboost') . '</p>';
     }
     
     public function critical_css_home_callback() {
-        $value = isset($this->options['critical_css_home']) ? $this->options['critical_css_home'] : '';
-        echo '<textarea name="coreboost_options[critical_css_home]" rows="6" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('Critical CSS specific to the homepage. This will be combined with global critical CSS.', 'coreboost') . '</p>';
+        $this->render_textarea('critical_css_home', 6, 'Critical CSS specific to the homepage. This will be combined with global critical CSS.', 'large-text code');
     }
     
     public function critical_css_pages_callback() {
-        $value = isset($this->options['critical_css_pages']) ? $this->options['critical_css_pages'] : '';
-        echo '<textarea name="coreboost_options[critical_css_pages]" rows="6" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('Critical CSS for all pages (not posts). Combined with global critical CSS.', 'coreboost') . '</p>';
+        $this->render_textarea('critical_css_pages', 6, 'Critical CSS for all pages (not posts). Combined with global critical CSS.', 'large-text code');
     }
     
     public function critical_css_posts_callback() {
-        $value = isset($this->options['critical_css_posts']) ? $this->options['critical_css_posts'] : '';
-        echo '<textarea name="coreboost_options[critical_css_posts]" rows="6" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('Critical CSS for all posts/blog pages. Combined with global critical CSS.', 'coreboost') . '</p>';
+        $this->render_textarea('critical_css_posts', 6, 'Critical CSS for all posts/blog pages. Combined with global critical CSS.', 'large-text code');
     }
     
     public function enable_caching_callback() {
-        $value = isset($this->options['enable_caching']) ? $this->options['enable_caching'] : true;
-        echo '<input type="checkbox" name="coreboost_options[enable_caching]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Cache hero image detection results for better performance.', 'coreboost') . '</p>';
+        $this->render_checkbox('enable_caching', true, 'Cache hero image detection results for better performance.');
     }
     
     public function debug_mode_callback() {
-        $value = isset($this->options['debug_mode']) ? $this->options['debug_mode'] : false;
-        echo '<input type="checkbox" name="coreboost_options[debug_mode]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Add HTML comments showing which optimizations are applied.', 'coreboost') . '</p>';
+        $this->render_checkbox('debug_mode', false, 'Add HTML comments showing which optimizations are applied.');
     }
     
     /**
@@ -428,50 +422,34 @@ class CoreBoost {
             $sanitized['preload_method'] = sanitize_text_field($input['preload_method']);
         }
         
-        // Boolean fields - handle checkboxes properly
-        $boolean_fields = array(
-            'enable_script_defer',
-            'enable_css_defer', 
-            'enable_foreground_conversion',
-            'enable_responsive_preload',
-            'enable_caching',
-            'debug_mode'
+        // Sanitize fields by type
+        $field_types = array(
+            'boolean' => array('enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 
+                              'enable_responsive_preload', 'enable_caching', 'debug_mode'),
+            'textarea' => array('scripts_to_defer', 'styles_to_defer', 'exclude_scripts', 'specific_pages'),
+            'text' => array('css_defer_method'),
+            'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts')
         );
         
-        foreach ($boolean_fields as $field) {
+        foreach ($field_types['boolean'] as $field) {
             if (array_key_exists($field, $input)) {
                 $sanitized[$field] = !empty($input[$field]);
             }
         }
         
-        // Text area fields
-        $textarea_fields = array(
-            'scripts_to_defer',
-            'styles_to_defer', 
-            'exclude_scripts',
-            'specific_pages'
-        );
-        
-        foreach ($textarea_fields as $field) {
+        foreach ($field_types['textarea'] as $field) {
             if (isset($input[$field])) {
                 $sanitized[$field] = sanitize_textarea_field($input[$field]);
             }
         }
         
-        // Select fields
-        if (isset($input['css_defer_method'])) {
-            $sanitized['css_defer_method'] = sanitize_text_field($input['css_defer_method']);
+        foreach ($field_types['text'] as $field) {
+            if (isset($input[$field])) {
+                $sanitized[$field] = sanitize_text_field($input[$field]);
+            }
         }
         
-        // Critical CSS fields (allow CSS but strip dangerous content)
-        $css_fields = array(
-            'critical_css_global',
-            'critical_css_home', 
-            'critical_css_pages',
-            'critical_css_posts'
-        );
-        
-        foreach ($css_fields as $field) {
+        foreach ($field_types['css'] as $field) {
             if (isset($input[$field])) {
                 $sanitized[$field] = wp_strip_all_tags($input[$field]);
             }
@@ -640,13 +618,8 @@ class CoreBoost {
         $critical_css = $this->get_critical_css_for_current_page();
         
         if (!empty($critical_css)) {
-            if ($this->options['debug_mode']) {
-                echo "<!-- CoreBoost: Outputting Critical CSS -->\n";
-            }
-            
-            echo "<style id='coreboost-critical-css'>\n";
-            echo $critical_css;
-            echo "\n</style>\n";
+            $this->debug_comment('Outputting Critical CSS');
+            echo "<style id='coreboost-critical-css'>\n" . $critical_css . "\n</style>\n";
         }
     }
     
@@ -794,30 +767,18 @@ class CoreBoost {
      * Clear third-party caching plugin caches
      */
     private function clear_third_party_caches() {
-        // WP Rocket
-        if (function_exists('rocket_clean_domain')) {
-            rocket_clean_domain();
+        $cache_functions = array(
+            'rocket_clean_domain' => 'rocket_clean_domain',
+            'w3tc_flush_all' => 'w3tc_flush_all',
+            'wp_cache_clear_cache' => 'wp_cache_clear_cache'
+        );
+        
+        foreach ($cache_functions as $func) {
+            if (function_exists($func)) $func();
         }
         
-        // W3 Total Cache
-        if (function_exists('w3tc_flush_all')) {
-            w3tc_flush_all();
-        }
-        
-        // WP Super Cache
-        if (function_exists('wp_cache_clear_cache')) {
-            wp_cache_clear_cache();
-        }
-        
-        // LiteSpeed Cache
-        if (class_exists('LiteSpeed_Cache_API')) {
-            LiteSpeed_Cache_API::purge_all();
-        }
-        
-        // Autoptimize
-        if (class_exists('autoptimizeCache')) {
-            autoptimizeCache::clearall();
-        }
+        if (class_exists('LiteSpeed_Cache_API')) LiteSpeed_Cache_API::purge_all();
+        if (class_exists('autoptimizeCache')) autoptimizeCache::clearall();
     }
     
     /**
@@ -828,24 +789,17 @@ class CoreBoost {
             return;
         }
         
-        $method = $this->options['preload_method'];
+        $methods = array(
+            'auto_elementor' => 'preload_auto_elementor',
+            'featured_fallback' => 'preload_featured_fallback',
+            'smart_detection' => 'preload_smart_detection',
+            'advanced_cached' => 'preload_advanced_cached',
+            'css_class_based' => 'preload_css_class_based'
+        );
         
-        switch ($method) {
-            case 'auto_elementor':
-                $this->preload_auto_elementor();
-                break;
-            case 'featured_fallback':
-                $this->preload_featured_fallback();
-                break;
-            case 'smart_detection':
-                $this->preload_smart_detection();
-                break;
-            case 'advanced_cached':
-                $this->preload_advanced_cached();
-                break;
-            case 'css_class_based':
-                $this->preload_css_class_based();
-                break;
+        $method = $this->options['preload_method'];
+        if (isset($methods[$method])) {
+            $this->{$methods[$method]}();
         }
     }
     
@@ -853,30 +807,20 @@ class CoreBoost {
      * Auto Elementor detection method
      */
     private function preload_auto_elementor() {
-        if (!defined('ELEMENTOR_VERSION')) {
-            return;
-        }
+        if (!defined('ELEMENTOR_VERSION')) return;
         
         global $post;
-        if (!$post) {
-            return;
-        }
+        if (!$post) return;
         
         $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
-        if (empty($elementor_data)) {
-            return;
-        }
+        if (empty($elementor_data)) return;
         
         $data = json_decode($elementor_data, true);
-        if (!is_array($data)) {
-            return;
-        }
+        if (!is_array($data)) return;
         
         $hero_image_url = $this->find_hero_background_image($data);
-        
         if ($hero_image_url) {
             $this->output_preload_tag($hero_image_url);
-            
             if ($this->options['enable_responsive_preload']) {
                 $this->output_responsive_preload($hero_image_url);
             }
@@ -912,14 +856,11 @@ class CoreBoost {
         // Fallback to custom field
         if (!$hero_image_url) {
             $custom_hero = get_post_meta($post->ID, 'hero_image', true);
-            if ($custom_hero) {
-                $hero_image_url = $custom_hero;
-            }
+            if ($custom_hero) $hero_image_url = $custom_hero;
         }
         
         if ($hero_image_url) {
             $this->output_preload_tag($hero_image_url);
-            
             if ($this->options['enable_responsive_preload'] && $hero_image_id) {
                 $this->output_responsive_preload_by_id($hero_image_id);
             }
@@ -956,14 +897,10 @@ class CoreBoost {
      * Advanced cached method
      */
     private function preload_advanced_cached() {
-        if (!defined('ELEMENTOR_VERSION')) {
-            return;
-        }
+        if (!defined('ELEMENTOR_VERSION')) return;
         
         global $post;
-        if (!$post) {
-            return;
-        }
+        if (!$post) return;
         
         // Check cache first
         $cache_key = 'coreboost_hero_' . $post->ID;
@@ -1012,24 +949,18 @@ class CoreBoost {
      * CSS class-based detection
      */
     private function preload_css_class_based() {
-        if (!defined('ELEMENTOR_VERSION')) {
-            return;
-        }
+        if (!defined('ELEMENTOR_VERSION')) return;
         
         global $post;
-        if (!$post) {
-            return;
-        }
+        if (!$post) return;
         
         $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
-        
         if ($elementor_data) {
             $data = json_decode($elementor_data, true);
             $hero_image = $this->find_hero_foreground_image($data);
             
             if ($hero_image) {
                 $this->output_preload_tag($hero_image['url']);
-                
                 if ($this->options['enable_responsive_preload'] && $hero_image['id']) {
                     $this->output_responsive_preload_by_id($hero_image['id']);
                 }
@@ -1040,10 +971,8 @@ class CoreBoost {
     /**
      * Helper functions for image detection
      */
-    private function find_hero_background_image($elements, $depth = 0) {
-        if ($depth > 2) {
-            return null;
-        }
+    private function find_hero_background_image($elements, $depth = 0, $max_depth = 2) {
+        if ($depth > $max_depth) return null;
         
         foreach ($elements as $element) {
             if (isset($element['settings']['background_image']['url'])) {
@@ -1051,36 +980,30 @@ class CoreBoost {
             }
             
             if (isset($element['elements']) && is_array($element['elements'])) {
-                $found_image = $this->find_hero_background_image($element['elements'], $depth + 1);
-                if ($found_image) {
-                    return $found_image;
-                }
+                $found = $this->find_hero_background_image($element['elements'], $depth + 1, $max_depth);
+                if ($found) return $found;
             }
         }
-        
         return null;
     }
     
     private function search_elementor_hero_advanced($elements, $max_depth = 3, $current_depth = 0) {
-        if ($current_depth >= $max_depth) {
-            return null;
-        }
+        if ($current_depth >= $max_depth) return null;
         
         foreach ($elements as $index => $element) {
-            if ($index > 2 && $current_depth === 0) {
-                break;
-            }
+            if ($index > 2 && $current_depth === 0) break;
             
+            // Check background image
             if (isset($element['settings']['background_image']['url'])) {
                 return $element['settings']['background_image']['url'];
             }
             
+            // Check for foreground images in widgets (only at top level)
             if ($current_depth === 0 && isset($element['elements'])) {
                 foreach ($element['elements'] as $column) {
                     if (isset($column['elements'])) {
                         foreach ($column['elements'] as $widget) {
-                            if ($widget['widgetType'] === 'image' && 
-                                isset($widget['settings']['image']['url'])) {
+                            if ($widget['widgetType'] === 'image' && isset($widget['settings']['image']['url'])) {
                                 return $widget['settings']['image']['url'];
                             }
                         }
@@ -1088,14 +1011,12 @@ class CoreBoost {
                 }
             }
             
+            // Recurse
             if (isset($element['elements']) && is_array($element['elements'])) {
                 $found = $this->search_elementor_hero_advanced($element['elements'], $max_depth, $current_depth + 1);
-                if ($found) {
-                    return $found;
-                }
+                if ($found) return $found;
             }
         }
-        
         return null;
     }
     
@@ -1104,23 +1025,18 @@ class CoreBoost {
             if ($element['widgetType'] === 'image') {
                 $css_classes = isset($element['settings']['_css_classes']) ? $element['settings']['_css_classes'] : '';
                 
-                if (strpos($css_classes, 'hero-foreground-image') !== false || 
-                    strpos($css_classes, 'heroimg') !== false) {
-                    
-                    if (isset($element['settings']['image']['url'])) {
-                        return array(
-                            'url' => $element['settings']['image']['url'],
-                            'id' => isset($element['settings']['image']['id']) ? $element['settings']['image']['id'] : null
-                        );
-                    }
+                if ((strpos($css_classes, 'hero-foreground-image') !== false || strpos($css_classes, 'heroimg') !== false) 
+                    && isset($element['settings']['image']['url'])) {
+                    return array(
+                        'url' => $element['settings']['image']['url'],
+                        'id' => isset($element['settings']['image']['id']) ? $element['settings']['image']['id'] : null
+                    );
                 }
             }
             
             if (isset($element['elements']) && is_array($element['elements'])) {
                 $found = $this->find_hero_foreground_image($element['elements']);
-                if ($found) {
-                    return $found;
-                }
+                if ($found) return $found;
             }
         }
         return null;
@@ -1131,20 +1047,15 @@ class CoreBoost {
      */
     private function parse_specific_pages() {
         $specific_pages = array();
-        $lines = explode("\n", $this->options['specific_pages']);
-        
-        foreach ($lines as $line) {
+        foreach (explode("\n", $this->options['specific_pages']) as $line) {
             $line = trim($line);
-            if (empty($line)) {
-                continue;
-            }
-            
-            $parts = explode('|', $line, 2);
-            if (count($parts) === 2) {
-                $specific_pages[trim($parts[0])] = trim($parts[1]);
+            if (!empty($line)) {
+                $parts = explode('|', $line, 2);
+                if (count($parts) === 2) {
+                    $specific_pages[trim($parts[0])] = trim($parts[1]);
+                }
             }
         }
-        
         return $specific_pages;
     }
     
@@ -1163,14 +1074,9 @@ class CoreBoost {
         echo '<link rel="preload" href="' . esc_url($image_url) . '" as="image" fetchpriority="high">' . "\n";
     }
     
-    /**
-     * Output responsive preload tags
-     */
     private function output_responsive_preload($image_url) {
         $image_id = attachment_url_to_postid($image_url);
-        if ($image_id) {
-            $this->output_responsive_preload_by_id($image_id);
-        }
+        if ($image_id) $this->output_responsive_preload_by_id($image_id);
     }
     
     private function output_responsive_preload_by_id($image_id) {
@@ -1194,31 +1100,16 @@ class CoreBoost {
      * Script deferring
      */
     public function defer_scripts($tag, $handle) {
-        if (!$this->options['enable_script_defer'] || is_admin()) {
-            return $tag;
-        }
+        if (!$this->options['enable_script_defer'] || is_admin()) return $tag;
         
-        // Get excluded scripts
+        // Check excluded and allowed scripts
         $excluded_scripts = array_filter(array_map('trim', explode("\n", $this->options['exclude_scripts'])));
+        if (in_array($handle, $excluded_scripts)) return $tag;
         
-        if (in_array($handle, $excluded_scripts)) {
-            return $tag;
-        }
-        
-        // Get specific scripts to defer
         $scripts_to_defer = array_filter(array_map('trim', explode("\n", $this->options['scripts_to_defer'])));
+        if (!empty($scripts_to_defer) && !in_array($handle, $scripts_to_defer)) return $tag;
         
-        // If specific scripts are defined, only defer those
-        if (!empty($scripts_to_defer)) {
-            if (!in_array($handle, $scripts_to_defer)) {
-                return $tag;
-            }
-        }
-        
-        if ($this->options['debug_mode']) {
-            $tag = str_replace('<script', '<!-- CoreBoost: Deferring script: ' . $handle . ' --><script', $tag);
-        }
-        
+        $this->debug_comment('Deferring script: ' . $handle);
         return str_replace(' src', ' defer src', $tag);
     }
     
@@ -1234,13 +1125,14 @@ class CoreBoost {
         $styles_to_defer = $this->get_styles_to_defer();
         
         // Check if this style should be deferred
-        if (!$this->should_defer_style($handle, $styles_to_defer)) {
+        $should_defer = $this->should_defer_style($handle, $styles_to_defer);
+        
+        if (!$should_defer) {
+            $this->debug_comment("NOT deferring CSS: {$handle} (no match found)");
             return $html;
         }
         
-        if ($this->options['debug_mode']) {
-            $html = '<!-- CoreBoost: Deferring CSS: ' . $handle . ' -->' . "\n" . $html;
-        }
+        $this->debug_comment("Deferring CSS: {$handle}");
         
         if ($this->options['css_defer_method'] === 'preload_with_critical') {
             // Advanced method with preload and critical CSS
@@ -1299,8 +1191,8 @@ class CoreBoost {
             $pattern = trim($pattern);
             if (empty($pattern)) continue;
             
-            // Exact match
-            if ($handle === $pattern) {
+            // Exact match (including -css suffix)
+            if ($handle === $pattern || $handle === $pattern . '-css') {
                 return true;
             }
             
@@ -1309,33 +1201,22 @@ class CoreBoost {
                 return true;
             }
             
-            // Wildcard matching (contains *)
+            // Wildcard or partial matching
             if (strpos($pattern, '*') !== false) {
-                $regex = '/^' . str_replace('*', '.*', preg_quote($pattern, '/')) . '$/';
-                if (preg_match($regex, $handle)) {
-                    return true;
-                }
-            }
-            
-            // Partial matching (contains pattern)
-            if (strpos($handle, $pattern) !== false) {
+                $regex = '/^' . str_replace('*', '.*', preg_quote($pattern, '/')) . '$/';  
+                if (preg_match($regex, $handle)) return true;
+            } elseif (strpos($handle, $pattern) !== false) {
                 return true;
             }
         }
-        
         return false;
-    }
-    
-    /**
+    }    /**
      * Debug CSS detection and output information
      */
     public function debug_css_detection() {
-        if (!$this->options['debug_mode'] || is_admin()) {
-            return;
-        }
+        if (!$this->options['debug_mode'] || is_admin()) return;
         
         global $wp_styles;
-        
         if (!isset($wp_styles->queue) || empty($wp_styles->queue)) {
             echo "<!-- CoreBoost: No CSS files found in queue -->\n";
             return;
@@ -1348,9 +1229,7 @@ class CoreBoost {
         $deferred_count = 0;
         
         foreach ($wp_styles->queue as $handle) {
-            if (!isset($wp_styles->registered[$handle])) {
-                continue;
-            }
+            if (!isset($wp_styles->registered[$handle])) continue;
             
             $style_obj = $wp_styles->registered[$handle];
             $src = isset($style_obj->src) ? $style_obj->src : 'N/A';
@@ -1372,22 +1251,15 @@ class CoreBoost {
      * Log enqueued styles for debugging
      */
     public function log_enqueued_styles() {
-        if (!$this->options['debug_mode'] || is_admin()) {
-            return;
-        }
+        if (!$this->options['debug_mode'] || is_admin()) return;
         
         global $wp_styles;
+        if (!isset($wp_styles->queue) || empty($wp_styles->queue)) return;
         
-        if (isset($wp_styles->queue) && !empty($wp_styles->queue)) {
-            $styles_to_defer = $this->get_styles_to_defer();
-            
-            foreach ($wp_styles->queue as $handle) {
-                if (isset($wp_styles->registered[$handle])) {
-                    $should_defer = $this->should_defer_style($handle, $styles_to_defer);
-                    if ($should_defer) {
-                        error_log("CoreBoost: Will defer CSS - Handle: {$handle}");
-                    }
-                }
+        $styles_to_defer = $this->get_styles_to_defer();
+        foreach ($wp_styles->queue as $handle) {
+            if (isset($wp_styles->registered[$handle]) && $this->should_defer_style($handle, $styles_to_defer)) {
+                error_log("CoreBoost: Will defer CSS - Handle: {$handle}");
             }
         }
     }
