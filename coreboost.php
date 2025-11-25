@@ -313,17 +313,20 @@ class CoreBoost {
     public function enable_foreground_conversion_callback() {
         $value = isset($this->options['enable_foreground_conversion']) ? $this->options['enable_foreground_conversion'] : false;
         echo '<input type="checkbox" name="coreboost_options[enable_foreground_conversion]" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . __('Add CSS to convert background images to foreground images for better performance.', 'npg    public function specific_pages_callback() {
+        echo '<p class="description">' . __('Add CSS to convert background images to foreground images for better performance.', 'coreboost') . '</p>';
+    }
+    
+    public function specific_pages_callback() {
         $value = isset($this->options['specific_pages']) ? $this->options['specific_pages'] : '';
         echo '<textarea name="coreboost_options[specific_pages]" rows="5" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
         echo '<p class="description">' . __('Enter one URL per line. For each URL, provide the image URL to preload. Format: `https://example.com/page/ https://example.com/image.jpg`', 'coreboost') . '</p>';
+        echo '<p class="description"><strong>' . __('Example:', 'coreboost') . '</strong> home|/wp-content/uploads/hero-home.jpg</p>';
     }
 
     public function lazy_load_exclude_count_callback() {
         $value = isset($this->options['lazy_load_exclude_count']) ? (int)$this->options['lazy_load_exclude_count'] : 2;
         echo '<input type="number" name="coreboost_options[lazy_load_exclude_count]" value="' . esc_attr($value) . '" min="0" max="10" /> ';
         echo '<p class="description">' . __('Automatically disable lazy loading and apply `fetchpriority="high"` to the first X images on the page. Recommended: 2-3.', 'coreboost') . '</p>';
-    }ion"><strong>' . __('Example:', 'coreboost') . '</strong> home|/wp-content/uploads/hero-home.jpg</p>';
     }
     
     public function enable_script_defer_callback() {
