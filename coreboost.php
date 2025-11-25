@@ -1430,6 +1430,7 @@ class CoreBoost {
         }
         ';
     }
+}
 
 // Initialize the plugin
 function coreboost_init() {
