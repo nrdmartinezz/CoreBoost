@@ -487,7 +487,8 @@ class CoreBoost {
      * Admin page HTML
      */
     public function admin_page() {
-        $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'hero';
+        $active_tab = filter_input(INPUT_GET, 'tab', FILTER_SANITIZE_SPECIAL_CHARS);
+        $active_tab = $active_tab ? sanitize_key($active_tab) : 'hero';
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
@@ -575,27 +576,28 @@ class CoreBoost {
         <?php
         
         // Handle cache clearing
-        if (isset($_GET['action']) && sanitize_key($_GET['action']) === 'clear_cache' && isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field($_GET['_wpnonce']), 'coreboost_clear_cache')) {
+        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+        $nonce_get = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        if ($action === 'clear_cache' && $nonce_get && wp_verify_nonce($nonce_get, 'coreboost_clear_cache')) {
             $this->clear_all_hero_cache();
             echo '<div class="notice notice-success"><p>' . __('All caches cleared successfully!', 'coreboost') . '</p></div>';
         }
         
         // Handle settings update and redirect to preserve tab
-        if (isset($_GET['settings-updated']) && sanitize_text_field($_GET['settings-updated']) === 'true') {
+        $settings_updated = filter_input(INPUT_GET, 'settings-updated', FILTER_SANITIZE_SPECIAL_CHARS);
+        if ($settings_updated === 'true') {
             echo '<div class="notice notice-success is-dismissible"><p>' . __('Settings saved successfully!', 'coreboost') . '</p></div>';
             
             // JavaScript to redirect to correct tab if needed
-            if (isset($_POST['current_tab'])) {
-                $current_tab = sanitize_key($_POST['current_tab']);
-                if ($current_tab !== $active_tab) {
-                    echo '<script>
-                        if (window.history.replaceState) {
-                            var newUrl = window.location.href.replace(/&tab=[^&]*/, "") + "&tab=' . esc_js($current_tab) . '";
-                            window.history.replaceState(null, null, newUrl);
-                            window.location.reload();
-                        }
-                    </script>';
-                }
+            $current_tab = filter_input(INPUT_POST, 'current_tab', FILTER_SANITIZE_SPECIAL_CHARS);
+            if ($current_tab && $current_tab !== $active_tab) {
+                echo '<script>
+                    if (window.history.replaceState) {
+                        var newUrl = window.location.href.replace(/&tab=[^&]*/, "") + "&tab=' . esc_js(sanitize_key($current_tab)) . '";
+                        window.history.replaceState(null, null, newUrl);
+                        window.location.reload();
+                    }
+                </script>';
             }
         }
     }
@@ -762,7 +764,8 @@ class CoreBoost {
      */
     public function ajax_clear_cache() {
         // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field($_POST['nonce']), 'coreboost_clear_cache_nonce')) {
+        $nonce = filter_input(INPUT_POST, 'nonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        if (!$nonce || !wp_verify_nonce($nonce, 'coreboost_clear_cache_nonce')) {
             wp_die(__('Security check failed', 'coreboost'));
         }
         
@@ -1430,6 +1433,7 @@ class CoreBoost {
         }
         ';
     }
+}
 
 // Initialize the plugin
 function coreboost_init() {
