@@ -532,7 +532,7 @@ class CoreBoost {
             </form>
             
             <?php if ($active_tab == 'hero'): ?>
-                <div class="npg-so-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
+                <div class="coreboost-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
                     <h3><?php _e('Hero Image Optimization Guide', 'coreboost'); ?></h3>
                     <ul>
                         <li><strong><?php _e('Auto-detect from Elementor Data:', 'coreboost'); ?></strong> <?php _e('Best for most Elementor sites', 'coreboost'); ?></li>
@@ -542,7 +542,7 @@ class CoreBoost {
                     </ul>
                 </div>
             <?php elseif ($active_tab == 'scripts'): ?>
-                <div class="npg-so-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
+                <div class="coreboost-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
                     <h3><?php _e('Script Optimization Tips', 'coreboost'); ?></h3>
                     <p><strong><?php _e('Common scripts to defer:', 'coreboost'); ?></strong></p>
                     <code>contact-form-7<br>wc-cart-fragments<br>elementor-frontend</code>
@@ -550,7 +550,7 @@ class CoreBoost {
                     <code>jquery-core<br>jquery-migrate<br>jquery</code>
                 </div>
             <?php elseif ($active_tab == 'css'): ?>
-                <div class="npg-so-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
+                <div class="coreboost-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
                     <h3><?php _e('Critical CSS Guide', 'coreboost'); ?></h3>
                     <ul>
                         <li><?php _e('Use online tools like Critical CSS Generator to extract critical styles', 'coreboost'); ?></li>
@@ -561,7 +561,7 @@ class CoreBoost {
                     </ul>
                 </div>
             <?php elseif ($active_tab == 'advanced'): ?>
-                <div class="npg-so-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
+                <div class="coreboost-info-box" style="background: #f1f1f1; padding: 20px; margin-top: 20px; border-radius: 5px;">
                     <h3><?php _e('Cache Management', 'coreboost'); ?></h3>
                     <p>
                         <a href="<?php echo wp_nonce_url(admin_url('options-general.php?page=coreboost&tab=advanced&action=clear_cache'), 'coreboost_clear_cache'); ?>" class="button">
@@ -644,7 +644,7 @@ class CoreBoost {
                 echo "<!-- CoreBoost: Outputting Critical CSS -->\n";
             }
             
-            echo "<style id='npg-so-critical-css'>\n";
+            echo "<style id='coreboost-critical-css'>\n";
             echo $critical_css;
             echo "\n</style>\n";
         }
@@ -699,7 +699,7 @@ class CoreBoost {
         
         $wp_admin_bar->add_menu(array(
             'id'    => 'coreboost',
-            'title' => __('NPG Optimizer', 'coreboost'),
+            'title' => __('CoreBoost', 'coreboost'),
             'href'  => admin_url('options-general.php?page=coreboost'),
             'meta'  => array(
                 'title' => __('CoreBoost Settings', 'coreboost'),
@@ -708,25 +708,25 @@ class CoreBoost {
         
         $wp_admin_bar->add_menu(array(
             'parent' => 'coreboost',
-            'id'     => 'npg-so-clear-cache',
+            'id'     => 'coreboost-clear-cache',
             'title'  => __('Clear Cache', 'coreboost'),
             'href'   => '#',
             'meta'   => array(
                 'title' => __('Clear CoreBoost Cache', 'coreboost'),
-                'class' => 'npg-so-clear-cache-link',
+                'class' => 'coreboost-clear-cache-link',
             ),
         ));
         
         $wp_admin_bar->add_menu(array(
             'parent' => 'coreboost',
-            'id'     => 'npg-so-settings',
+            'id'     => 'coreboost-settings',
             'title'  => __('Settings', 'coreboost'),
             'href'   => admin_url('options-general.php?page=coreboost'),
         ));
         
         $wp_admin_bar->add_menu(array(
             'parent' => 'coreboost',
-            'id'     => 'npg-so-test-pagespeed',
+            'id'     => 'coreboost-test-pagespeed',
             'title'  => __('Test PageSpeed', 'coreboost'),
             'href'   => 'https://pagespeed.web.dev/analysis?url=' . urlencode(home_url()),
             'meta'   => array(
@@ -742,8 +742,8 @@ class CoreBoost {
     public function enqueue_admin_scripts($hook) {
         // Enqueue on all pages for admin bar functionality
         if (is_admin_bar_showing()) {
-            wp_enqueue_script('npg-so-admin', COREBOOST_PLUGIN_URL . 'assets/admin.js', array('jquery'), COREBOOST_VERSION, true);
-            wp_localize_script('npg-so-admin', 'coreboost_ajax', array(
+            wp_enqueue_script('coreboost-admin', COREBOOST_PLUGIN_URL . 'assets/admin.js', array('jquery'), COREBOOST_VERSION, true);
+            wp_localize_script('coreboost-admin', 'coreboost_ajax', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce'    => wp_create_nonce('coreboost_clear_cache_nonce'),
                 'clearing_text' => __('Clearing...', 'coreboost'),
@@ -754,8 +754,8 @@ class CoreBoost {
         
         // Enqueue on settings page for enhanced functionality
         if ($hook === 'settings_page_coreboost') {
-            wp_enqueue_script('npg-so-settings', COREBOOST_PLUGIN_URL . 'assets/settings.js', array('jquery'), COREBOOST_VERSION, true);
-            wp_enqueue_style('npg-so-admin-style', COREBOOST_PLUGIN_URL . 'assets/admin.css', array(), COREBOOST_VERSION);
+            wp_enqueue_script('coreboost-settings', COREBOOST_PLUGIN_URL . 'assets/settings.js', array('jquery'), COREBOOST_VERSION, true);
+            wp_enqueue_style('coreboost-admin-style', COREBOOST_PLUGIN_URL . 'assets/admin.css', array(), COREBOOST_VERSION);
         }
     }
     
