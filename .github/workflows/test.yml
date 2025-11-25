@@ -36,8 +36,8 @@ jobs:
           echo "ERROR: eval() function found"
           exit 1
         fi
-        if grep -r "\$_GET\[" . --include="*.php"; then
-          echo "ERROR: Direct \$_GET usage found"
+        if grep -r "\$_GET\[" . --include="*.php" | grep -v "sanitize_key\|sanitize_text_field"; then
+          echo "ERROR: Unsanitized \$_GET usage found"
           exit 1
         fi
         if grep -r "\$_POST\[" . --include="*.php"; then

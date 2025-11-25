@@ -487,7 +487,7 @@ class CoreBoost {
      * Admin page HTML
      */
     public function admin_page() {
-        $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'hero';
+        $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'hero';
         ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
@@ -575,13 +575,13 @@ class CoreBoost {
         <?php
         
         // Handle cache clearing
-        if (isset($_GET['action']) && $_GET['action'] === 'clear_cache' && wp_verify_nonce($_GET['_wpnonce'], 'coreboost_clear_cache')) {
+        if (isset($_GET['action']) && sanitize_key($_GET['action']) === 'clear_cache' && isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field($_GET['_wpnonce']), 'coreboost_clear_cache')) {
             $this->clear_all_hero_cache();
             echo '<div class="notice notice-success"><p>' . __('All caches cleared successfully!', 'coreboost') . '</p></div>';
         }
         
         // Handle settings update and redirect to preserve tab
-        if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true') {
+        if (isset($_GET['settings-updated']) && sanitize_key($_GET['settings-updated']) === 'true') {
             echo '<div class="notice notice-success is-dismissible"><p>' . __('Settings saved successfully!', 'coreboost') . '</p></div>';
             
             // JavaScript to redirect to correct tab if needed
@@ -1427,6 +1427,7 @@ class CoreBoost {
         }
         ';
     }
+}
 
 // Initialize the plugin
 function coreboost_init() {
