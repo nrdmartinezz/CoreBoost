@@ -83,9 +83,9 @@ class CoreBoost {
         add_filter('wp_lazy_loading_enabled', array($this, 'maybe_disable_lazy_loading'), 10, 2);
         add_filter('wp_get_attachment_image_attributes', array($this, 'add_lcp_attributes'), 10, 3);
         
-        // Remove unused CSS and JS
-        add_action('wp_print_styles', array($this, 'remove_unused_styles'), 100);
-        add_action('wp_print_scripts', array($this, 'remove_unused_scripts'), 100);
+        // Remove unused CSS and JS (runs very late to catch scripts enqueued in wp_enqueue_scripts)
+        add_action('wp_enqueue_scripts', array($this, 'remove_unused_styles'), PHP_INT_MAX);
+        add_action('wp_enqueue_scripts', array($this, 'remove_unused_scripts'), PHP_INT_MAX);
         
         // Block YouTube player resources if enabled
         add_filter('script_loader_tag', array($this, 'block_youtube_resources'), 10, 3);
@@ -1496,13 +1496,21 @@ class CoreBoost {
         
         $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_css_list'])));
         
+        if ($this->options['debug_mode'] && !empty($handles)) {
+            $this->debug_comment("CoreBoost: Attempting to remove " . count($handles) . " CSS handle(s): " . implode(', ', $handles));
+        }
+        
         foreach ($handles as $handle) {
-            if (wp_style_is($handle, 'enqueued')) {
+            if (wp_style_is($handle, 'enqueued') || wp_style_is($handle, 'registered')) {
                 wp_dequeue_style($handle);
                 wp_deregister_style($handle);
                 
                 if ($this->options['debug_mode']) {
-                    $this->debug_comment("Removed unused CSS: {$handle}");
+                    $this->debug_comment("✓ Removed unused CSS: {$handle}");
+                }
+            } else {
+                if ($this->options['debug_mode']) {
+                    $this->debug_comment("✗ CSS handle not found: {$handle} (not enqueued or registered)");
                 }
             }
         }
@@ -1518,13 +1526,21 @@ class CoreBoost {
         
         $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_js_list'])));
         
+        if ($this->options['debug_mode'] && !empty($handles)) {
+            $this->debug_comment("CoreBoost: Attempting to remove " . count($handles) . " JS handle(s): " . implode(', ', $handles));
+        }
+        
         foreach ($handles as $handle) {
-            if (wp_script_is($handle, 'enqueued')) {
+            if (wp_script_is($handle, 'enqueued') || wp_script_is($handle, 'registered')) {
                 wp_dequeue_script($handle);
                 wp_deregister_script($handle);
                 
                 if ($this->options['debug_mode']) {
-                    $this->debug_comment("Removed unused script: {$handle}");
+                    $this->debug_comment("✓ Removed unused script: {$handle}");
+                }
+            } else {
+                if ($this->options['debug_mode']) {
+                    $this->debug_comment("✗ Script handle not found: {$handle} (not enqueued or registered)");
                 }
             }
         }
