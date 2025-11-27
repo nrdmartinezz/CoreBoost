@@ -246,7 +246,11 @@ class CoreBoost {
             'block_youtube_player_css' => false,
             'block_youtube_embed_ui' => false,
             'unused_css_list' => '',
-            'unused_js_list' => ''
+            'unused_js_list' => '',
+            'enable_inline_script_removal' => false,
+            'inline_script_ids' => '',
+            'enable_inline_style_removal' => false,
+            'inline_style_ids' => ''
         );
     }
     
@@ -386,6 +390,10 @@ class CoreBoost {
             'unused_css_list' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter CSS handles to remove (one per line). Find handles in page source or browser developer tools.'),
             'enable_unused_js_removal' => array('type' => 'checkbox', 'default' => false, 'description' => 'Dequeue and remove specified JavaScript files from your site.'),
             'unused_js_list' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter JavaScript handles to remove (one per line). Find handles in page source or browser developer tools.'),
+            'enable_inline_script_removal' => array('type' => 'checkbox', 'default' => false, 'description' => 'Remove inline scripts by ID attribute (for scripts added via wp_head/wp_footer, not wp_enqueue_script).'),
+            'inline_script_ids' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter script ID attributes to remove (one per line). Example: ga-client-property, fb-pixel-client'),
+            'enable_inline_style_removal' => array('type' => 'checkbox', 'default' => false, 'description' => 'Remove inline style tags by ID attribute.'),
+            'inline_style_ids' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter style ID attributes to remove (one per line).'),
             'block_youtube_player_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube player CSS files (useful for background videos that don\'t need player UI).'),
             'block_youtube_embed_ui' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube embed UI scripts (useful for autoplay background videos).'),
             'debug_mode' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add HTML comments showing which optimizations are applied.')
@@ -445,6 +453,10 @@ class CoreBoost {
         $this->add_dynamic_field('unused_css_list', __('Unused CSS Handles', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('enable_unused_js_removal', __('Remove Unused JavaScript', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('unused_js_list', __('Unused JS Handles', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('enable_inline_script_removal', __('Remove Inline Scripts by ID', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('inline_script_ids', __('Inline Script IDs', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('enable_inline_style_removal', __('Remove Inline Styles by ID', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('inline_style_ids', __('Inline Style IDs', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('block_youtube_player_css', __('Block YouTube Player CSS', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('block_youtube_embed_ui', __('Block YouTube Embed UI', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('debug_mode', __('Debug Mode', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
@@ -605,9 +617,10 @@ class CoreBoost {
                               'enable_responsive_preload', 'enable_caching', 'debug_mode', 'enable_font_optimization',
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                               'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
-                              'enable_unused_js_removal', 'block_youtube_player_css', 'block_youtube_embed_ui'),
+                              'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
+                              'block_youtube_player_css', 'block_youtube_embed_ui'),
             'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
-                               'unused_css_list', 'unused_js_list'),
+                               'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids'),
             'text' => array('css_defer_method'),
             'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts')
         );
@@ -619,7 +632,8 @@ class CoreBoost {
         $has_script_fields = isset($input['scripts_to_defer']) || isset($input['scripts_to_async']) || isset($input['exclude_scripts']);
         $has_css_fields = isset($input['styles_to_defer']) || isset($input['critical_css_global']) || isset($input['css_defer_method']);
         $has_hero_fields = isset($input['preload_method']) || isset($input['specific_pages']);
-        $has_advanced_fields = isset($input['unused_css_list']) || isset($input['unused_js_list']);
+        $has_advanced_fields = isset($input['unused_css_list']) || isset($input['unused_js_list']) || 
+                                isset($input['inline_script_ids']) || isset($input['inline_style_ids']);
         
         foreach ($field_types['boolean'] as $field) {
             if (array_key_exists($field, $input)) {
@@ -644,7 +658,8 @@ class CoreBoost {
                 }
                 // Advanced tab booleans
                 if ($has_advanced_fields && in_array($field, array('enable_caching', 'debug_mode', 'enable_unused_css_removal',
-                    'enable_unused_js_removal', 'block_youtube_player_css', 'block_youtube_embed_ui'))) {
+                    'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
+                    'block_youtube_player_css', 'block_youtube_embed_ui'))) {
                     $is_current_form = true;
                 }
                 
@@ -812,7 +827,9 @@ class CoreBoost {
                           'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts',
                           'font_display_swap', 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
             'advanced' => array('enable_caching', 'enable_unused_css_removal', 'unused_css_list', 'enable_unused_js_removal', 
-                               'unused_js_list', 'block_youtube_player_css', 'block_youtube_embed_ui', 'debug_mode')
+                               'unused_js_list', 'enable_inline_script_removal', 'inline_script_ids', 
+                               'enable_inline_style_removal', 'inline_style_ids', 'block_youtube_player_css', 
+                               'block_youtube_embed_ui', 'debug_mode')
         );
         
         // Output hidden fields for all tabs except the active one
@@ -1547,6 +1564,91 @@ class CoreBoost {
     }
     
     /**
+     * Remove inline scripts by ID attribute
+     */
+    private function remove_inline_scripts_by_id($html) {
+        if (!$this->options['enable_inline_script_removal'] || empty($this->options['inline_script_ids'])) {
+            return $html;
+        }
+        
+        $ids = array_filter(array_map('trim', explode("\n", $this->options['inline_script_ids'])));
+        
+        if ($this->options['debug_mode'] && !empty($ids)) {
+            $debug_comment = "<!-- CoreBoost: Attempting to remove " . count($ids) . " inline script(s) by ID: " . implode(', ', $ids) . " -->\n";
+            $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
+        }
+        
+        foreach ($ids as $id) {
+            $id_escaped = preg_quote($id, '/');
+            
+            // Match script tags with this ID and remove them along with their content
+            // Handles both <script id="..." and <script ... id="..."
+            $pattern = '/<script[^>]*\sid=["\']' . $id_escaped . '["\'][^>]*>.*?<\/script>\s*/is';
+            $count = 0;
+            $html = preg_replace($pattern, '', $html, -1, $count);
+            
+            if ($count === 0) {
+                // Try alternate pattern where id is first attribute
+                $pattern = '/<script\s+id=["\']' . $id_escaped . '["\'][^>]*>.*?<\/script>\s*/is';
+                $html = preg_replace($pattern, '', $html, -1, $count);
+            }
+            
+            if ($this->options['debug_mode']) {
+                if ($count > 0) {
+                    $debug_comment = "<!-- CoreBoost: ✓ Removed inline script with ID: {$id} -->\n";
+                } else {
+                    $debug_comment = "<!-- CoreBoost: ✗ Inline script ID not found: {$id} -->\n";
+                }
+                $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
+            }
+        }
+        
+        return $html;
+    }
+    
+    /**
+     * Remove inline style tags by ID attribute
+     */
+    private function remove_inline_styles_by_id($html) {
+        if (!$this->options['enable_inline_style_removal'] || empty($this->options['inline_style_ids'])) {
+            return $html;
+        }
+        
+        $ids = array_filter(array_map('trim', explode("\n", $this->options['inline_style_ids'])));
+        
+        if ($this->options['debug_mode'] && !empty($ids)) {
+            $debug_comment = "<!-- CoreBoost: Attempting to remove " . count($ids) . " inline style(s) by ID: " . implode(', ', $ids) . " -->\n";
+            $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
+        }
+        
+        foreach ($ids as $id) {
+            $id_escaped = preg_quote($id, '/');
+            
+            // Match style tags with this ID and remove them along with their content
+            $pattern = '/<style[^>]*\sid=["\']' . $id_escaped . '["\'][^>]*>.*?<\/style>\s*/is';
+            $count = 0;
+            $html = preg_replace($pattern, '', $html, -1, $count);
+            
+            if ($count === 0) {
+                // Try alternate pattern where id is first attribute
+                $pattern = '/<style\s+id=["\']' . $id_escaped . '["\'][^>]*>.*?<\/style>\s*/is';
+                $html = preg_replace($pattern, '', $html, -1, $count);
+            }
+            
+            if ($this->options['debug_mode']) {
+                if ($count > 0) {
+                    $debug_comment = "<!-- CoreBoost: ✓ Removed inline style with ID: {$id} -->\n";
+                } else {
+                    $debug_comment = "<!-- CoreBoost: ✗ Inline style ID not found: {$id} -->\n";
+                }
+                $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
+            }
+        }
+        
+        return $html;
+    }
+    
+    /**
      * Block YouTube player resources from script tags
      */
     public function block_youtube_resources($tag, $handle, $src) {
@@ -1659,7 +1761,8 @@ class CoreBoost {
         if (is_admin()) {
             return;
         }
-        if ($this->options['enable_css_defer'] || $this->options['enable_script_defer']) {
+        if ($this->options['enable_css_defer'] || $this->options['enable_script_defer'] || 
+            $this->options['enable_inline_script_removal'] || $this->options['enable_inline_style_removal']) {
             ob_start(array($this, 'process_inline_assets'));
         }
     }
@@ -1671,6 +1774,10 @@ class CoreBoost {
         if (is_admin()) {
             return $html;
         }
+        
+        // Remove inline scripts and styles by ID first
+        $html = $this->remove_inline_scripts_by_id($html);
+        $html = $this->remove_inline_styles_by_id($html);
         
         // Process CSS
         if ($this->options['enable_css_defer']) {
