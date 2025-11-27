@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2024-11-27
+
+### Added
+
+- **Unused CSS/JS Removal**: Manual control to dequeue and deregister specific resource handles
+  - New "Remove Unused CSS" option with textarea for CSS handles (one per line)
+  - New "Remove Unused JavaScript" option with textarea for JS handles (one per line)
+  - Uses `wp_dequeue_style()`, `wp_deregister_style()`, `wp_dequeue_script()`, `wp_deregister_script()`
+  - Debug mode shows which resources were removed in HTML comments
+  
+- **YouTube Player Resource Blocking**: Targeted optimization for background videos
+  - "Block YouTube Player CSS" option prevents `www.youtube.com/s/player` CSS from loading
+  - "Block YouTube Embed UI" option blocks `youtube.com/yts/` scripts
+  - Useful for autoplay background videos that don't need player controls
+  - Can save 50-100KB per page with YouTube embeds
+
+### Fixed
+
+- **Checkbox Unchecking Bug**: Fixed issue where unchecked checkboxes would revert to checked state on save
+  - Enhanced sanitization logic to properly detect current form tab
+  - Boolean fields now correctly set to `false` when unchecked
+  - Preserves settings from other tabs via hidden fields
+  - Applies to all checkboxes across all tabs (Hero, Scripts, CSS, Advanced)
+
+### Improved
+
+- **jQuery Dependency Protection**: Enhanced script deferring to automatically detect jQuery dependencies
+  - Checks WordPress's `$wp_scripts` dependency graph for jQuery dependencies
+  - Forces `defer` (not `async`) for any script that depends on jQuery
+  - Protects Elementor and other jQuery-dependent plugins from loading before jQuery
+  - Prevents jQuery errors even if scripts are mistakenly added to async list
+  - Better debug messages showing when scripts are deferred due to jQuery dependency
+
+- **Advanced Tab Description**: Updated section description to mention unused resource removal functionality
+
 ### Planned Features
 
 - Real User Monitoring (RUM) integration for LCP detection
