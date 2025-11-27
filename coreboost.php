@@ -220,7 +220,7 @@ class CoreBoost {
             'scripts_to_defer' => "contact-form-7\nwc-cart-fragments\nelementor-frontend",
             'scripts_to_async' => "youtube-iframe-api\niframe-api",
             'styles_to_defer' => "contact-form-7\nwoocommerce-layout\nelementor-frontend\ncustom-frontend\nswiper\nwidget-\nelementor-post-\ncustom-\nfadeIn\ne-swiper",
-            'exclude_scripts' => "jquery-core\njquery-migrate\njquery",
+            'exclude_scripts' => "jquery-core\njquery-migrate\njquery\njquery-ui-core",
             'specific_pages' => '',
             'css_defer_method' => 'preload_with_critical',
             'critical_css_global' => '',
@@ -351,37 +351,94 @@ class CoreBoost {
     }
     
     /**
+     * Field configuration for dynamic callback handling
+     */
+    private function get_field_config() {
+        return array(
+            'enable_responsive_preload' => array('type' => 'checkbox', 'default' => true, 'description' => 'Preload different image sizes for mobile and tablet devices.'),
+            'enable_foreground_conversion' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add CSS to convert background images to foreground images for better performance.'),
+            'enable_script_defer' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable automatic script deferring for better performance.'),
+            'scripts_to_defer' => array('type' => 'textarea', 'rows' => 5, 'description' => 'Script handles to defer (one per line). Use defer for jQuery-dependent scripts. Leave empty to defer all non-excluded scripts.'),
+            'scripts_to_async' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Independent scripts to load with async (one per line). These scripts have no dependencies and can execute immediately. Examples: youtube-iframe-api, google-analytics, facebook-pixel.'),
+            'exclude_scripts' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Script handles to never defer or async (one per line). Keep jQuery here as it\'s required by most WordPress scripts.'),
+            'enable_css_defer' => array('type' => 'checkbox', 'default' => false, 'description' => 'Enable CSS deferring with critical CSS inlining.'),
+            'styles_to_defer' => array('type' => 'textarea', 'rows' => 3, 'description' => 'CSS handles to defer (one per line).'),
+            'critical_css_global' => array('type' => 'textarea', 'rows' => 8, 'class' => 'large-text code', 'description' => 'Global critical CSS applied to all pages. Include only above-the-fold styles.'),
+            'critical_css_home' => array('type' => 'textarea', 'rows' => 6, 'class' => 'large-text code', 'description' => 'Critical CSS specific to the homepage. This will be combined with global critical CSS.'),
+            'critical_css_pages' => array('type' => 'textarea', 'rows' => 6, 'class' => 'large-text code', 'description' => 'Critical CSS for all pages (not posts). Combined with global critical CSS.'),
+            'critical_css_posts' => array('type' => 'textarea', 'rows' => 6, 'class' => 'large-text code', 'description' => 'Critical CSS for all posts/blog pages. Combined with global critical CSS.'),
+            'enable_caching' => array('type' => 'checkbox', 'default' => true, 'description' => 'Cache hero image detection results for better performance.'),
+            'debug_mode' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add HTML comments showing which optimizations are applied.')
+        );
+    }
+    
+    /**
+     * Dynamic field callback handler
+     */
+    public function render_field_callback($args) {
+        $field_name = $args['field_name'];
+        $config = $args['config'];
+        
+        switch($config['type']) {
+            case 'checkbox':
+                $this->render_checkbox($field_name, $config['default'], $config['description']);
+                break;
+            case 'textarea':
+                $class = isset($config['class']) ? $config['class'] : 'large-text';
+                $this->render_textarea($field_name, $config['rows'], $config['description'], $class);
+                break;
+        }
+    }
+    
+    /**
      * Add settings fields
      */
     private function add_settings_fields() {
         // Hero Image Fields
         add_settings_field('preload_method', __('Preload Method', 'coreboost'), array($this, 'preload_method_callback'), 'coreboost-hero', 'coreboost_hero_section');
-        add_settings_field('enable_responsive_preload', __('Responsive Preloading', 'coreboost'), array($this, 'enable_responsive_preload_callback'), 'coreboost-hero', 'coreboost_hero_section');
-        add_settings_field('enable_foreground_conversion', __('Enable Foreground CSS', 'coreboost'), array($this, 'enable_foreground_conversion_callback'), 'coreboost-hero', 'coreboost_hero_section');
+        $this->add_dynamic_field('enable_responsive_preload', __('Responsive Preloading', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
+        $this->add_dynamic_field('enable_foreground_conversion', __('Enable Foreground CSS', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('specific_pages', __('Page-Specific Images', 'coreboost'), array($this, 'specific_pages_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('lazy_load_exclude_count', __('Exclude First X Images from Lazy Load', 'coreboost'), array($this, 'lazy_load_exclude_count_callback'), 'coreboost-hero', 'coreboost_hero_section');
         
         // Script Fields
-        add_settings_field('enable_script_defer', __('Enable Script Deferring', 'coreboost'), array($this, 'enable_script_defer_callback'), 'coreboost-scripts', 'coreboost_script_section');
-        add_settings_field('scripts_to_defer', __('Scripts to Defer', 'coreboost'), array($this, 'scripts_to_defer_callback'), 'coreboost-scripts', 'coreboost_script_section');
-        add_settings_field('scripts_to_async', __('Scripts to Load Async', 'coreboost'), array($this, 'scripts_to_async_callback'), 'coreboost-scripts', 'coreboost_script_section');
-        add_settings_field('exclude_scripts', __('Exclude Scripts', 'coreboost'), array($this, 'exclude_scripts_callback'), 'coreboost-scripts', 'coreboost_script_section');
+        $this->add_dynamic_field('enable_script_defer', __('Enable Script Deferring', 'coreboost'), 'coreboost-scripts', 'coreboost_script_section');
+        $this->add_dynamic_field('scripts_to_defer', __('Scripts to Defer', 'coreboost'), 'coreboost-scripts', 'coreboost_script_section');
+        $this->add_dynamic_field('scripts_to_async', __('Scripts to Load Async', 'coreboost'), 'coreboost-scripts', 'coreboost_script_section');
+        $this->add_dynamic_field('exclude_scripts', __('Exclude Scripts', 'coreboost'), 'coreboost-scripts', 'coreboost_script_section');
         
         // CSS Fields
-        add_settings_field('enable_css_defer', __('Enable CSS Deferring', 'coreboost'), array($this, 'enable_css_defer_callback'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('enable_css_defer', __('Enable CSS Deferring', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('css_defer_method', __('CSS Defer Method', 'coreboost'), array($this, 'css_defer_method_callback'), 'coreboost-css', 'coreboost_css_section');
-        add_settings_field('styles_to_defer', __('Styles to Defer', 'coreboost'), array($this, 'styles_to_defer_callback'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('styles_to_defer', __('Styles to Defer', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('enable_font_optimization', __('Enable Font Optimization', 'coreboost'), array($this, 'enable_font_optimization_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('defer_google_fonts', __('Defer Google Fonts', 'coreboost'), array($this, 'defer_google_fonts_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('defer_adobe_fonts', __('Defer Adobe Fonts', 'coreboost'), array($this, 'defer_adobe_fonts_callback'), 'coreboost-css', 'coreboost_css_section');
-        add_settings_field('critical_css_global', __('Global Critical CSS', 'coreboost'), array($this, 'critical_css_global_callback'), 'coreboost-css', 'coreboost_css_section');
-        add_settings_field('critical_css_home', __('Homepage Critical CSS', 'coreboost'), array($this, 'critical_css_home_callback'), 'coreboost-css', 'coreboost_css_section');
-        add_settings_field('critical_css_pages', __('Pages Critical CSS', 'coreboost'), array($this, 'critical_css_pages_callback'), 'coreboost-css', 'coreboost_css_section');
-        add_settings_field('critical_css_posts', __('Posts Critical CSS', 'coreboost'), array($this, 'critical_css_posts_callback'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('critical_css_global', __('Global Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('critical_css_home', __('Homepage Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('critical_css_pages', __('Pages Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('critical_css_posts', __('Posts Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         
         // Advanced Fields
-        add_settings_field('enable_caching', __('Enable Caching', 'coreboost'), array($this, 'enable_caching_callback'), 'coreboost-advanced', 'coreboost_advanced_section');
-        add_settings_field('debug_mode', __('Debug Mode', 'coreboost'), array($this, 'debug_mode_callback'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('enable_caching', __('Enable Caching', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('debug_mode', __('Debug Mode', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+    }
+    
+    /**
+     * Helper to add dynamic field with configuration
+     */
+    private function add_dynamic_field($field_name, $label, $page, $section) {
+        $config = $this->get_field_config();
+        if (isset($config[$field_name])) {
+            add_settings_field(
+                $field_name,
+                $label,
+                array($this, 'render_field_callback'),
+                $page,
+                $section,
+                array('field_name' => $field_name, 'config' => $config[$field_name])
+            );
+        }
     }
     
     /**
@@ -426,19 +483,19 @@ class CoreBoost {
     }
 
     public function hero_section_callback() {
-        $this->section_description('Configure how hero images are detected and preloaded for optimal LCP performance.');
+        echo '<p>' . esc_html('Configure how hero images are detected and preloaded for optimal LCP performance.') . '</p>';
     }
     
     public function script_section_callback() {
-        $this->section_description('Optimize JavaScript loading to reduce critical request chain. Use defer for jQuery-dependent scripts (downloads in parallel, executes in order). Use async for independent scripts like YouTube, analytics (downloads and executes immediately). This eliminates network waterfall congestion.');
+        echo '<p>' . esc_html('Optimize JavaScript loading to reduce critical request chain. Use defer for jQuery-dependent scripts (downloads in parallel, executes in order). Use async for independent scripts like YouTube, analytics (downloads and executes immediately). This eliminates network waterfall congestion.') . '</p>';
     }
     
     public function css_section_callback() {
-        $this->section_description('Advanced CSS optimization with critical CSS inlining and non-critical CSS deferring.');
+        echo '<p>' . esc_html('Advanced CSS optimization with critical CSS inlining and non-critical CSS deferring.') . '</p>';
     }
     
     public function advanced_section_callback() {
-        $this->section_description('Advanced optimization settings and debugging options.');
+        echo '<p>' . esc_html('Advanced optimization settings and debugging options.') . '</p>';
     }
     
     /**
@@ -463,14 +520,6 @@ class CoreBoost {
         echo '<p class="description">' . __('Choose how hero images should be detected and preloaded.', 'coreboost') . '</p>';
     }
     
-    public function enable_responsive_preload_callback() {
-        $this->render_checkbox('enable_responsive_preload', true, 'Preload different image sizes for mobile and tablet devices.');
-    }
-    
-    public function enable_foreground_conversion_callback() {
-        $this->render_checkbox('enable_foreground_conversion', false, 'Add CSS to convert background images to foreground images for better performance.');
-    }
-    
     public function specific_pages_callback() {
         $value = isset($this->options['specific_pages']) ? $this->options['specific_pages'] : '';
         echo '<textarea name="coreboost_options[specific_pages]" rows="5" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
@@ -484,36 +533,12 @@ class CoreBoost {
         echo '<p class="description">' . __('Automatically disable lazy loading and apply `fetchpriority="high"` to the first X images on the page. Recommended: 2-3.', 'coreboost') . '</p>';
     }
     
-    public function enable_script_defer_callback() {
-        $this->render_checkbox('enable_script_defer', true, 'Enable automatic script deferring for better performance.');
-    }
-    
-    public function scripts_to_defer_callback() {
-        $this->render_textarea('scripts_to_defer', 5, 'Script handles to defer (one per line). Use defer for jQuery-dependent scripts. Leave empty to defer all non-excluded scripts.');
-    }
-    
-    public function scripts_to_async_callback() {
-        $this->render_textarea('scripts_to_async', 3, 'Independent scripts to load with async (one per line). These scripts have no dependencies and can execute immediately. Examples: youtube-iframe-api, google-analytics, facebook-pixel.');
-    }
-    
-    public function exclude_scripts_callback() {
-        $this->render_textarea('exclude_scripts', 3, 'Script handles to never defer or async (one per line). Keep jQuery here as it\'s required by most WordPress scripts.');
-    }
-    
-    public function enable_css_defer_callback() {
-        $this->render_checkbox('enable_css_defer', false, 'Enable CSS deferring with critical CSS inlining.');
-    }
-    
     public function css_defer_method_callback() {
         $methods = array(
             'preload_with_critical' => __('Preload with Critical CSS (Recommended)', 'coreboost'),
             'simple_defer' => __('Simple Defer (Basic)', 'coreboost')
         );
         $this->render_select('css_defer_method', $methods, 'preload_with_critical', 'Choose CSS deferring method. Preload with Critical CSS provides better performance.');
-    }
-    
-    public function styles_to_defer_callback() {
-        $this->render_textarea('styles_to_defer', 3, 'CSS handles to defer (one per line).');
     }
     
     public function enable_font_optimization_callback() {
@@ -529,31 +554,6 @@ class CoreBoost {
     public function defer_adobe_fonts_callback() {
         $disabled = !$this->options['enable_font_optimization'];
         $this->render_checkbox('defer_adobe_fonts', $disabled, 'Defer Adobe Fonts (use.typekit.net, fonts.adobe.com) loading using preload with onload handler.');
-    }
-    
-    public function critical_css_global_callback() {
-        $this->render_textarea('critical_css_global', 8, 'Global critical CSS applied to all pages. Include only above-the-fold styles.', 'large-text code');
-        echo '<p class="description"><strong>' . __('Tip:', 'coreboost') . '</strong> ' . __('Use tools like Critical CSS Generator or manually extract essential styles.', 'coreboost') . '</p>';
-    }
-    
-    public function critical_css_home_callback() {
-        $this->render_textarea('critical_css_home', 6, 'Critical CSS specific to the homepage. This will be combined with global critical CSS.', 'large-text code');
-    }
-    
-    public function critical_css_pages_callback() {
-        $this->render_textarea('critical_css_pages', 6, 'Critical CSS for all pages (not posts). Combined with global critical CSS.', 'large-text code');
-    }
-    
-    public function critical_css_posts_callback() {
-        $this->render_textarea('critical_css_posts', 6, 'Critical CSS for all posts/blog pages. Combined with global critical CSS.', 'large-text code');
-    }
-    
-    public function enable_caching_callback() {
-        $this->render_checkbox('enable_caching', true, 'Cache hero image detection results for better performance.');
-    }
-    
-    public function debug_mode_callback() {
-        $this->render_checkbox('debug_mode', false, 'Add HTML comments showing which optimizations are applied.');
     }
     
     /**
@@ -1368,10 +1368,11 @@ class CoreBoost {
             return;
         }
         
-        // Preload jQuery as it's a critical dependency
+        // Preload jQuery and jQuery UI as critical dependencies
         $critical_scripts = array(
             'jquery-core' => 'high',
-            'jquery-migrate' => 'low'
+            'jquery-migrate' => 'low',
+            'jquery-ui-core' => 'low'
         );
         
         foreach ($critical_scripts as $handle => $priority) {
@@ -1511,11 +1512,14 @@ class CoreBoost {
             return $full_tag;
         }
         
-        // Exclude jQuery (must load first)
+        // Exclude jQuery and jQuery UI core (must load first, critical dependencies)
         if (strpos($src, '/jquery/jquery.min.js') !== false || 
             strpos($src, '/jquery-migrate') !== false ||
             strpos($src, 'jquery.min.js') !== false ||
-            strpos($src, 'jquery.js') !== false) {
+            strpos($src, 'jquery.js') !== false ||
+            strpos($src, '/jquery-ui-core') !== false ||
+            strpos($src, 'jquery-ui.min.js') !== false ||
+            strpos($src, '/ui/core.min.js') !== false) {
             return $full_tag;
         }
         
@@ -1533,10 +1537,15 @@ class CoreBoost {
             $should_defer = true;
             $this->debug_comment('Deferring inline Elementor script: ' . basename($src));
         }
-        // jQuery UI, smartmenus (dependent - use defer)
-        elseif (strpos($src, '/jquery-ui/') !== false || strpos($src, '/smartmenus/') !== false) {
+        // smartmenus (dependent - use defer)
+        elseif (strpos($src, '/smartmenus/') !== false) {
             $should_defer = true;
-            $this->debug_comment('Deferring inline jQuery plugin: ' . basename($src));
+            $this->debug_comment('Deferring inline smartmenus script: ' . basename($src));
+        }
+        // Other jQuery UI components (not core - can defer)
+        elseif (strpos($src, '/jquery-ui/') !== false && strpos($src, 'core.min.js') === false) {
+            $should_defer = true;
+            $this->debug_comment('Deferring inline jQuery UI component: ' . basename($src));
         }
         // WordPress core dist scripts (may have dependencies - use defer)
         elseif (strpos($src, '/wp-includes/js/dist/') !== false) {
