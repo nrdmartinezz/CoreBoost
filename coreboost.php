@@ -3,7 +3,7 @@
  * Plugin Name: CoreBoost
  * Plugin URI: https://github.com/your-username/coreboost
  * Description: Comprehensive site optimization plugin with LCP optimization for Elementor hero sections, advanced CSS deferring with critical CSS, Google Fonts & Adobe Fonts optimization, script optimization, and performance enhancements.
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: nrdmartinezz
  * Author URI: https://github.com/nrdmartinezz
  * License: GPL v2 or later
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('COREBOOST_VERSION', '1.0.6');
+define('COREBOOST_VERSION', '1.0.7');
 define('COREBOOST_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('COREBOOST_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('COREBOOST_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -68,6 +68,7 @@ class CoreBoost {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'admin_init'));
         add_action('wp_head', array($this, 'add_font_preconnects'), 0);
+        add_action('wp_head', array($this, 'add_script_resource_hints'), 0);
         add_action('wp_head', array($this, 'preload_hero_images'), 1);
         add_action('wp_head', array($this, 'output_critical_css'), 2);
         add_filter('script_loader_tag', array($this, 'defer_scripts'), 20, 2);
@@ -217,6 +218,7 @@ class CoreBoost {
             'debug_mode' => false,
             'lazy_load_exclude_count' => 2,
             'scripts_to_defer' => "contact-form-7\nwc-cart-fragments\nelementor-frontend",
+            'scripts_to_async' => "youtube-iframe-api\niframe-api",
             'styles_to_defer' => "contact-form-7\nwoocommerce-layout\nelementor-frontend\ncustom-frontend\nswiper\nwidget-\nelementor-post-\ncustom-\nfadeIn\ne-swiper",
             'exclude_scripts' => "jquery-core\njquery-migrate\njquery",
             'specific_pages' => '',
@@ -362,6 +364,7 @@ class CoreBoost {
         // Script Fields
         add_settings_field('enable_script_defer', __('Enable Script Deferring', 'coreboost'), array($this, 'enable_script_defer_callback'), 'coreboost-scripts', 'coreboost_script_section');
         add_settings_field('scripts_to_defer', __('Scripts to Defer', 'coreboost'), array($this, 'scripts_to_defer_callback'), 'coreboost-scripts', 'coreboost_script_section');
+        add_settings_field('scripts_to_async', __('Scripts to Load Async', 'coreboost'), array($this, 'scripts_to_async_callback'), 'coreboost-scripts', 'coreboost_script_section');
         add_settings_field('exclude_scripts', __('Exclude Scripts', 'coreboost'), array($this, 'exclude_scripts_callback'), 'coreboost-scripts', 'coreboost_script_section');
         
         // CSS Fields
@@ -427,7 +430,7 @@ class CoreBoost {
     }
     
     public function script_section_callback() {
-        $this->section_description('Optimize JavaScript loading by deferring non-critical resources.');
+        $this->section_description('Optimize JavaScript loading to reduce critical request chain. Use defer for jQuery-dependent scripts (downloads in parallel, executes in order). Use async for independent scripts like YouTube, analytics (downloads and executes immediately). This eliminates network waterfall congestion.');
     }
     
     public function css_section_callback() {
@@ -486,11 +489,15 @@ class CoreBoost {
     }
     
     public function scripts_to_defer_callback() {
-        $this->render_textarea('scripts_to_defer', 5, 'Script handles to defer (one per line). Leave empty to defer all non-excluded scripts.');
+        $this->render_textarea('scripts_to_defer', 5, 'Script handles to defer (one per line). Use defer for jQuery-dependent scripts. Leave empty to defer all non-excluded scripts.');
+    }
+    
+    public function scripts_to_async_callback() {
+        $this->render_textarea('scripts_to_async', 3, 'Independent scripts to load with async (one per line). These scripts have no dependencies and can execute immediately. Examples: youtube-iframe-api, google-analytics, facebook-pixel.');
     }
     
     public function exclude_scripts_callback() {
-        $this->render_textarea('exclude_scripts', 3, 'Script handles to never defer (one per line).');
+        $this->render_textarea('exclude_scripts', 3, 'Script handles to never defer or async (one per line). Keep jQuery here as it\'s required by most WordPress scripts.');
     }
     
     public function enable_css_defer_callback() {
@@ -572,7 +579,7 @@ class CoreBoost {
                               'enable_responsive_preload', 'enable_caching', 'debug_mode', 'enable_font_optimization',
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                               'preconnect_google_fonts', 'preconnect_adobe_fonts'),
-            'textarea' => array('scripts_to_defer', 'styles_to_defer', 'exclude_scripts', 'specific_pages'),
+            'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages'),
             'text' => array('css_defer_method'),
             'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts')
         );
@@ -736,7 +743,7 @@ class CoreBoost {
     private function output_hidden_fields($active_tab) {
         $all_fields = array(
             'hero' => array('preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 'specific_pages'),
-            'scripts' => array('enable_script_defer', 'scripts_to_defer', 'exclude_scripts'),
+            'scripts' => array('enable_script_defer', 'scripts_to_defer', 'scripts_to_async', 'exclude_scripts'),
             'css' => array('enable_css_defer', 'css_defer_method', 'styles_to_defer', 'enable_font_optimization', 
                           'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts',
                           'font_display_swap', 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
@@ -1257,20 +1264,32 @@ class CoreBoost {
     }
     
     /**
-     * Script deferring
+     * Script deferring with async support for independent scripts
      */
     public function defer_scripts($tag, $handle) {
         if (!$this->options['enable_script_defer'] || is_admin()) return $tag;
         
-        // Check excluded and allowed scripts
+        // Check excluded scripts (jQuery, critical scripts)
         $excluded_scripts = array_filter(array_map('trim', explode("\n", $this->options['exclude_scripts'])));
         if (in_array($handle, $excluded_scripts)) return $tag;
         
+        // Check if this script should be processed
         $scripts_to_defer = array_filter(array_map('trim', explode("\n", $this->options['scripts_to_defer'])));
-        if (!empty($scripts_to_defer) && !in_array($handle, $scripts_to_defer)) return $tag;
+        $scripts_to_async = array_filter(array_map('trim', explode("\n", $this->options['scripts_to_async'])));
         
-        $this->debug_comment('Deferring script: ' . $handle);
-        return str_replace(' src', ' defer src', $tag);
+        // Determine if script should use async or defer
+        $use_async = in_array($handle, $scripts_to_async);
+        $use_defer = empty($scripts_to_defer) || in_array($handle, $scripts_to_defer);
+        
+        if ($use_async) {
+            $this->debug_comment('Using async for independent script: ' . $handle);
+            return str_replace(' src', ' async src', $tag);
+        } elseif ($use_defer) {
+            $this->debug_comment('Using defer for dependent script: ' . $handle);
+            return str_replace(' src', ' defer src', $tag);
+        }
+        
+        return $tag;
     }
     
     /**
@@ -1333,6 +1352,39 @@ class CoreBoost {
         
         if (!empty($preconnects)) {
             echo implode("\n", $preconnects) . "\n";
+        }
+    }
+    
+    /**
+     * Add resource hints for critical scripts
+     */
+    public function add_script_resource_hints() {
+        if (!$this->options['enable_script_defer'] || is_admin()) {
+            return;
+        }
+        
+        global $wp_scripts;
+        if (!isset($wp_scripts->registered)) {
+            return;
+        }
+        
+        // Preload jQuery as it's a critical dependency
+        $critical_scripts = array(
+            'jquery-core' => 'high',
+            'jquery-migrate' => 'low'
+        );
+        
+        foreach ($critical_scripts as $handle => $priority) {
+            if (isset($wp_scripts->registered[$handle])) {
+                $src = $wp_scripts->registered[$handle]->src;
+                if (strpos($src, '//') === 0) {
+                    $src = 'https:' . $src;
+                } elseif (strpos($src, '/') === 0) {
+                    $src = site_url($src);
+                }
+                echo '<link rel="preload" href="' . esc_url($src) . '" as="script" fetchpriority="' . esc_attr($priority) . '">' . "\n";
+                $this->debug_comment('Preloading critical script: ' . $handle);
+            }
         }
     }
     
@@ -1411,29 +1463,99 @@ class CoreBoost {
     }
     
     /**
-     * Start output buffer to catch inline/hardcoded CSS
+     * Start output buffer to catch inline/hardcoded CSS and scripts
      */
     public function start_output_buffer() {
-        if (!$this->options['enable_css_defer'] || is_admin()) {
+        if (is_admin()) {
             return;
         }
-        ob_start(array($this, 'process_inline_css'));
+        if ($this->options['enable_css_defer'] || $this->options['enable_script_defer']) {
+            ob_start(array($this, 'process_inline_assets'));
+        }
     }
     
     /**
-     * Process inline CSS in HTML output
+     * Process inline CSS and scripts in HTML output
      */
-    public function process_inline_css($html) {
-        if (!$this->options['enable_css_defer'] || is_admin()) {
+    public function process_inline_assets($html) {
+        if (is_admin()) {
             return $html;
         }
         
-        // Pattern to match stylesheet link tags
-        $pattern = '/<link\s+([^>]*\s+)?rel=["\']stylesheet["\']([^>]*\s+)?href=["\']([^"\'\']+)["\']([^>]*)>/i';
+        // Process CSS
+        if ($this->options['enable_css_defer']) {
+            $css_pattern = '/<link\s+([^>]*\s+)?rel=["\']stylesheet["\']([^>]*\s+)?href=["\']([^"\'\']+)["\']([^>]*)>/i';
+            $html = preg_replace_callback($css_pattern, array($this, 'process_inline_css_callback'), $html);
+        }
         
-        $html = preg_replace_callback($pattern, array($this, 'process_inline_css_callback'), $html);
+        // Process Scripts
+        if ($this->options['enable_script_defer']) {
+            $script_pattern = '/<script([^>]*)src=["\']([^"\'\']+)["\']([^>]*)><\/script>/i';
+            $html = preg_replace_callback($script_pattern, array($this, 'process_inline_script_callback'), $html);
+        }
         
         return $html;
+    }
+    
+    /**
+     * Callback for processing individual script tags
+     */
+    private function process_inline_script_callback($matches) {
+        $full_tag = $matches[0];
+        $before_src = $matches[1];
+        $src = $matches[2];
+        $after_src = $matches[3];
+        
+        // Skip if already has defer or async
+        if (strpos($full_tag, ' defer') !== false || strpos($full_tag, ' async') !== false) {
+            return $full_tag;
+        }
+        
+        // Exclude jQuery (must load first)
+        if (strpos($src, '/jquery/jquery.min.js') !== false || 
+            strpos($src, '/jquery-migrate') !== false ||
+            strpos($src, 'jquery.min.js') !== false ||
+            strpos($src, 'jquery.js') !== false) {
+            return $full_tag;
+        }
+        
+        $should_defer = false;
+        $use_async = false;
+        
+        // Check for YouTube iframe API (independent - use async)
+        if (strpos($src, 'youtube.com/iframe_api') !== false || strpos($src, 'www.youtube.com/') !== false) {
+            $use_async = true;
+            $should_defer = true;
+            $this->debug_comment('Using async for inline YouTube API: ' . basename($src));
+        }
+        // Elementor scripts (dependent - use defer)
+        elseif (strpos($src, '/elementor/') !== false || strpos($src, '/elementor-pro/') !== false) {
+            $should_defer = true;
+            $this->debug_comment('Deferring inline Elementor script: ' . basename($src));
+        }
+        // jQuery UI, smartmenus (dependent - use defer)
+        elseif (strpos($src, '/jquery-ui/') !== false || strpos($src, '/smartmenus/') !== false) {
+            $should_defer = true;
+            $this->debug_comment('Deferring inline jQuery plugin: ' . basename($src));
+        }
+        // WordPress core dist scripts (may have dependencies - use defer)
+        elseif (strpos($src, '/wp-includes/js/dist/') !== false) {
+            $should_defer = true;
+            $this->debug_comment('Deferring inline WordPress script: ' . basename($src));
+        }
+        // WooCommerce scripts
+        elseif (strpos($src, '/woocommerce/') !== false) {
+            $should_defer = true;
+            $this->debug_comment('Deferring inline WooCommerce script: ' . basename($src));
+        }
+        
+        if (!$should_defer) {
+            return $full_tag;
+        }
+        
+        // Add async or defer attribute
+        $attribute = $use_async ? ' async' : ' defer';
+        return '<script' . $before_src . $attribute . ' src="' . $src . '"' . $after_src . '></script>';
     }
     
     /**
