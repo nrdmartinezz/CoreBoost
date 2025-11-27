@@ -1,14 +1,14 @@
 === CoreBoost ===
 Contributors: nrdmartinezz
-Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, critical css
+Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, critical css, google fonts, adobe fonts
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Advanced WordPress performance optimization plugin with LCP optimization, CSS/JS deferring, critical CSS inlining, and comprehensive Core Web Vitals improvements.
+Advanced WordPress performance optimization plugin with LCP optimization, CSS/JS deferring, critical CSS inlining, Google Fonts & Adobe Fonts optimization, and comprehensive Core Web Vitals improvements.
 
 == Description ==
 
@@ -27,6 +27,7 @@ CoreBoost is a comprehensive WordPress performance optimization plugin designed 
 * Advanced CSS deferring with preload method and fallbacks
 * Pattern-based CSS handle detection for popular plugins
 * JetFormBuilder, Elementor, and WooCommerce compatibility
+* Google Fonts & Adobe Fonts optimization with automatic preconnect and deferred loading
 
 **JavaScript Optimization**
 * Smart script deferring while preserving dependencies
@@ -146,6 +147,20 @@ Enable debug mode to see detailed optimization comments in your page source. You
 
 == Changelog ==
 
+= 1.0.5 =
+* Added Google Fonts optimization with automatic preconnect and deferred loading
+* Added Adobe Fonts (Typekit) optimization support
+* Font stylesheets now use preload with onload handler to eliminate render-blocking
+* Automatic display=swap parameter addition for better font loading
+* New font optimization settings in CSS & Critical CSS tab
+* Enhanced performance for sites using external web fonts
+
+= 1.0.4 =
+* Fixed critical bug with missing debug_comment() method
+* Fixed activation hook registration issue
+* Enhanced GitHub Actions test suite
+* Improved stability and error handling
+
 = 1.0.0 =
 * Initial release
 * LCP optimization with lazy loading exclusions and fetchpriority
@@ -157,6 +172,12 @@ Enable debug mode to see detailed optimization comments in your page source. You
 * Comprehensive caching system
 
 == Upgrade Notice ==
+
+= 1.0.5 =
+New feature: Google Fonts and Adobe Fonts optimization! Enable font optimization in CSS settings to eliminate render-blocking delays from external font stylesheets.
+
+= 1.0.4 =
+Critical bug fix release. Updates activation hook registration and adds missing method. All users should upgrade immediately.
 
 = 1.0.0 =
 Initial stable release of CoreBoost. Provides comprehensive WordPress performance optimization with significant Core Web Vitals improvements.

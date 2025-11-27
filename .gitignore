@@ -66,3 +66,4 @@ logs/
 .env
 .env.local
 .env.production
+FONT_OPTIMIZATION.md

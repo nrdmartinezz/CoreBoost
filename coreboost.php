@@ -2,8 +2,8 @@
 /**
  * Plugin Name: CoreBoost
  * Plugin URI: https://github.com/your-username/coreboost
- * Description: Comprehensive site optimization plugin with LCP optimization for Elementor hero sections, advanced CSS deferring with critical CSS, script optimization, and performance enhancements.
- * Version: 1.0.4
+ * Description: Comprehensive site optimization plugin with LCP optimization for Elementor hero sections, advanced CSS deferring with critical CSS, Google Fonts & Adobe Fonts optimization, script optimization, and performance enhancements.
+ * Version: 1.0.5
  * Author: nrdmartinezz
  * Author URI: https://github.com/nrdmartinezz
  * License: GPL v2 or later
@@ -67,10 +67,12 @@ class CoreBoost {
         add_action('init', array($this, 'init'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'admin_init'));
+        add_action('wp_head', array($this, 'add_font_preconnects'), 0);
         add_action('wp_head', array($this, 'preload_hero_images'), 1);
         add_action('wp_head', array($this, 'output_critical_css'), 2);
         add_filter('script_loader_tag', array($this, 'defer_scripts'), 20, 2);
         add_filter('style_loader_tag', array($this, 'defer_styles'), 20, 4);
+        add_filter('style_loader_tag', array($this, 'optimize_font_loading'), 10, 4);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_optimization_styles'));
         add_action('admin_bar_menu', array($this, 'add_admin_bar_menu'), 100);
         add_action('wp_ajax_coreboost_clear_cache', array($this, 'ajax_clear_cache'));
@@ -109,7 +111,13 @@ class CoreBoost {
             'critical_css_global' => '',
             'critical_css_home' => '',
             'critical_css_pages' => '',
-            'critical_css_posts' => ''
+            'critical_css_posts' => '',
+            'enable_font_optimization' => false,
+            'font_display_swap' => true,
+            'defer_google_fonts' => true,
+            'defer_adobe_fonts' => true,
+            'preconnect_google_fonts' => true,
+            'preconnect_adobe_fonts' => true
         );
     }
     
@@ -247,6 +255,9 @@ class CoreBoost {
         add_settings_field('enable_css_defer', __('Enable CSS Deferring', 'coreboost'), array($this, 'enable_css_defer_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('css_defer_method', __('CSS Defer Method', 'coreboost'), array($this, 'css_defer_method_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('styles_to_defer', __('Styles to Defer', 'coreboost'), array($this, 'styles_to_defer_callback'), 'coreboost-css', 'coreboost_css_section');
+        add_settings_field('enable_font_optimization', __('Enable Font Optimization', 'coreboost'), array($this, 'enable_font_optimization_callback'), 'coreboost-css', 'coreboost_css_section');
+        add_settings_field('defer_google_fonts', __('Defer Google Fonts', 'coreboost'), array($this, 'defer_google_fonts_callback'), 'coreboost-css', 'coreboost_css_section');
+        add_settings_field('defer_adobe_fonts', __('Defer Adobe Fonts', 'coreboost'), array($this, 'defer_adobe_fonts_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('critical_css_global', __('Global Critical CSS', 'coreboost'), array($this, 'critical_css_global_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('critical_css_home', __('Homepage Critical CSS', 'coreboost'), array($this, 'critical_css_home_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('critical_css_pages', __('Pages Critical CSS', 'coreboost'), array($this, 'critical_css_pages_callback'), 'coreboost-css', 'coreboost_css_section');
@@ -385,6 +396,21 @@ class CoreBoost {
         $this->render_textarea('styles_to_defer', 3, 'CSS handles to defer (one per line).');
     }
     
+    public function enable_font_optimization_callback() {
+        $this->render_checkbox('enable_font_optimization', false, 'Optimize external font loading to eliminate render-blocking and improve page speed.');
+        echo '<p class="description"><strong>' . __('Note:', 'coreboost') . '</strong> ' . __('This will automatically add preconnect links and defer font stylesheets from Google Fonts and Adobe Fonts.', 'coreboost') . '</p>';
+    }
+    
+    public function defer_google_fonts_callback() {
+        $disabled = !$this->options['enable_font_optimization'];
+        $this->render_checkbox('defer_google_fonts', $disabled, 'Defer Google Fonts (fonts.googleapis.com) loading using preload with onload handler.');
+    }
+    
+    public function defer_adobe_fonts_callback() {
+        $disabled = !$this->options['enable_font_optimization'];
+        $this->render_checkbox('defer_adobe_fonts', $disabled, 'Defer Adobe Fonts (use.typekit.net, fonts.adobe.com) loading using preload with onload handler.');
+    }
+    
     public function critical_css_global_callback() {
         $this->render_textarea('critical_css_global', 8, 'Global critical CSS applied to all pages. Include only above-the-fold styles.', 'large-text code');
         echo '<p class="description"><strong>' . __('Tip:', 'coreboost') . '</strong> ' . __('Use tools like Critical CSS Generator or manually extract essential styles.', 'coreboost') . '</p>';
@@ -430,7 +456,9 @@ class CoreBoost {
         // Sanitize fields by type
         $field_types = array(
             'boolean' => array('enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 
-                              'enable_responsive_preload', 'enable_caching', 'debug_mode'),
+                              'enable_responsive_preload', 'enable_caching', 'debug_mode', 'enable_font_optimization',
+                              'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
+                              'preconnect_google_fonts', 'preconnect_adobe_fonts'),
             'textarea' => array('scripts_to_defer', 'styles_to_defer', 'exclude_scripts', 'specific_pages'),
             'text' => array('css_defer_method'),
             'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts')
@@ -592,7 +620,9 @@ class CoreBoost {
         $all_fields = array(
             'hero' => array('preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 'specific_pages'),
             'scripts' => array('enable_script_defer', 'scripts_to_defer', 'exclude_scripts'),
-            'css' => array('enable_css_defer', 'css_defer_method', 'styles_to_defer', 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
+            'css' => array('enable_css_defer', 'css_defer_method', 'styles_to_defer', 'enable_font_optimization', 
+                          'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts',
+                          'font_display_swap', 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
             'advanced' => array('enable_caching', 'debug_mode')
         );
         
@@ -1153,6 +1183,72 @@ class CoreBoost {
             }
             return $deferred_html . '<noscript>' . $html . '</noscript>';
         }
+    }
+    
+    /**
+     * Add font preconnect links
+     */
+    public function add_font_preconnects() {
+        if (!$this->options['enable_font_optimization']) {
+            return;
+        }
+        
+        $preconnects = array();
+        
+        if ($this->options['defer_google_fonts']) {
+            $preconnects[] = '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>';
+            $preconnects[] = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>';
+            $this->debug_comment('Added Google Fonts preconnect');
+        }
+        
+        if ($this->options['defer_adobe_fonts']) {
+            $preconnects[] = '<link rel="preconnect" href="https://use.typekit.net" crossorigin>';
+            $this->debug_comment('Added Adobe Fonts preconnect');
+        }
+        
+        if (!empty($preconnects)) {
+            echo implode("\n", $preconnects) . "\n";
+        }
+    }
+    
+    /**
+     * Optimize font loading
+     */
+    public function optimize_font_loading($html, $handle, $href, $media) {
+        if (!$this->options['enable_font_optimization'] || is_admin()) {
+            return $html;
+        }
+        
+        $is_font = false;
+        
+        // Check if this is a Google Font
+        if ($this->options['defer_google_fonts'] && 
+            (strpos($href, 'fonts.googleapis.com') !== false || strpos($href, 'fonts.gstatic.com') !== false)) {
+            $is_font = true;
+            $this->debug_comment("Optimizing Google Font: {$handle}");
+        }
+        
+        // Check if this is an Adobe Font
+        if ($this->options['defer_adobe_fonts'] && 
+            (strpos($href, 'use.typekit.net') !== false || strpos($href, 'fonts.adobe.com') !== false)) {
+            $is_font = true;
+            $this->debug_comment("Optimizing Adobe Font: {$handle}");
+        }
+        
+        if (!$is_font) {
+            return $html;
+        }
+        
+        // Add display=swap to font URLs if not present
+        if ($this->options['font_display_swap'] && strpos($href, 'display=') === false) {
+            $href = add_query_arg('display', 'swap', $href);
+        }
+        
+        // Convert to preload with onload handler for non-blocking load
+        $preload_html = '<link rel="preload" href="' . esc_url($href) . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'" id="' . esc_attr($handle) . '-preload">';
+        $noscript_html = '<noscript><link rel="stylesheet" href="' . esc_url($href) . '" id="' . esc_attr($handle) . '-noscript"></noscript>';
+        
+        return $preload_html . "\n" . $noscript_html;
     }
     
     /**

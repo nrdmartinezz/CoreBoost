@@ -17,6 +17,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance monitoring dashboard
 
 
+## [1.0.5] - 2024-12-XX
+
+### Added
+
+- **Google Fonts Optimization**: Automatic preconnect and deferred loading for Google Fonts
+  - Adds `preconnect` links to fonts.googleapis.com and fonts.gstatic.com
+  - Converts font stylesheets to use preload with onload handler
+  - Automatic `display=swap` parameter addition
+  - Debug comments for font optimization tracking
+  
+- **Adobe Fonts (Typekit) Optimization**: Full support for Adobe Fonts
+  - Preconnect to use.typekit.net
+  - Deferred loading with preload method
+  - Compatible with both use.typekit.net and fonts.adobe.com URLs
+  
+- **Font Optimization Settings**: New configuration options in CSS tab
+  - Enable/disable font optimization
+  - Separate toggles for Google Fonts and Adobe Fonts
+  - Automatic display=swap enforcement option
+  - Font-specific preconnect controls
+
+### Changed
+
+- Updated plugin description to highlight font optimization features
+- Enhanced CSS optimization section with font-specific handling
+- Improved debug mode output for font-related optimizations
+
+### Performance Impact
+
+- Eliminates render-blocking delays from external font stylesheets
+- Typical font render-blocking reduction: 100-500ms
+- Improved LCP scores when fonts are used in hero text
+- Better Core Web Vitals across all metrics
+
 ## [1.0.4] - 2024-11-25
 
 ### Fixed

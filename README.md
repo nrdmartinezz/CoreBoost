@@ -22,6 +22,7 @@ CoreBoost is a comprehensive WordPress performance optimization plugin designed 
 - **Advanced CSS Deferring**: Preload method with JavaScript fallbacks and noscript support
 - **Pattern Matching**: Intelligent CSS handle detection including JetFormBuilder, Elementor, WooCommerce
 - **Responsive Optimization**: Different critical CSS for different page types
+- **Font Optimization**: Automatic preconnect, preload, and deferred loading for Google Fonts and Adobe Fonts
 
 ### **JavaScript Optimization**
 - **Smart Script Deferring**: Defer non-critical scripts while preserving dependencies
@@ -90,6 +91,7 @@ wp plugin install https://github.com/nrdmartinezz/CoreBoost/archive/main.zip --a
 - **Lazy Loading**: Configure how many images to exclude from lazy loading
 - **Custom Patterns**: Add specific CSS/JS handles for your theme/plugins
 - **Caching**: Enable performance caching for high-traffic sites
+- **Font Optimization**: Enable automatic optimization for Google Fonts and Adobe Fonts to eliminate render-blocking
 
 ## 🎯 Optimization Strategies
 
@@ -113,6 +115,17 @@ add_filter('wp_get_attachment_image_attributes', 'add_lcp_priority');
 <!-- Non-critical CSS deferred -->
 <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="style.css"></noscript>
+```
+
+### **Font Optimization**
+```html
+<!-- Preconnect for faster DNS resolution -->
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- Font loading deferred with display=swap -->
+<link rel="preload" href="https://fonts.googleapis.com/css?family=Outfit&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Outfit&display=swap"></noscript>
 ```
 
 ### **JavaScript Optimization**
