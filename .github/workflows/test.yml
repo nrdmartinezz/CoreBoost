@@ -185,6 +185,65 @@ PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: 8.1
+    
+    - name: Check for Missing Method Calls
+      run: |
+        echo "Checking for undefined method calls..."
+        
+        # Extract all method calls like $this->method_name()
+        METHOD_CALLS=$(grep -oP '\$this->\K[a-zA-Z_][a-zA-Z0-9_]*(?=\()' coreboost.php | sort -u)
+        
+        # Extract all defined methods (public, private, protected)
+        DEFINED_METHODS=$(grep -oP '(public|private|protected)\s+function\s+\K[a-zA-Z_][a-zA-Z0-9_]*(?=\()' coreboost.php | sort -u)
+        
+        echo "Methods called:"
+        echo "$METHOD_CALLS"
+        echo ""
+        echo "Methods defined:"
+        echo "$DEFINED_METHODS"
+        echo ""
+        
+        # Check for undefined methods
+        MISSING_METHODS=""
+        for method in $METHOD_CALLS; do
+          if ! echo "$DEFINED_METHODS" | grep -q "^${method}$"; then
+            MISSING_METHODS="$MISSING_METHODS\n  - $method()"
+          fi
+        done
+        
+        if [ -n "$MISSING_METHODS" ]; then
+          echo "❌ ERROR: Methods called but not defined:"
+          echo -e "$MISSING_METHODS"
+          exit 1
+        fi
+        
+        echo "✅ All called methods are defined"
+    
+    - name: Check Activation Hook Registration
+      run: |
+        echo "Checking activation/deactivation hook registration..."
+        
+        # Check if hooks are registered OUTSIDE the class (correct way)
+        if grep -q "register_activation_hook.*__FILE__" coreboost.php; then
+          # Check if it's inside a class method (incorrect)
+          if grep -B10 "register_activation_hook.*__FILE__" coreboost.php | grep -q "private function\|public function\|protected function"; then
+            echo "❌ ERROR: Activation hooks should not be inside class methods"
+            echo "They should be registered outside the class using the main plugin file"
+            exit 1
+          fi
+          echo "✅ Activation hooks properly registered outside class"
+        else
+          echo "✅ No inline activation hooks found (using function wrappers is good)"
+        fi
+        
+        # Verify activation/deactivation functions exist
+        if ! grep -q "register_activation_hook" coreboost.php; then
+          echo "⚠️ WARNING: No activation hook registered"
+        fi
+        
+        if ! grep -q "register_deactivation_hook" coreboost.php; then
+          echo "⚠️ WARNING: No deactivation hook registered"
+        fi
         
     - name: Test Plugin Loading (Minimal)
       run: |

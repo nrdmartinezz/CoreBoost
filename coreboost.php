@@ -79,10 +79,6 @@ class CoreBoost {
         // LCP Image Optimization Hooks
         add_filter('wp_lazy_loading_enabled', array($this, 'maybe_disable_lazy_loading'), 10, 2);
         add_filter('wp_get_attachment_image_attributes', array($this, 'add_lcp_attributes'), 10, 3);
-        
-        // Plugin activation/deactivation
-        register_activation_hook(__FILE__, array($this, 'activate'));
-        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
     }
     
     /**
@@ -140,6 +136,15 @@ class CoreBoost {
      */
     public function deactivate() {
         $this->flush_caches();
+    }
+    
+    /**
+     * Helper: Output debug comment
+     */
+    private function debug_comment($message) {
+        if ($this->options['debug_mode']) {
+            echo '<!-- CoreBoost: ' . esc_html($message) . ' -->' . "\n";
+        }
     }
 
     /**
@@ -259,7 +264,7 @@ class CoreBoost {
      * Helper: Output section description
      */
     private function section_description($text) {
-        echo '<p>' . esc_html__($text, 'coreboost') . '</p>';
+        echo '<p>' . esc_html($text) . '</p>';
     }
     
     /**
@@ -268,7 +273,7 @@ class CoreBoost {
     private function render_checkbox($name, $default, $description) {
         $value = isset($this->options[$name]) ? $this->options[$name] : $default;
         echo '<input type="checkbox" name="coreboost_options[' . esc_attr($name) . ']" value="1"' . checked($value, true, false) . '>';
-        echo '<p class="description">' . esc_html__($description, 'coreboost') . '</p>';
+        echo '<p class="description">' . esc_html($description) . '</p>';
     }
     
     /**
@@ -277,7 +282,7 @@ class CoreBoost {
     private function render_textarea($name, $rows, $description, $class = 'large-text') {
         $value = isset($this->options[$name]) ? $this->options[$name] : '';
         echo '<textarea name="coreboost_options[' . esc_attr($name) . ']" rows="' . esc_attr($rows) . '" cols="50" class="' . esc_attr($class) . '">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . esc_html__($description, 'coreboost') . '</p>';
+        echo '<p class="description">' . esc_html($description) . '</p>';
     }
     
     /**
@@ -290,7 +295,7 @@ class CoreBoost {
             echo '<option value="' . esc_attr($key) . '"' . selected($value, $key, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select>';
-        echo '<p class="description">' . esc_html__($description, 'coreboost') . '</p>';
+        echo '<p class="description">' . esc_html($description) . '</p>';
     }
 
     public function hero_section_callback() {
@@ -1314,6 +1319,20 @@ function coreboost_init() {
 
 // Hook into plugins_loaded to ensure all plugins are loaded
 add_action('plugins_loaded', 'coreboost_init');
+
+// Plugin activation
+function coreboost_activate() {
+    $instance = CoreBoost::get_instance();
+    $instance->activate();
+}
+register_activation_hook(__FILE__, 'coreboost_activate');
+
+// Plugin deactivation
+function coreboost_deactivate() {
+    $instance = CoreBoost::get_instance();
+    $instance->deactivate();
+}
+register_deactivation_hook(__FILE__, 'coreboost_deactivate');
 
 // Clear cache when Elementor data is updated
 add_action('elementor/editor/after_save', function($post_id) {
