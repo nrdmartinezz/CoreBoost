@@ -1437,6 +1437,24 @@ class CoreBoost {
             $should_defer = true;
             $this->debug_comment("Deferring inline Contact Form 7 CSS: {$href}");
         }
+        // Custom theme CSS files (custom-*.css pattern)
+        elseif (preg_match('/\/custom-[a-z0-9\-]+\.min\.css$/i', $href) || 
+                preg_match('/\/custom-[a-z0-9\-]+\.css$/i', $href)) {
+            $should_defer = true;
+            $this->debug_comment("Deferring inline Custom CSS: {$href}");
+        }
+        // Widget and animation CSS
+        elseif (strpos($href, '/widget-') !== false || 
+                strpos($href, '/fadeIn') !== false ||
+                strpos($href, '/swiper') !== false) {
+            $should_defer = true;
+            $this->debug_comment("Deferring inline Widget/Animation CSS: {$href}");
+        }
+        // Plugin CSS in uploads folder (often non-critical)
+        elseif (strpos($href, '/uploads/') !== false && strpos($href, '.css') !== false) {
+            $should_defer = true;
+            $this->debug_comment("Deferring inline Uploaded CSS: {$href}");
+        }
         
         if (!$should_defer) {
             return $full_tag;
