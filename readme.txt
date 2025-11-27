@@ -147,6 +147,27 @@ Enable debug mode to see detailed optimization comments in your page source. You
 
 == Changelog ==
 
+= 1.1.1 - 2024-11-27 =
+* Added: Unused CSS/JS removal with manual handle control
+* Added: YouTube player resource blocking for background videos (Block Player CSS and Embed UI options)
+* Fixed: Checkbox unchecking bug - checkboxes now properly save unchecked state
+* Improved: jQuery dependency detection - automatic protection for jQuery-dependent scripts
+* Improved: Script deferring logic prevents jQuery-related errors with Elementor and other plugins
+* Improved: Advanced tab description now mentions unused resource removal
+
+= 1.1.0 - 2024-11-26 =
+* Breaking Change: New four-tab admin interface (Hero, Scripts, CSS, Advanced)
+* Breaking Change: Settings reorganized into logical sections
+* Added: Comprehensive LCP optimization system for Elementor hero sections
+* Added: Advanced CSS deferring with critical CSS extraction and inlining
+* Added: Google Fonts optimization with display=swap and preconnect
+* Added: Adobe Fonts optimization with resource hints
+* Added: Script optimization (async/defer) with jQuery dependency protection
+* Added: Extended debug mode with detailed HTML comments
+* Improved: Admin UI with better organization and descriptions
+* Improved: Cache system with automatic cleanup
+* Improved: Performance with optimized hook priorities
+
 = 1.0.6 =
 * Enhanced inline CSS detection with output buffer processing
 * Fixed admin bar "Clear Cache" button (now works on frontend)
