@@ -91,6 +91,91 @@ class CoreBoost {
      */
     public function init() {
         load_plugin_textdomain('coreboost', false, dirname(COREBOOST_PLUGIN_BASENAME) . '/languages');
+        
+        // Handle frontend cache clearing
+        $this->handle_frontend_cache_clear();
+    }
+    
+    /**
+     * Handle cache clearing from frontend admin bar
+     */
+    private function handle_frontend_cache_clear() {
+        $action = filter_input(INPUT_GET, 'coreboost_action', FILTER_SANITIZE_SPECIAL_CHARS);
+        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        
+        if ($action === 'clear_cache' && $nonce && wp_verify_nonce($nonce, 'coreboost_clear_cache_frontend')) {
+            if (current_user_can('manage_options')) {
+                $this->clear_all_hero_cache();
+                
+                // Redirect back to the current page without the query parameters
+                $redirect_url = remove_query_arg(array('coreboost_action', '_wpnonce'));
+                wp_redirect(add_query_arg('coreboost_cache_cleared', '1', $redirect_url));
+                exit;
+            }
+        }
+        
+        // Show success message if cache was just cleared
+        if (filter_input(INPUT_GET, 'coreboost_cache_cleared', FILTER_SANITIZE_SPECIAL_CHARS) === '1') {
+            add_action('wp_footer', array($this, 'show_cache_cleared_notice'));
+        }
+    }
+    
+    /**
+     * Show cache cleared notice
+     */
+    public function show_cache_cleared_notice() {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        ?>
+        <style>
+            .coreboost-notice {
+                position: fixed;
+                top: 50px;
+                right: 20px;
+                background: #00a32a;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 4px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                z-index: 999999;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+                font-size: 14px;
+                animation: coreboost-slide-in 0.3s ease-out;
+            }
+            @keyframes coreboost-slide-in {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        </style>
+        <div class="coreboost-notice" id="coreboost-notice">
+            ✓ CoreBoost cache cleared successfully!
+        </div>
+        <script>
+            setTimeout(function() {
+                var notice = document.getElementById('coreboost-notice');
+                if (notice) {
+                    notice.style.transition = 'opacity 0.3s ease-out';
+                    notice.style.opacity = '0';
+                    setTimeout(function() {
+                        notice.remove();
+                        // Clean up URL
+                        if (window.history.replaceState) {
+                            var url = new URL(window.location);
+                            url.searchParams.delete('coreboost_cache_cleared');
+                            window.history.replaceState({}, '', url);
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        </script>
+        <?php
     }
     
     /**
@@ -717,14 +802,22 @@ class CoreBoost {
             ),
         ));
         
+        // Create nonce URL for cache clearing
+        $clear_cache_url = add_query_arg(
+            array(
+                'coreboost_action' => 'clear_cache',
+                '_wpnonce' => wp_create_nonce('coreboost_clear_cache_frontend')
+            ),
+            home_url(add_query_arg(array()))
+        );
+        
         $wp_admin_bar->add_menu(array(
             'parent' => 'coreboost',
             'id'     => 'coreboost-clear-cache',
             'title'  => __('Clear Cache', 'coreboost'),
-            'href'   => '#',
+            'href'   => $clear_cache_url,
             'meta'   => array(
                 'title' => __('Clear CoreBoost Cache', 'coreboost'),
-                'class' => 'coreboost-clear-cache-link',
             ),
         ));
         
