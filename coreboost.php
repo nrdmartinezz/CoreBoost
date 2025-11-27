@@ -83,6 +83,14 @@ class CoreBoost {
         add_filter('wp_lazy_loading_enabled', array($this, 'maybe_disable_lazy_loading'), 10, 2);
         add_filter('wp_get_attachment_image_attributes', array($this, 'add_lcp_attributes'), 10, 3);
         
+        // Remove unused CSS and JS
+        add_action('wp_print_styles', array($this, 'remove_unused_styles'), 100);
+        add_action('wp_print_scripts', array($this, 'remove_unused_scripts'), 100);
+        
+        // Block YouTube player resources if enabled
+        add_filter('script_loader_tag', array($this, 'block_youtube_resources'), 10, 3);
+        add_filter('style_loader_tag', array($this, 'block_youtube_style_resources'), 10, 4);
+        
         // Output buffer filtering for inline/hardcoded CSS
         add_action('template_redirect', array($this, 'start_output_buffer'), 1);
     }
@@ -232,7 +240,13 @@ class CoreBoost {
             'defer_google_fonts' => true,
             'defer_adobe_fonts' => true,
             'preconnect_google_fonts' => true,
-            'preconnect_adobe_fonts' => true
+            'preconnect_adobe_fonts' => true,
+            'enable_unused_css_removal' => false,
+            'enable_unused_js_removal' => false,
+            'block_youtube_player_css' => false,
+            'block_youtube_embed_ui' => false,
+            'unused_css_list' => '',
+            'unused_js_list' => ''
         );
     }
     
@@ -368,6 +382,12 @@ class CoreBoost {
             'critical_css_pages' => array('type' => 'textarea', 'rows' => 6, 'class' => 'large-text code', 'description' => 'Critical CSS for all pages (not posts). Combined with global critical CSS.'),
             'critical_css_posts' => array('type' => 'textarea', 'rows' => 6, 'class' => 'large-text code', 'description' => 'Critical CSS for all posts/blog pages. Combined with global critical CSS.'),
             'enable_caching' => array('type' => 'checkbox', 'default' => true, 'description' => 'Cache hero image detection results for better performance.'),
+            'enable_unused_css_removal' => array('type' => 'checkbox', 'default' => false, 'description' => 'Dequeue and remove specified CSS files from your site.'),
+            'unused_css_list' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter CSS handles to remove (one per line). Find handles in page source or browser developer tools.'),
+            'enable_unused_js_removal' => array('type' => 'checkbox', 'default' => false, 'description' => 'Dequeue and remove specified JavaScript files from your site.'),
+            'unused_js_list' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter JavaScript handles to remove (one per line). Find handles in page source or browser developer tools.'),
+            'block_youtube_player_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube player CSS files (useful for background videos that don\'t need player UI).'),
+            'block_youtube_embed_ui' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube embed UI scripts (useful for autoplay background videos).'),
             'debug_mode' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add HTML comments showing which optimizations are applied.')
         );
     }
@@ -421,6 +441,12 @@ class CoreBoost {
         
         // Advanced Fields
         $this->add_dynamic_field('enable_caching', __('Enable Caching', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('enable_unused_css_removal', __('Remove Unused CSS', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('unused_css_list', __('Unused CSS Handles', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('enable_unused_js_removal', __('Remove Unused JavaScript', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('unused_js_list', __('Unused JS Handles', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('block_youtube_player_css', __('Block YouTube Player CSS', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('block_youtube_embed_ui', __('Block YouTube Embed UI', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('debug_mode', __('Debug Mode', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
     }
     
@@ -495,7 +521,7 @@ class CoreBoost {
     }
     
     public function advanced_section_callback() {
-        echo '<p>' . esc_html('Advanced optimization settings and debugging options.') . '</p>';
+        echo '<p>' . esc_html('Advanced optimization settings including unused resource removal and debugging options.') . '</p>';
     }
     
     /**
@@ -578,15 +604,53 @@ class CoreBoost {
             'boolean' => array('enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 
                               'enable_responsive_preload', 'enable_caching', 'debug_mode', 'enable_font_optimization',
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
-                              'preconnect_google_fonts', 'preconnect_adobe_fonts'),
-            'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages'),
+                              'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
+                              'enable_unused_js_removal', 'block_youtube_player_css', 'block_youtube_embed_ui'),
+            'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
+                               'unused_css_list', 'unused_js_list'),
             'text' => array('css_defer_method'),
             'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts')
         );
         
+        // For boolean fields: WordPress doesn't send unchecked checkbox values in POST
+        // So we need to check if the field is from the current form submission
+        // If it's in $input as '1', set to true. If it's not in $input but should be (from current form), set to false
+        // We determine current form fields by checking for any non-boolean field from the same tab
+        $has_script_fields = isset($input['scripts_to_defer']) || isset($input['scripts_to_async']) || isset($input['exclude_scripts']);
+        $has_css_fields = isset($input['styles_to_defer']) || isset($input['critical_css_global']) || isset($input['css_defer_method']);
+        $has_hero_fields = isset($input['preload_method']) || isset($input['specific_pages']);
+        $has_advanced_fields = isset($input['unused_css_list']) || isset($input['unused_js_list']);
+        
         foreach ($field_types['boolean'] as $field) {
             if (array_key_exists($field, $input)) {
+                // Checkbox was checked
                 $sanitized[$field] = !empty($input[$field]);
+            } else {
+                // Checkbox not in input - only set to false if it's from the current form tab
+                $is_current_form = false;
+                
+                // Script tab booleans
+                if ($has_script_fields && $field === 'enable_script_defer') {
+                    $is_current_form = true;
+                }
+                // CSS tab booleans
+                if ($has_css_fields && in_array($field, array('enable_css_defer', 'enable_font_optimization', 'font_display_swap', 
+                    'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts'))) {
+                    $is_current_form = true;
+                }
+                // Hero tab booleans
+                if ($has_hero_fields && in_array($field, array('enable_responsive_preload', 'enable_foreground_conversion'))) {
+                    $is_current_form = true;
+                }
+                // Advanced tab booleans
+                if ($has_advanced_fields && in_array($field, array('enable_caching', 'debug_mode', 'enable_unused_css_removal',
+                    'enable_unused_js_removal', 'block_youtube_player_css', 'block_youtube_embed_ui'))) {
+                    $is_current_form = true;
+                }
+                
+                if ($is_current_form) {
+                    $sanitized[$field] = false;
+                }
             }
         }
         
@@ -747,7 +811,8 @@ class CoreBoost {
             'css' => array('enable_css_defer', 'css_defer_method', 'styles_to_defer', 'enable_font_optimization', 
                           'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts',
                           'font_display_swap', 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
-            'advanced' => array('enable_caching', 'debug_mode')
+            'advanced' => array('enable_caching', 'enable_unused_css_removal', 'unused_css_list', 'enable_unused_js_removal', 
+                               'unused_js_list', 'block_youtube_player_css', 'block_youtube_embed_ui', 'debug_mode')
         );
         
         // Output hidden fields for all tabs except the active one
@@ -1265,27 +1330,59 @@ class CoreBoost {
     
     /**
      * Script deferring with async support for independent scripts
+     * Ensures jQuery-dependent scripts use defer (not async) to maintain execution order
      */
     public function defer_scripts($tag, $handle) {
         if (!$this->options['enable_script_defer'] || is_admin()) return $tag;
         
         // Check excluded scripts (jQuery, critical scripts)
         $excluded_scripts = array_filter(array_map('trim', explode("\n", $this->options['exclude_scripts'])));
-        if (in_array($handle, $excluded_scripts)) return $tag;
+        if (in_array($handle, $excluded_scripts)) {
+            $this->debug_comment('Excluded from deferring: ' . $handle . ' (critical dependency)');
+            return $tag;
+        }
+        
+        // Check if script has jQuery as a dependency - these MUST use defer (not async)
+        global $wp_scripts;
+        $has_jquery_dependency = false;
+        if (isset($wp_scripts->registered[$handle])) {
+            $deps = $wp_scripts->registered[$handle]->deps;
+            if (!empty($deps)) {
+                $jquery_deps = array('jquery', 'jquery-core', 'jquery-migrate', 'jquery-ui-core');
+                foreach ($jquery_deps as $jquery_dep) {
+                    if (in_array($jquery_dep, $deps)) {
+                        $has_jquery_dependency = true;
+                        break;
+                    }
+                }
+            }
+        }
         
         // Check if this script should be processed
         $scripts_to_defer = array_filter(array_map('trim', explode("\n", $this->options['scripts_to_defer'])));
         $scripts_to_async = array_filter(array_map('trim', explode("\n", $this->options['scripts_to_async'])));
         
         // Determine if script should use async or defer
-        $use_async = in_array($handle, $scripts_to_async);
+        // IMPORTANT: Scripts with jQuery dependencies MUST use defer (not async) to maintain execution order
+        $use_async = in_array($handle, $scripts_to_async) && !$has_jquery_dependency;
         $use_defer = empty($scripts_to_defer) || in_array($handle, $scripts_to_defer);
+        
+        // Force defer for jQuery-dependent scripts (even if mistakenly in async list)
+        if ($has_jquery_dependency && in_array($handle, $scripts_to_async)) {
+            $use_async = false;
+            $use_defer = true;
+            $this->debug_comment('Forcing defer for jQuery-dependent script (was in async list): ' . $handle);
+        }
         
         if ($use_async) {
             $this->debug_comment('Using async for independent script: ' . $handle);
             return str_replace(' src', ' async src', $tag);
         } elseif ($use_defer) {
-            $this->debug_comment('Using defer for dependent script: ' . $handle);
+            if ($has_jquery_dependency) {
+                $this->debug_comment('Using defer for jQuery-dependent script: ' . $handle . ' (depends on jQuery)');
+            } else {
+                $this->debug_comment('Using defer for dependent script: ' . $handle);
+            }
             return str_replace(' src', ' defer src', $tag);
         }
         
@@ -1387,6 +1484,82 @@ class CoreBoost {
                 $this->debug_comment('Preloading critical script: ' . $handle);
             }
         }
+    }
+    
+    /**
+     * Remove unused CSS files
+     */
+    public function remove_unused_styles() {
+        if (!$this->options['enable_unused_css_removal'] || empty($this->options['unused_css_list'])) {
+            return;
+        }
+        
+        $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_css_list'])));
+        
+        foreach ($handles as $handle) {
+            if (wp_style_is($handle, 'enqueued')) {
+                wp_dequeue_style($handle);
+                wp_deregister_style($handle);
+                
+                if ($this->options['debug_mode']) {
+                    $this->debug_comment("Removed unused CSS: {$handle}");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Remove unused JavaScript files
+     */
+    public function remove_unused_scripts() {
+        if (!$this->options['enable_unused_js_removal'] || empty($this->options['unused_js_list'])) {
+            return;
+        }
+        
+        $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_js_list'])));
+        
+        foreach ($handles as $handle) {
+            if (wp_script_is($handle, 'enqueued')) {
+                wp_dequeue_script($handle);
+                wp_deregister_script($handle);
+                
+                if ($this->options['debug_mode']) {
+                    $this->debug_comment("Removed unused script: {$handle}");
+                }
+            }
+        }
+    }
+    
+    /**
+     * Block YouTube player resources from script tags
+     */
+    public function block_youtube_resources($tag, $handle, $src) {
+        // Block YouTube embed UI scripts
+        if ($this->options['block_youtube_embed_ui'] && strpos($src, 'youtube.com/yts/') !== false) {
+            if ($this->options['debug_mode']) {
+                $this->debug_comment("Blocked YouTube embed UI script: {$src}");
+                return "<!-- CoreBoost: Blocked YouTube embed UI script -->\n";
+            }
+            return '';
+        }
+        
+        return $tag;
+    }
+    
+    /**
+     * Block YouTube player resources from style tags
+     */
+    public function block_youtube_style_resources($html, $handle, $href, $media) {
+        // Block YouTube player CSS
+        if ($this->options['block_youtube_player_css'] && strpos($href, 'www.youtube.com/s/player') !== false) {
+            if ($this->options['debug_mode']) {
+                $this->debug_comment("Blocked YouTube player CSS: {$href}");
+                return "<!-- CoreBoost: Blocked YouTube player CSS -->\n";
+            }
+            return '';
+        }
+        
+        return $html;
     }
     
     /**
