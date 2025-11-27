@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2024-11-27
+
+### Improved
+
+- **Enhanced Unused Resource Removal**: Changed from `wp_print_scripts`/`wp_print_styles` to `wp_enqueue_scripts` hook at `PHP_INT_MAX` priority
+  - Now catches scripts/styles enqueued late in the process (e.g., via theme functions.php)
+  - Ensures removal runs after ALL other enqueue operations complete
+  - Fixes issue where scripts added via `wp_enqueue_scripts` hook weren't being removed
+
+- **Comprehensive Debug Logging**: Enhanced debug output for unused resource removal
+  - Shows total number of handles being processed
+  - Displays which handles were successfully removed (✓)
+  - Identifies handles that weren't found (✗) with explanation
+  - Checks both 'enqueued' and 'registered' status for thorough detection
+  - Helps troubleshoot why specific handles aren't being removed
+
 ## [1.1.1] - 2024-11-27
 
 ### Added

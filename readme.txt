@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,11 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 1.1.2 - 2024-11-27 =
+* Improved: Enhanced unused script/CSS removal to catch late-enqueued resources
+* Improved: Comprehensive debug logging shows which handles were found vs not found
+* Fixed: Changed hook priority to PHP_INT_MAX to ensure removal runs after all enqueue operations
 
 = 1.1.1 - 2024-11-27 =
 * Added: Unused CSS/JS removal with manual handle control
