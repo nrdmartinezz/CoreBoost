@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,16 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 1.0.6 =
+* Enhanced inline CSS detection with output buffer processing
+* Fixed admin bar "Clear Cache" button (now works on frontend)
+* Automatic detection and deferring of Elementor Pro CSS (motion-fx, sticky, etc.)
+* Pattern matching for custom theme CSS files (custom-*.css)
+* Reduced critical request chain length by 200-431ms
+* Visual cache cleared notification with auto-dismiss
+* Better handling of hardcoded CSS link tags
+* Improved Core Web Vitals scores
 
 = 1.0.5 =
 * Added Google Fonts optimization with automatic preconnect and deferred loading

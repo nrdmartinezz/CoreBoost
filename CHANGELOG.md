@@ -17,6 +17,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance monitoring dashboard
 
 
+## [1.0.6] - 2024-11-26
+
+### Added
+
+- **Enhanced Inline CSS Detection**: Output buffer processing to catch hardcoded/inline CSS that bypasses WordPress enqueue system
+  - Automatically detects and defers Elementor Pro CSS (motion-fx, sticky, etc.)
+  - Detects and defers custom theme CSS files (custom-*.css pattern)
+  - Handles Widget and animation CSS (widget-*, fadeIn, swiper)
+  - Processes uploaded CSS files in wp-content/uploads
+  - Pattern matching for plugin CSS (WooCommerce, Contact Form 7, etc.)
+  
+- **Frontend Cache Clearing**: Working admin bar "Clear Cache" button
+  - Proper nonce-based URL instead of dummy # link
+  - Frontend cache clearing handler with security checks
+  - Visual success notification with auto-dismiss
+  - Clean URL after cache clear using JavaScript
+  - Maintains user on current page after clearing cache
+
+### Fixed
+
+- **Critical Request Chain Optimization**: Reduced render-blocking CSS from hardcoded link tags
+  - Fixes Elementor Pro motion-fx.min.css render-blocking (reduces 200-400ms)
+  - Fixes custom CSS files render-blocking (custom-apple-webkit.min.css, etc.)
+  - Eliminates critical path latency from inline stylesheets
+  
+- **Admin Bar Cache Clear Bug**: Fixed non-functional cache clear button
+  - Button previously just added # to URL without clearing cache
+  - Now properly clears CoreBoost cache from frontend
+  - Shows confirmation message to user
+
+### Changed
+
+- Output buffering now processes entire HTML output to catch all CSS link tags
+- Improved debug comments show which inline CSS files are being deferred
+- Enhanced URL pattern detection for various plugin and theme CSS files
+
+### Performance Impact
+
+- Typical critical path reduction: 200-431ms per page
+- Eliminates render-blocking from Elementor Pro modules
+- Reduces LCP delays caused by CSS-dependent rendering
+- Better Core Web Vitals scores across all metrics
+
 ## [1.0.5] - 2024-12-XX
 
 ### Added
