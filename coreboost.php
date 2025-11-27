@@ -103,7 +103,8 @@ class CoreBoost {
         $action = filter_input(INPUT_GET, 'coreboost_action', FILTER_SANITIZE_SPECIAL_CHARS);
         $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
         
-        if ($action === 'clear_cache' && $nonce && wp_verify_nonce($nonce, 'coreboost_clear_cache_frontend')) {
+        // Only handle frontend cache clearing (not admin area)
+        if ($action === 'clear_cache' && $nonce && wp_verify_nonce($nonce, 'coreboost_clear_cache_frontend') && !is_admin()) {
             if (current_user_can('manage_options')) {
                 $this->clear_all_hero_cache();
                 
@@ -114,9 +115,14 @@ class CoreBoost {
             }
         }
         
-        // Show success message if cache was just cleared
-        if (filter_input(INPUT_GET, 'coreboost_cache_cleared', FILTER_SANITIZE_SPECIAL_CHARS) === '1') {
+        // Show success message if cache was just cleared (frontend only)
+        if (filter_input(INPUT_GET, 'coreboost_cache_cleared', FILTER_SANITIZE_SPECIAL_CHARS) === '1' && !is_admin()) {
             add_action('wp_footer', array($this, 'show_cache_cleared_notice'));
+        }
+        
+        // Show admin notice if cache was cleared in backend
+        if (is_admin() && filter_input(INPUT_GET, 'coreboost_cache_cleared', FILTER_SANITIZE_SPECIAL_CHARS) === '1') {
+            add_action('admin_notices', array($this, 'show_admin_cache_cleared_notice'));
         }
     }
     
@@ -174,6 +180,25 @@ class CoreBoost {
                     }, 300);
                 }
             }, 3000);
+        </script>
+        <?php
+    }
+    
+    /**
+     * Show admin cache cleared notice
+     */
+    public function show_admin_cache_cleared_notice() {
+        ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php _e('CoreBoost cache cleared successfully!', 'coreboost'); ?></p>
+        </div>
+        <script>
+            // Clean up URL parameter
+            if (window.history.replaceState) {
+                var url = new URL(window.location);
+                url.searchParams.delete('coreboost_cache_cleared');
+                window.history.replaceState({}, '', url);
+            }
         </script>
         <?php
     }
@@ -674,12 +699,16 @@ class CoreBoost {
         </div>
         <?php
         
-        // Handle cache clearing
+        // Handle cache clearing in admin
         $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
         $nonce_get = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
         if ($action === 'clear_cache' && $nonce_get && wp_verify_nonce($nonce_get, 'coreboost_clear_cache')) {
             $this->clear_all_hero_cache();
-            echo '<div class="notice notice-success"><p>' . __('All caches cleared successfully!', 'coreboost') . '</p></div>';
+            
+            // Redirect to show success message
+            $redirect_url = remove_query_arg(array('action', '_wpnonce'));
+            wp_redirect(add_query_arg('coreboost_cache_cleared', '1', $redirect_url));
+            exit;
         }
         
         // Handle settings update and redirect to preserve tab
