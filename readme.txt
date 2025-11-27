@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 1.0.7
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,8 +189,8 @@ New feature: Google Fonts and Adobe Fonts optimization! Enable font optimization
 = 1.0.4 =
 Critical bug fix release. Updates activation hook registration and adds missing method. All users should upgrade immediately.
 
-= 1.0.7 =
-Major performance enhancement release. Adds async script loading support, inline script detection, and YouTube API render-blocking fix. Reduces critical request chain by 70-80% (2,438ms → ~400-600ms). Includes jQuery preloading and intelligent async vs defer script optimization.
+= 1.1.0 =
+Major release eliminating the need for secondary optimization plugins. Comprehensive script optimization with async/defer loading, inline script detection, YouTube API handling, and jQuery UI optimization. Reduces critical request chain by 70-80% (2,438ms → ~400-600ms). Code architecture improvements with configuration-driven admin fields for easier maintenance and extensibility.
 
 = 1.0.0 =
 Initial stable release of CoreBoost. Provides comprehensive WordPress performance optimization with significant Core Web Vitals improvements.

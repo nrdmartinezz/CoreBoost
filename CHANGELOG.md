@@ -17,7 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance monitoring dashboard
 
 
-## [1.0.7] - 2024-11-26
+## [1.1.0] - 2024-11-26
+
+### Breaking Changes / Major Improvements
+
+- **Eliminates Need for Secondary Optimization Plugins**: CoreBoost now provides comprehensive script optimization that previously required additional plugins
+  - Complete inline script detection and optimization
+  - Intelligent async vs defer script loading
+  - YouTube API and third-party script handling
+  - No longer need WP Rocket, Autoptimize, or similar plugins for script optimization
+  - Significant cost savings by consolidating optimization into single plugin
 
 ### Added
 
