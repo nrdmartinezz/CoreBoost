@@ -81,6 +81,9 @@ class CoreBoost {
         // LCP Image Optimization Hooks
         add_filter('wp_lazy_loading_enabled', array($this, 'maybe_disable_lazy_loading'), 10, 2);
         add_filter('wp_get_attachment_image_attributes', array($this, 'add_lcp_attributes'), 10, 3);
+        
+        // Output buffer filtering for inline/hardcoded CSS
+        add_action('template_redirect', array($this, 'start_output_buffer'), 1);
     }
     
     /**
@@ -1268,6 +1271,7 @@ class CoreBoost {
         return array(
             'elementor-post-',          // Post-specific Elementor CSS
             'elementor-pro-',           // Elementor Pro CSS
+            'motion-fx',                // Elementor Pro motion effects
             'custom-',                  // Custom CSS files
             'widget-',                  // Widget CSS files
             'swiper',                   // Swiper CSS
@@ -1282,6 +1286,95 @@ class CoreBoost {
             'elementor-icons',          // Elementor icons
             'wp-block-library-theme',   // WordPress block theme
         );
+    }
+    
+    /**
+     * Start output buffer to catch inline/hardcoded CSS
+     */
+    public function start_output_buffer() {
+        if (!$this->options['enable_css_defer'] || is_admin()) {
+            return;
+        }
+        ob_start(array($this, 'process_inline_css'));
+    }
+    
+    /**
+     * Process inline CSS in HTML output
+     */
+    public function process_inline_css($html) {
+        if (!$this->options['enable_css_defer'] || is_admin()) {
+            return $html;
+        }
+        
+        // Pattern to match stylesheet link tags
+        $pattern = '/<link\s+([^>]*\s+)?rel=["\']stylesheet["\']([^>]*\s+)?href=["\']([^"\'\']+)["\']([^>]*)>/i';
+        
+        $html = preg_replace_callback($pattern, array($this, 'process_inline_css_callback'), $html);
+        
+        return $html;
+    }
+    
+    /**
+     * Callback for processing individual CSS link tags
+     */
+    private function process_inline_css_callback($matches) {
+        $full_tag = $matches[0];
+        $href = $matches[3];
+        
+        // Check if this CSS should be deferred based on URL patterns
+        $should_defer = false;
+        
+        // Elementor Pro patterns
+        if (strpos($href, '/elementor-pro/assets/css/') !== false) {
+            $should_defer = true;
+            $this->debug_comment("Deferring inline Elementor Pro CSS: {$href}");
+        }
+        // Elementor patterns
+        elseif (strpos($href, '/elementor/assets/css/') !== false) {
+            $should_defer = true;
+            $this->debug_comment("Deferring inline Elementor CSS: {$href}");
+        }
+        // WooCommerce patterns
+        elseif (strpos($href, '/woocommerce/assets/css/') !== false) {
+            $should_defer = true;
+            $this->debug_comment("Deferring inline WooCommerce CSS: {$href}");
+        }
+        // Contact Form 7
+        elseif (strpos($href, '/contact-form-7/') !== false) {
+            $should_defer = true;
+            $this->debug_comment("Deferring inline Contact Form 7 CSS: {$href}");
+        }
+        
+        if (!$should_defer) {
+            return $full_tag;
+        }
+        
+        // Check if already has an ID to avoid duplicates
+        if (strpos($full_tag, 'id=') !== false) {
+            preg_match('/id=["\']([^"\'\']+)["\']/', $full_tag, $id_match);
+            $id = isset($id_match[1]) ? $id_match[1] : '';
+            
+            // Skip if already processed (has -preload or -noscript suffix)
+            if (strpos($id, '-preload') !== false || strpos($id, '-noscript') !== false) {
+                return $full_tag;
+            }
+        }
+        
+        // Generate a unique ID based on the filename
+        $filename = basename($href, '.css');
+        $unique_id = 'coreboost-inline-' . sanitize_key($filename);
+        
+        // Convert to preload method
+        if ($this->options['css_defer_method'] === 'preload_with_critical') {
+            $preload_html = '<link rel="preload" href="' . esc_url($href) . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'" id="' . esc_attr($unique_id) . '-preload">';
+            $noscript_html = '<noscript><link rel="stylesheet" href="' . esc_url($href) . '" id="' . esc_attr($unique_id) . '-noscript"></noscript>';
+            return $preload_html . "\n" . $noscript_html;
+        } else {
+            // Simple defer method
+            $deferred_html = str_replace('rel="stylesheet"', 'rel="stylesheet" media="print" onload="this.media=\'all\'"', $full_tag);
+            $deferred_html = str_replace("rel='stylesheet'", "rel='stylesheet' media='print' onload=\"this.media='all'\"", $deferred_html);
+            return $deferred_html . '<noscript>' . $full_tag . '</noscript>';
+        }
     }
     
     /**
