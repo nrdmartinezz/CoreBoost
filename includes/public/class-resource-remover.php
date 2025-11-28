@@ -292,27 +292,75 @@ class Resource_Remover {
             return $html;
         }
         
-        // Pattern to match Elementor background video iframes
-        // These are typically in divs with class 'elementor-background-video-container'
-        $pattern = '/<div[^>]*class="[^"]*elementor-background-video-container[^"]*"[^>]*>.*?<iframe[^>]*src="[^"]*youtube\.com\/embed\/[^"]*"[^>]*>.*?<\/iframe>.*?<\/div>/is';
+        // CRITICAL: Remove background_video_link from data-settings to prevent Elementor JS from creating iframe
+        // This catches the JSON data before Elementor's frontend.js processes it
+        // Note: Elementor encodes JSON in data-settings, so we need to decode HTML entities first
+        $html = preg_replace_callback(
+            '/data-settings=(["\'])([^"\']+)\1/i',
+            function($matches) {
+                $quote = $matches[1];
+                $encoded_json = $matches[2];
+                
+                // Decode HTML entities (Elementor encodes &quot; as &quot;, etc.)
+                $json = html_entity_decode($encoded_json, ENT_QUOTES | ENT_HTML5);
+                
+                // Check if this contains background_video_link before parsing
+                if (strpos($json, 'background_video_link') === false) {
+                    return $matches[0];
+                }
+                
+                // Decode the JSON settings
+                $settings = json_decode($json, true);
+                
+                if (is_array($settings) && isset($settings['background_video_link'])) {
+                    $video_url = $settings['background_video_link'];
+                    
+                    // Only remove if it's a YouTube video
+                    if (strpos($video_url, 'youtube.com') !== false || strpos($video_url, 'youtu.be') !== false) {
+                        
+                        // Remove ALL background video related settings from the Background Group Control
+                        unset($settings['background_video_link']);
+                        unset($settings['background_play_on_mobile']);
+                        unset($settings['background_video_fallback']);
+                        unset($settings['background_play_once']);
+                        
+                        // Also remove background_background if it's set to 'video'
+                        if (isset($settings['background_background']) && $settings['background_background'] === 'video') {
+                            $settings['background_background'] = 'classic'; // Fallback to classic (image/color)
+                        }
+                        
+                        // Re-encode without the video settings
+                        $new_json = json_encode($settings, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                        
+                        // Re-encode HTML entities for attribute
+                        $new_encoded = htmlspecialchars($new_json, ENT_QUOTES | ENT_HTML5, 'UTF-8', false);
+                        
+                        if ($this->options['debug_mode']) {
+                            return 'data-settings=' . $quote . $new_encoded . $quote . ' data-coreboost-youtube-removed="1"';
+                        }
+                        return 'data-settings=' . $quote . $new_encoded . $quote;
+                    }
+                }
+                
+                // Return original if not YouTube or can't parse
+                return $matches[0];
+            },
+            $html
+        );
         
-        $html = preg_replace_callback($pattern, function($matches) {
-            if ($this->options['debug_mode']) {
-                return "<!-- CoreBoost: Removed YouTube background video iframe to prevent script loading -->\n";
-            }
-            return '';
-        }, $html);
+        // Remove any existing background video containers (in case they're server-rendered)
+        $pattern = '/<div[^>]*class="[^"]*elementor-background-video-container[^"]*"[^>]*>.*?<\/div>/is';
+        $html = preg_replace($pattern, 
+            $this->options['debug_mode'] ? "<!-- CoreBoost: Removed background video container -->\n" : '', 
+            $html
+        );
         
-        // Also catch standalone YouTube iframes that might be background videos
-        // Look for iframes with specific Elementor attributes
-        $iframe_pattern = '/<iframe[^>]*class="[^"]*elementor-background-video-hosted[^"]*"[^>]*src="[^"]*youtube\.com\/embed\/[^"]*"[^>]*>.*?<\/iframe>/is';
-        
-        $html = preg_replace_callback($iframe_pattern, function($matches) {
-            if ($this->options['debug_mode']) {
-                return "<!-- CoreBoost: Removed YouTube background video iframe -->\n";
-            }
-            return '';
-        }, $html);
+        // Remove standalone YouTube iframes with elementor classes
+        $iframe_pattern = '/<iframe[^>]*class="[^"]*elementor-background-video[^"]*"[^>]*>.*?<\/iframe>/is';
+        $html = preg_replace($iframe_pattern, 
+            $this->options['debug_mode'] ? "<!-- CoreBoost: Removed YouTube iframe -->\n" : '', 
+            $html
+        );
         
         // Block any inline scripts trying to load YouTube API
         $html = preg_replace(
@@ -323,7 +371,7 @@ class Resource_Remover {
         
         if ($this->options['debug_mode']) {
             // Add debug info at the beginning of body
-            $debug_comment = "<!-- CoreBoost: Smart YouTube blocking active - background video iframes removed -->\n";
+            $debug_comment = "<!-- CoreBoost: Smart YouTube blocking active - background_video_link removed from data-settings -->\n";
             $html = preg_replace('/(<body[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
         }
         
