@@ -67,7 +67,8 @@ class Hero_Optimizer {
             'featured_fallback' => 'preload_featured_fallback',
             'smart_detection' => 'preload_smart_detection',
             'advanced_cached' => 'preload_advanced_cached',
-            'css_class_based' => 'preload_css_class_based'
+            'css_class_based' => 'preload_css_class_based',
+            'video_fallback' => 'preload_video_hero_fallback'
         );
         
         $method = $this->options['preload_method'];
@@ -242,6 +243,35 @@ class Hero_Optimizer {
     }
     
     /**
+     * Video hero fallback detection method
+     * Preloads YouTube video thumbnail if hero section has video background
+     */
+    private function preload_video_hero_fallback() {
+        if (!defined('ELEMENTOR_VERSION')) return;
+        
+        global $post;
+        if (!$post) return;
+        
+        $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
+        if (empty($elementor_data)) return;
+        
+        $data = json_decode($elementor_data, true);
+        if (!is_array($data)) return;
+        
+        // Try to get video hero fallback first, then fall back to static image
+        $fallback_url = $this->get_video_hero_fallback_image($data);
+        
+        if (!$fallback_url) {
+            // Fall back to static background image
+            $fallback_url = $this->find_hero_background_image($data);
+        }
+        
+        if ($fallback_url) {
+            $this->output_preload_tag($fallback_url);
+        }
+    }
+    
+    /**
      * Helper functions for image detection
      */
     private function find_hero_background_image($elements, $depth = 0, $max_depth = 2) {
@@ -257,6 +287,98 @@ class Hero_Optimizer {
                 if ($found) return $found;
             }
         }
+        return null;
+    }
+    
+    /**
+     * Get video hero fallback image URL
+     * Checks if hero element is a video background and returns thumbnail URL
+     * 
+     * @param array $elements Elementor elements array
+     * @return string|null Thumbnail URL or null if not a video hero
+     */
+    private function get_video_hero_fallback_image($elements) {
+        if (!is_array($elements) || empty($elements)) {
+            return null;
+        }
+        
+        // Check first element (typically the hero section)
+        $first_element = $elements[0];
+        
+        if (!isset($first_element['settings']['background_video_link'])) {
+            return null;
+        }
+        
+        $video_url = $first_element['settings']['background_video_link'];
+        if (empty($video_url)) {
+            return null;
+        }
+        
+        // Detect video type and extract thumbnail
+        $video_type = $this->detect_video_type($video_url);
+        
+        if ($video_type === 'youtube') {
+            return $this->extract_youtube_thumbnail_url($video_url);
+        } elseif ($video_type === 'vimeo') {
+            return $this->extract_vimeo_thumbnail_url($video_url);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Extract YouTube video ID and generate thumbnail URL
+     * Uses hqdefault for reliable availability and fast loading
+     * 
+     * @param string $url YouTube video URL
+     * @return string|null Thumbnail URL or null if ID cannot be extracted
+     */
+    private function extract_youtube_thumbnail_url($url) {
+        $video_id = null;
+        
+        // Try multiple YouTube URL regex patterns
+        // Pattern 1: youtu.be/VIDEO_ID
+        if (preg_match('/youtu\.be\/([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+            $video_id = $matches[1];
+        }
+        // Pattern 2: youtube.com/watch?v=VIDEO_ID
+        elseif (preg_match('/youtube\.com.*[?&]v=([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+            $video_id = $matches[1];
+        }
+        // Pattern 3: youtube.com/embed/VIDEO_ID
+        elseif (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+            $video_id = $matches[1];
+        }
+        // Pattern 4: General fallback for /v/ or other YouTube URL formats
+        elseif (preg_match('/\/(?:v|e(?:mbed)?)\/([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+            $video_id = $matches[1];
+        }
+        
+        if (empty($video_id)) {
+            return null;
+        }
+        
+        // Return hqdefault (480x360) for balance of quality and fast loading
+        return 'https://img.youtube.com/vi/' . esc_attr($video_id) . '/hqdefault.jpg';
+    }
+    
+    /**
+     * Extract Vimeo video ID and fetch thumbnail URL
+     * Vimeo requires API call to get thumbnail, returns null if not immediately available
+     * 
+     * @param string $url Vimeo video URL
+     * @return string|null Thumbnail URL or null
+     */
+    private function extract_vimeo_thumbnail_url($url) {
+        // Extract Vimeo video ID
+        if (preg_match('/vimeo\.com\/([0-9]+)/', $url, $matches)) {
+            $video_id = $matches[1];
+            
+            // Vimeo requires API call to get thumbnail - would need to cache or async fetch
+            // For now, return null to fall back to static image method
+            return null;
+        }
+        
         return null;
     }
     

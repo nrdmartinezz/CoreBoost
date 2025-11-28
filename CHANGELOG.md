@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2025-11-27
+
+### Added
+
+- **Video Hero Fallback LCP Optimization** - YouTube thumbnail preloading for video background hero sections
+  - Automatically detects Elementor container hero sections with YouTube video backgrounds
+  - Extracts YouTube video ID and generates thumbnail URL (hqdefault quality)
+  - Preloads thumbnail with `fetchpriority="high"` for optimal LCP
+  - New preload method: "video_fallback" in settings
+  - Fixes "Request is discoverable in initial document" audit issue
+  - Graceful fallback to static background images if no video hero detected
+  - Supports multiple YouTube URL formats (youtu.be, youtube.com/watch?v=, embed, /v/)
+
+### Fixed
+
+- **Critical Bug: Tag Manager Fatal Error** - Fixed undefined method call in custom tag management
+  - Fixed 8 instances of incorrect `Debug_Helper::log_comment()` method calls
+  - Replaced with correct `Debug_Helper::comment()` method signature
+  - Resolves fatal error when adding custom tags to pages
+  - Affected file: `includes/public/class-tag-manager.php`
+
+### Technical Details
+
+- Added `get_video_hero_fallback_image()` method to detect video hero sections
+- Added `extract_youtube_thumbnail_url()` method with robust video ID extraction
+- Added `extract_vimeo_thumbnail_url()` stub for future Vimeo support
+- Added `preload_video_hero_fallback()` preload method in `Hero_Optimizer`
+- Updated preload methods array to include "video_fallback" option
+- YouTube thumbnail uses hqdefault (480x360px) for optimal balance of quality and load speed
+
+### Performance Impact
+
+- Video hero thumbnails ~10-15KB per page (fast loading)
+- Single regex extraction per page load
+- Results cached for 1 hour via WordPress transients
+- No performance penalty to existing functionality
+
 ## [2.1.0] - 2025-11-27
 
 ### Added

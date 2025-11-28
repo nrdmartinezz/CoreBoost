@@ -93,7 +93,7 @@ class Tag_Manager {
         }
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Head tags output start');
+            Debug_Helper::comment('CoreBoost: Head tags output start', $this->debug_mode);
         }
 
         // For immediate strategy, output directly
@@ -108,7 +108,7 @@ class Tag_Manager {
         }
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Head tags output end (Strategy: ' . $this->load_strategy . ')');
+            Debug_Helper::comment('CoreBoost: Head tags output end (Strategy: ' . $this->load_strategy . ')', $this->debug_mode);
         }
     }
 
@@ -121,7 +121,7 @@ class Tag_Manager {
         }
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Body tags output start');
+            Debug_Helper::comment('CoreBoost: Body tags output start', $this->debug_mode);
         }
 
         // For immediate strategy, output directly
@@ -136,7 +136,7 @@ class Tag_Manager {
         }
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Body tags output end');
+            Debug_Helper::comment('CoreBoost: Body tags output end', $this->debug_mode);
         }
     }
 
@@ -149,7 +149,7 @@ class Tag_Manager {
         }
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Footer tags output start');
+            Debug_Helper::comment('CoreBoost: Footer tags output start', $this->debug_mode);
         }
 
         // For immediate strategy, output directly
@@ -164,7 +164,7 @@ class Tag_Manager {
         }
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Footer tags output end');
+            Debug_Helper::comment('CoreBoost: Footer tags output end', $this->debug_mode);
         }
     }
 
@@ -177,7 +177,7 @@ class Tag_Manager {
         }
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Delay script output start (Strategy: ' . $this->load_strategy . ')');
+            Debug_Helper::comment('CoreBoost: Delay script output start (Strategy: ' . $this->load_strategy . ')', $this->debug_mode);
         }
 
         ?>
@@ -327,7 +327,7 @@ class Tag_Manager {
         <?php
 
         if ($this->debug_mode) {
-            Debug_Helper::log_comment('CoreBoost: Delay script output end');
+            Debug_Helper::comment('CoreBoost: Delay script output end', $this->debug_mode);
         }
     }
 }
