@@ -7,29 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-11-27
+
+### Added
+
+- **Smart Video Facades** - Click-to-play facades for above-the-fold video widgets
+  - Detects YouTube/Vimeo videos in first 3 sections of pages
+  - Replaces with thumbnail + play button facade
+  - Saves ~1MB per video by deferring script loading
+  - Videos load on click instead of on page load
+  - Native integration with Elementor video widget
+  - Smooth transition to embedded player with fade effect
+  - Click analytics tracking support (GTM/GA compatible)
+  - Thumbnail images automatically extracted from video service
+
+### Features
+
+- **Facade Component** - Custom lightweight HTML/CSS/JS facade
+  - 16x16 play button overlay
+  - Hover effects for better UX
+  - Responsive 16:9 aspect ratio
+  - Keyboard accessible (ARIA labels)
+  - Mobile-friendly touch targets
+
+- **Video Detection** - Scans Elementor data for video widgets
+  - Extracts YouTube/Vimeo URLs from settings
+  - Limits to above-the-fold (first 3 sections)
+  - Supports direct URLs and Elementor format
+  - Preserves video titles and metadata
+
+- **Lazy Iframe Loading** - Creates iframe on demand
+  - YouTube: Uses embed.youtube.com endpoint
+  - Vimeo: Uses player.vimeo.com endpoint  
+  - Auto-plays when user clicks facade
+  - Preloads vendor script on interaction
+
+### Technical Details
+
+- Added `Video_Facade` class in `includes/public/class-video-facade.php`
+- Added `detect_above_fold_video_widgets()` method to `Hero_Optimizer`
+- New setting: "Smart Video Facades" in Advanced Settings tab
+- Inline script uses `requestIdleCallback` for optimal performance
+- No external dependencies - uses native DOM APIs
+- Debug mode displays facade implementation details
+
+### Performance Impact
+
+- **Per Video**: ~1-1.5MB saved (YouTube API + Player CSS)
+- **Multiple Videos**: Compounding savings (2 videos = ~2-3MB, etc.)
+- **Trade-off**: User must click to play (intentional for performance)
+- **Best For**: Hero sections, landing pages, video galleries
+
 ## [2.0.5] - 2025-11-27
 
 ### Fixed
 
-- **Smart YouTube Blocking Now Fully Functional** - Fixed critical bug preventing YouTube iframes from being blocked
-  - Added proper HTML entity decoding for `data-settings` attribute parsing
-  - Now removes ALL Background Group Control video settings: `background_video_link`, `background_play_on_mobile`, `background_video_fallback`, `background_play_once`
-  - Changes `background_background` from 'video' to 'classic' to prevent Elementor from recreating iframe
-  - Properly re-encodes JSON with `htmlspecialchars()` to maintain attribute integrity
-  - Prevents Elementor's frontend.js from creating iframe by removing video URL before JavaScript execution
+- **Smart YouTube Background Video Deferring** - YouTube video backgrounds now load without blocking page render
+  - Removed video URL from initial `data-settings` to prevent Elementor from creating iframe on page load
+  - Deferred video data stored in `data-coreboost-deferred-youtube` attribute for later restoration
+  - Added inline script that restores video backgrounds using `requestIdleCallback` (3 second fallback)
+  - Videos load after page is interactive, eliminating CSP violations and render-blocking resources
+  - **Preserves video backgrounds** - videos still display, just loaded asynchronously
 
 ### Changed
 
-- Regex pattern now matches all `data-settings` attributes instead of only those containing `background_video_link`
-- Improved efficiency by checking for `background_video_link` string before JSON parsing
-- Enhanced debug comments to indicate data-settings modification
+- Smart YouTube blocking now **defers** instead of **removes** video backgrounds
+- Approach changed from removal to lazy loading for minimal performance impact
+- Restores videos after critical resources load using Elementor's frontend API
+- Settings description updated to reflect deferred loading behavior
 
 ### Technical Details
 
-- Based on Elementor Background Group Control documentation
-- Handles HTML entity encoding/decoding correctly (`&quot;` → `"` → `&quot;`)
-- Uses `JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE` flags for clean JSON output
-- Debug mode adds `data-coreboost-youtube-removed="1"` attribute to modified elements
+- Extracts video metadata (`background_video_link`, `play_on_mobile`, `play_once`) before removing URL
+- Stores as JSON in `data-coreboost-deferred-youtube` attribute
+- Inline script uses `requestIdleCallback` for optimal browser idle time (5s timeout)
+- Fallback to `setTimeout(3000)` for browsers without `requestIdleCallback`
+- Triggers Elementor's `elementor/frontend/element/render` hook to properly restore video
+- Prevents Elementor editor mode from being affected
+- HTML entity encoding/decoding handled correctly for all JSON operations
 
 ## [2.0.4] - 2025-11-27
 

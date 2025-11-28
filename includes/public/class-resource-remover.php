@@ -282,7 +282,8 @@ class Resource_Remover {
     }
     
     /**
-     * Remove YouTube background video iframes from Elementor sections
+     * Defer YouTube background video iframes from Elementor sections
+     * Keeps the video background but loads it after page render to prevent blocking
      * 
      * @param string $html HTML content
      * @return string Modified HTML
@@ -292,9 +293,9 @@ class Resource_Remover {
             return $html;
         }
         
-        // CRITICAL: Remove background_video_link from data-settings to prevent Elementor JS from creating iframe
-        // This catches the JSON data before Elementor's frontend.js processes it
-        // Note: Elementor encodes JSON in data-settings, so we need to decode HTML entities first
+        // STRATEGY: Defer iframe creation by storing video URL in data attribute
+        // Elementor will NOT create iframe if background_video_link is missing from data-settings
+        // We'll use JavaScript to restore it after page load for deferred loading
         $html = preg_replace_callback(
             '/data-settings=(["\'])([^"\']+)\1/i',
             function($matches) {
@@ -315,30 +316,37 @@ class Resource_Remover {
                 if (is_array($settings) && isset($settings['background_video_link'])) {
                     $video_url = $settings['background_video_link'];
                     
-                    // Only remove if it's a YouTube video
+                    // Only defer if it's a YouTube video
                     if (strpos($video_url, 'youtube.com') !== false || strpos($video_url, 'youtu.be') !== false) {
                         
-                        // Remove ALL background video related settings from the Background Group Control
+                        // Store the video URL in a separate data attribute for later restoration
+                        $video_data = array(
+                            'url' => $video_url,
+                            'play_on_mobile' => isset($settings['background_play_on_mobile']) ? $settings['background_play_on_mobile'] : '',
+                            'play_once' => isset($settings['background_play_once']) ? $settings['background_play_once'] : ''
+                        );
+                        
+                        // Remove video settings to prevent immediate iframe creation
                         unset($settings['background_video_link']);
                         unset($settings['background_play_on_mobile']);
                         unset($settings['background_video_fallback']);
                         unset($settings['background_play_once']);
                         
-                        // Also remove background_background if it's set to 'video'
-                        if (isset($settings['background_background']) && $settings['background_background'] === 'video') {
-                            $settings['background_background'] = 'classic'; // Fallback to classic (image/color)
-                        }
+                        // Keep background_background as 'video' so element has video styling
+                        // Just without the actual iframe URL
                         
-                        // Re-encode without the video settings
+                        // Re-encode without the video URL
                         $new_json = json_encode($settings, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                        
-                        // Re-encode HTML entities for attribute
                         $new_encoded = htmlspecialchars($new_json, ENT_QUOTES | ENT_HTML5, 'UTF-8', false);
                         
+                        // Encode deferred video data as data attribute
+                        $video_json = json_encode($video_data);
+                        $video_encoded = htmlspecialchars($video_json, ENT_QUOTES | ENT_HTML5, 'UTF-8', false);
+                        
                         if ($this->options['debug_mode']) {
-                            return 'data-settings=' . $quote . $new_encoded . $quote . ' data-coreboost-youtube-removed="1"';
+                            return 'data-settings=' . $quote . $new_encoded . $quote . ' data-coreboost-deferred-youtube="' . $video_encoded . '"';
                         }
-                        return 'data-settings=' . $quote . $new_encoded . $quote;
+                        return 'data-settings=' . $quote . $new_encoded . $quote . ' data-coreboost-deferred-youtube="' . $video_encoded . '"';
                     }
                 }
                 
@@ -348,30 +356,72 @@ class Resource_Remover {
             $html
         );
         
-        // Remove any existing background video containers (in case they're server-rendered)
-        $pattern = '/<div[^>]*class="[^"]*elementor-background-video-container[^"]*"[^>]*>.*?<\/div>/is';
-        $html = preg_replace($pattern, 
-            $this->options['debug_mode'] ? "<!-- CoreBoost: Removed background video container -->\n" : '', 
-            $html
-        );
+        // Add inline script to restore video backgrounds after page load
+        // This triggers Elementor's video handler to recreate iframes after critical resources are loaded
+        $script = <<<'SCRIPT'
+<script>
+(function() {
+    // Wait for Elementor to load and be ready
+    if (window.elementorFrontend && typeof window.elementorFrontend.isEditMode === 'function') {
+        // In editor mode, don't defer
+        return;
+    }
+    
+    // Defer video restoration until after page interactive
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(function() {
+            restoreYouTubeDeferredVideos();
+        }, { timeout: 5000 });
+    } else {
+        // Fallback: defer by 3 seconds
+        setTimeout(restoreYouTubeDeferredVideos, 3000);
+    }
+    
+    function restoreYouTubeDeferredVideos() {
+        var elements = document.querySelectorAll('[data-coreboost-deferred-youtube]');
+        elements.forEach(function(element) {
+            try {
+                var deferredData = JSON.parse(element.getAttribute('data-coreboost-deferred-youtube'));
+                if (!deferredData || !deferredData.url) return;
+                
+                // Get current settings
+                var settingsAttr = element.getAttribute('data-settings');
+                if (!settingsAttr) return;
+                
+                var settings = JSON.parse(settingsAttr);
+                
+                // Restore video settings
+                settings.background_video_link = deferredData.url;
+                if (deferredData.play_on_mobile) settings.background_play_on_mobile = deferredData.play_on_mobile;
+                if (deferredData.play_once) settings.background_play_once = deferredData.play_once;
+                
+                // Update data-settings
+                element.setAttribute('data-settings', JSON.stringify(settings));
+                
+                // Remove deferred attribute
+                element.removeAttribute('data-coreboost-deferred-youtube');
+                
+                // Trigger Elementor frontend to re-render this section
+                if (window.elementorFrontend && window.elementorFrontend.hooks && window.elementorFrontend.hooks.doAction) {
+                    window.elementorFrontend.hooks.doAction('elementor/frontend/element/render', element);
+                }
+            } catch (e) {
+                console.error('CoreBoost: Error restoring deferred YouTube video:', e);
+            }
+        });
+    }
+})();
+</script>
+SCRIPT;
         
-        // Remove standalone YouTube iframes with elementor classes
-        $iframe_pattern = '/<iframe[^>]*class="[^"]*elementor-background-video[^"]*"[^>]*>.*?<\/iframe>/is';
-        $html = preg_replace($iframe_pattern, 
-            $this->options['debug_mode'] ? "<!-- CoreBoost: Removed YouTube iframe -->\n" : '', 
-            $html
-        );
-        
-        // Block any inline scripts trying to load YouTube API
-        $html = preg_replace(
-            '/<script[^>]*>.*?(?:youtube\.com\/iframe_api|www\.youtube\.com\/player_api).*?<\/script>/is',
-            $this->options['debug_mode'] ? "<!-- CoreBoost: Blocked inline YouTube API script -->\n" : '',
-            $html
-        );
+        // Add script before closing body tag if we found deferred videos
+        if (strpos($html, 'data-coreboost-deferred-youtube') !== false) {
+            $html = preg_replace('/<\/body>/i', $script . "\n</body>", $html, 1);
+        }
         
         if ($this->options['debug_mode']) {
             // Add debug info at the beginning of body
-            $debug_comment = "<!-- CoreBoost: Smart YouTube blocking active - background_video_link removed from data-settings -->\n";
+            $debug_comment = "<!-- CoreBoost: Smart YouTube blocking active - video backgrounds deferred for non-blocking load -->\n";
             $html = preg_replace('/(<body[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
         }
         

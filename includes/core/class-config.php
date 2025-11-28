@@ -46,7 +46,8 @@ class Config {
             'inline_script_ids' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter script ID attributes to remove (one per line). Example: ga-client-property, fb-pixel-client'),
             'enable_inline_style_removal' => array('type' => 'checkbox', 'default' => false, 'description' => 'Remove inline style tags by ID attribute.'),
             'inline_style_ids' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Enter style ID attributes to remove (one per line).'),
-            'smart_youtube_blocking' => array('type' => 'checkbox', 'default' => false, 'description' => 'Automatically detect Elementor background videos and block unnecessary YouTube iframe API, player CSS, and embed scripts. Only blocks when background videos are detected (not regular embeds).'),
+            'smart_youtube_blocking' => array('type' => 'checkbox', 'default' => false, 'description' => 'Defer Elementor YouTube background video loading to prevent render blocking. Videos load after page interactive, eliminating CSP violations and script blocking while keeping video backgrounds.'),
+            'smart_video_facades' => array('type' => 'checkbox', 'default' => false, 'description' => 'Replace above-the-fold video widgets with click-to-play facades. Defers YouTube/Vimeo loading, reducing initial resource load by ~1MB per video. Videos play when clicked.'),
             'block_youtube_player_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube player CSS files (useful for background videos that don\'t need player UI).'),
             'block_youtube_embed_ui' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube embed UI scripts (useful for autoplay background videos).'),
             'debug_mode' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add HTML comments showing which optimizations are applied.')
