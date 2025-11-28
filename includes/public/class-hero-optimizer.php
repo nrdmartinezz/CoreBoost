@@ -453,39 +453,54 @@ class Hero_Optimizer {
     
     /**
      * Recursively find background videos in Elementor data
+     * Optimized with early termination and reduced depth for minimal performance impact
      *
      * @param array $elements Elementor elements array
      * @param int $depth Current recursion depth
-     * @param int $max_depth Maximum recursion depth
+     * @param int $max_depth Maximum recursion depth (reduced to 3 - hero sections are always near top)
      * @return array Array of background video URLs
      */
-    private function find_background_videos($elements, $depth = 0, $max_depth = 5) {
+    private function find_background_videos($elements, $depth = 0, $max_depth = 3) {
         if ($depth > $max_depth || !is_array($elements)) {
             return array();
         }
         
         $videos = array();
+        $section_count = 0;
         
         foreach ($elements as $element) {
             if (!is_array($element)) {
                 continue;
             }
             
+            // Count top-level sections (hero is typically in first 3 sections)
+            if ($depth === 0 && isset($element['elType']) && $element['elType'] === 'section') {
+                $section_count++;
+                // Stop after checking first 3 sections at root level for performance
+                if ($section_count > 3) {
+                    break;
+                }
+            }
+            
             // Check for background video link (YouTube/Vimeo)
             if (isset($element['settings']['background_video_link'])) {
                 $video_url = $element['settings']['background_video_link'];
                 if (!empty($video_url) && is_string($video_url)) {
+                    $video_type = $this->detect_video_type($video_url);
+                    $element_type = isset($element['elType']) ? $element['elType'] : 'unknown';
+                    
                     $videos[] = array(
                         'url' => $video_url,
-                        'type' => $this->detect_video_type($video_url),
-                        'element_type' => isset($element['elType']) ? $element['elType'] : 'unknown'
+                        'type' => $video_type,
+                        'element_type' => $element_type
                     );
+                    
+                    // Early termination: if YouTube background video found, we can stop
+                    // (Smart blocking only needs to know if ANY YouTube bg video exists)
+                    if ($video_type === 'youtube' && $element_type !== 'video_widget') {
+                        return $videos;
+                    }
                 }
-            }
-            
-            // Check for background video fallback
-            if (isset($element['settings']['background_video_fallback']['url'])) {
-                // Fallback is typically an image, but good to track
             }
             
             // Check video widget (not background, but good to detect)
@@ -509,6 +524,13 @@ class Hero_Optimizer {
             if (isset($element['elements']) && is_array($element['elements'])) {
                 $nested_videos = $this->find_background_videos($element['elements'], $depth + 1, $max_depth);
                 $videos = array_merge($videos, $nested_videos);
+                
+                // Early termination check after merging nested results
+                foreach ($videos as $video) {
+                    if ($video['type'] === 'youtube' && $video['element_type'] !== 'video_widget') {
+                        return $videos;
+                    }
+                }
             }
         }
         
