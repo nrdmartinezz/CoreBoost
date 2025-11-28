@@ -249,20 +249,44 @@ class GTM_Settings {
         // GTM enabled
         $sanitized['gtm_enabled'] = isset($input['gtm_enabled']) ? true : false;
         
-        // Container ID
+        // Container ID - only validate if GTM is enabled or field has content
         if (isset($input['gtm_container_id'])) {
-            $container_id = sanitize_text_field($input['gtm_container_id']);
-            if (preg_match('/^GTM-[A-Z0-9]+$/', $container_id)) {
-                $sanitized['gtm_container_id'] = $container_id;
+            $container_id = trim(sanitize_text_field($input['gtm_container_id']));
+            
+            if (!empty($container_id)) {
+                // Field has content - validate format
+                if (preg_match('/^GTM-[A-Z0-9]+$/', $container_id)) {
+                    $sanitized['gtm_container_id'] = $container_id;
+                } else {
+                    // Invalid format - only show error if GTM is enabled
+                    $sanitized['gtm_container_id'] = '';
+                    if ($sanitized['gtm_enabled']) {
+                        add_settings_error(
+                            'coreboost_options',
+                            'gtm_container_id',
+                            __('Invalid GTM Container ID format. Should be GTM-XXXXXXX', 'coreboost'),
+                            'error'
+                        );
+                    }
+                }
             } else {
+                // Field is empty
                 $sanitized['gtm_container_id'] = '';
-                add_settings_error(
-                    'coreboost_options',
-                    'gtm_container_id',
-                    __('Invalid GTM Container ID format. Should be GTM-XXXXXXX', 'coreboost'),
-                    'error'
-                );
+                
+                // Only show error if trying to enable GTM without container ID
+                if ($sanitized['gtm_enabled']) {
+                    add_settings_error(
+                        'coreboost_options',
+                        'gtm_container_id_required',
+                        __('GTM Container ID is required when GTM is enabled.', 'coreboost'),
+                        'error'
+                    );
+                    // Disable GTM since no valid container ID
+                    $sanitized['gtm_enabled'] = false;
+                }
             }
+        } else {
+            $sanitized['gtm_container_id'] = '';
         }
         
         // Load strategy
