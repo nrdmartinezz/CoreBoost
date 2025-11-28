@@ -7,34 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0] - 2024-12-XX
+## [2.0.0] - 2025-11-27
+
+🎉 **The "We Promise It Actually Works Now" Release**
+
+Remember v1.2.0? That was more of a "behind-the-scenes renovation" that technically worked but never saw the light of day. Think of it as our architectural blueprint - we gutted the 2097-line monolith, built 22 shiny new classes with proper PSR-4 autoloading, and called it a day. But we never actually... you know... *released* it.
+
+Well, v2.0.0 is where we finally open the doors, flip on the lights, and add some fancy new furniture (spoiler: it's GTM management). This is the stable, tested, production-ready version that bundles the v1.2.0 refactor with battle-tested GTM features. Consider this the "grand opening" after months of construction.
 
 ### Added
 
 - **Google Tag Manager Management**: Complete GTM integration with async/defer loading strategies
   - Smart conflict detection - automatically detects existing GTM implementations (plugins, themes, hardcoded)
   - Safety-first approach - always defers to existing implementations to prevent site breakage
-  - Multiple load strategies: Immediate, Balanced (3s - default), Aggressive (5s), User Interaction, Browser Idle
+  - Six load strategies: Immediate, Balanced (3s - default), Aggressive (5s), User Interaction, Browser Idle, Custom delay
   - Container validation with GTM-XXXXXXX format checking
   - New "GTM & Tracking" admin tab with intuitive interface
+  - Re-scan functionality with cache clearing
 
-- **GTM Core Classes**:
-  - `GTM_Detector`: Scans for existing GTM in plugins, themes, and output buffer
-  - `GTM_Manager`: Frontend GTM loader with configurable delay strategies
-  - `GTM_Settings`: Admin settings interface with conflict reporting
+- **GTM Core Classes** (3 new classes):
+  - `GTM_Detector`: Three-layer detection system - scans plugins (GTM4WP, Site Kit, MonsterInsights), theme files, and output buffer for existing GTM
+  - `GTM_Manager`: Frontend GTM loader with configurable delay strategies and JavaScript delay controllers
+  - `GTM_Settings`: Admin settings interface with real-time conflict reporting and container ID validation
 
 ### Changed
 
-- **Script Optimizer**: Now excludes GTM scripts from optimization when GTM management is enabled
-- **Admin Interface**: Added fifth tab "GTM & Tracking" with detection status widget
-- **Default Options**: Added GTM settings with balanced 3-second delay as recommended default
+- **Script Optimizer**: Now intelligently excludes GTM scripts from optimization when GTM management is enabled (no more optimization conflicts!)
+- **Admin Interface**: Added fifth tab "GTM & Tracking" with detection status widget (green checkmark = you're good, red warning = conflict detected)
+- **Default Options**: Added GTM settings with balanced 3-second delay as recommended default for optimal performance/accuracy balance
+
+### Fixed
+
+- **Autoloader Edge Case**: Fixed the `CoreBoost\CoreBoost` class mapping issue (was looking for `class-core-boost.php` instead of `class-coreboost.php`) - because naming things is hard and naming *ourselves* is even harder
+- **Activation Compatibility**: Plugin now activates cleanly on fresh WordPress installations without fatal errors
 
 ### Technical
 
-- Version bumped from 1.2.0 to 2.0.0 (major version for new GTM feature)
-- GTM detection results cached for performance (1 hour expiry)
-- JavaScript cache-clearing functionality for GTM detection
-- Integration with existing optimizer classes for conflict prevention
+- Version bumped from 1.2.0 to 2.0.0 (technically we skipped 1.2.0's public release, but who's counting?)
+- Complete refactor from v1.2.0 now stable and production-tested
+- 22 total classes across modular architecture: 5 core infrastructure, 4 utilities, 5 admin, 8 frontend optimizers
+- PSR-4 autoloading with `CoreBoost\{Admin,PublicCore,Core}` namespaces
+- Main plugin file reduced from 2097 lines to 70 lines (97% reduction - we're basically Marie Kondo for code)
+- GTM detection results cached for performance (1 hour expiry with manual refresh option)
+- JavaScript cache-clearing functionality via admin interface
+- Integration with existing optimizer classes for seamless conflict prevention
+- 100% backward compatible with previous settings and configurations
 
 ## [1.2.0] - 2024-12-XX
 

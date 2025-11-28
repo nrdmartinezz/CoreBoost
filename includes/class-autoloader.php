@@ -46,9 +46,14 @@ class Autoloader {
         $class_parts = explode(DIRECTORY_SEPARATOR, $class_name);
         $class_file = array_pop($class_parts);
         
-        // Convert CamelCase to kebab-case
-        $class_file = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $class_file));
-        $class_file = 'class-' . $class_file . '.php';
+        // Handle special case for main CoreBoost class
+        if ($class_file === 'CoreBoost') {
+            $class_file = 'class-coreboost.php';
+        } else {
+            // Convert CamelCase to kebab-case
+            $class_file = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $class_file));
+            $class_file = 'class-' . $class_file . '.php';
+        }
         
         // Rebuild path
         $class_parts[] = $class_file;
