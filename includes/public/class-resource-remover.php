@@ -121,7 +121,25 @@ class Resource_Remover {
      * Block YouTube player resources from script tags
      */
     public function block_youtube_resources($tag, $handle, $src) {
-        // Block YouTube embed UI scripts
+        // Smart YouTube blocking - only block if background videos detected
+        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
+            if (!$this->should_block_youtube_resources()) {
+                return $tag;
+            }
+        }
+        
+        // Block YouTube iframe API (loaded by background videos but not needed)
+        if (strpos($src, 'youtube.com/iframe_api') !== false || strpos($src, 'youtube.com/www-widgetapi') !== false) {
+            if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
+                if ($this->options['debug_mode']) {
+                    Debug_Helper::comment("Blocked YouTube iframe API (background video detected): {$src}", $this->options['debug_mode']);
+                    return "<!-- CoreBoost: Blocked YouTube iframe API (background video detected) -->\n";
+                }
+                return '';
+            }
+        }
+        
+        // Block YouTube embed UI scripts (legacy setting)
         if ($this->options['block_youtube_embed_ui'] && strpos($src, 'youtube.com/yts/') !== false) {
             if ($this->options['debug_mode']) {
                 Debug_Helper::comment("Blocked YouTube embed UI script: {$src}", $this->options['debug_mode']);
@@ -137,6 +155,13 @@ class Resource_Remover {
      * Block YouTube player resources from style tags
      */
     public function block_youtube_style_resources($html, $handle, $href, $media) {
+        // Smart YouTube blocking - only block if background videos detected
+        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
+            if (!$this->should_block_youtube_resources()) {
+                return $html;
+            }
+        }
+        
         // Block YouTube player CSS
         if ($this->options['block_youtube_player_css'] && strpos($href, 'www.youtube.com/s/player') !== false) {
             if ($this->options['debug_mode']) {
@@ -146,7 +171,50 @@ class Resource_Remover {
             return '';
         }
         
+        // Block YouTube CSS when smart blocking enabled and background videos detected
+        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
+            if (strpos($href, 'youtube.com') !== false || strpos($href, 'ytimg.com') !== false) {
+                if ($this->options['debug_mode']) {
+                    Debug_Helper::comment("Blocked YouTube CSS (background video detected): {$href}", $this->options['debug_mode']);
+                    return "<!-- CoreBoost: Blocked YouTube CSS (background video detected) -->\n";
+                }
+                return '';
+            }
+        }
+        
         return $html;
+    }
+    
+    /**
+     * Check if YouTube resources should be blocked (smart blocking logic)
+     *
+     * @return bool True if resources should be blocked
+     */
+    private function should_block_youtube_resources() {
+        // Check if we have a Hero_Optimizer instance via CoreBoost
+        global $wp_filter;
+        
+        // Try to get hero optimizer from the global CoreBoost instance
+        if (class_exists('CoreBoost\CoreBoost')) {
+            $coreboost = \CoreBoost\CoreBoost::get_instance();
+            
+            // We need to access the hero optimizer through reflection or create a new instance
+            // For simplicity, we'll create a temporary instance to check for videos
+            if (defined('ELEMENTOR_VERSION')) {
+                // Create temporary Hero_Optimizer just for detection
+                $temp_hero = new Hero_Optimizer($this->options, new \CoreBoost\Loader());
+                $has_youtube_bg = $temp_hero->has_youtube_background_videos();
+                
+                if ($has_youtube_bg) {
+                    if ($this->options['debug_mode']) {
+                        Debug_Helper::comment("YouTube background video detected - blocking unnecessary resources", $this->options['debug_mode']);
+                    }
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
     
     /**

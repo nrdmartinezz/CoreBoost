@@ -185,8 +185,8 @@ class Settings_Page {
             'tags' => array('tag_head_scripts', 'tag_body_scripts', 'tag_footer_scripts', 'tag_load_strategy', 'tag_custom_delay'),
             'advanced' => array('enable_caching', 'enable_unused_css_removal', 'unused_css_list', 'enable_unused_js_removal', 
                                'unused_js_list', 'enable_inline_script_removal', 'inline_script_ids', 
-                               'enable_inline_style_removal', 'inline_style_ids', 'block_youtube_player_css', 
-                               'block_youtube_embed_ui', 'debug_mode')
+                               'enable_inline_style_removal', 'inline_style_ids', 'smart_youtube_blocking',
+                               'block_youtube_player_css', 'block_youtube_embed_ui', 'debug_mode')
         );
         
         // Output hidden fields for all tabs except the active one

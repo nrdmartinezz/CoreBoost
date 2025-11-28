@@ -408,4 +408,146 @@ class Hero_Optimizer {
         }
         ';
     }
+    
+    /**
+     * Detect Elementor background videos on current page
+     * 
+     * Scans Elementor data for background video settings in sections and columns.
+     * Used by Resource_Remover to determine if YouTube resources should be blocked.
+     *
+     * @return array Array of detected background video URLs
+     */
+    public function detect_elementor_background_videos() {
+        if (!defined('ELEMENTOR_VERSION')) {
+            return array();
+        }
+        
+        global $post;
+        if (!$post) {
+            return array();
+        }
+        
+        // Check cache first
+        $cache_key = 'coreboost_bg_videos_' . $post->ID;
+        $cached = get_transient($cache_key);
+        if ($cached !== false) {
+            return $cached;
+        }
+        
+        $background_videos = array();
+        
+        // Get Elementor data
+        $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
+        if ($elementor_data) {
+            $data = json_decode($elementor_data, true);
+            if (is_array($data)) {
+                $background_videos = $this->find_background_videos($data);
+            }
+        }
+        
+        // Cache the result for 1 hour
+        set_transient($cache_key, $background_videos, HOUR_IN_SECONDS);
+        
+        return $background_videos;
+    }
+    
+    /**
+     * Recursively find background videos in Elementor data
+     *
+     * @param array $elements Elementor elements array
+     * @param int $depth Current recursion depth
+     * @param int $max_depth Maximum recursion depth
+     * @return array Array of background video URLs
+     */
+    private function find_background_videos($elements, $depth = 0, $max_depth = 5) {
+        if ($depth > $max_depth || !is_array($elements)) {
+            return array();
+        }
+        
+        $videos = array();
+        
+        foreach ($elements as $element) {
+            if (!is_array($element)) {
+                continue;
+            }
+            
+            // Check for background video link (YouTube/Vimeo)
+            if (isset($element['settings']['background_video_link'])) {
+                $video_url = $element['settings']['background_video_link'];
+                if (!empty($video_url) && is_string($video_url)) {
+                    $videos[] = array(
+                        'url' => $video_url,
+                        'type' => $this->detect_video_type($video_url),
+                        'element_type' => isset($element['elType']) ? $element['elType'] : 'unknown'
+                    );
+                }
+            }
+            
+            // Check for background video fallback
+            if (isset($element['settings']['background_video_fallback']['url'])) {
+                // Fallback is typically an image, but good to track
+            }
+            
+            // Check video widget (not background, but good to detect)
+            if (isset($element['widgetType']) && $element['widgetType'] === 'video') {
+                if (isset($element['settings']['youtube_url'])) {
+                    $videos[] = array(
+                        'url' => $element['settings']['youtube_url'],
+                        'type' => 'youtube',
+                        'element_type' => 'video_widget'
+                    );
+                } elseif (isset($element['settings']['vimeo_url'])) {
+                    $videos[] = array(
+                        'url' => $element['settings']['vimeo_url'],
+                        'type' => 'vimeo',
+                        'element_type' => 'video_widget'
+                    );
+                }
+            }
+            
+            // Recurse through nested elements
+            if (isset($element['elements']) && is_array($element['elements'])) {
+                $nested_videos = $this->find_background_videos($element['elements'], $depth + 1, $max_depth);
+                $videos = array_merge($videos, $nested_videos);
+            }
+        }
+        
+        return $videos;
+    }
+    
+    /**
+     * Detect video type from URL
+     *
+     * @param string $url Video URL
+     * @return string Video type (youtube, vimeo, hosted, unknown)
+     */
+    private function detect_video_type($url) {
+        if (strpos($url, 'youtube.com') !== false || strpos($url, 'youtu.be') !== false) {
+            return 'youtube';
+        } elseif (strpos($url, 'vimeo.com') !== false) {
+            return 'vimeo';
+        } elseif (preg_match('/\.(mp4|webm|ogg)$/i', $url)) {
+            return 'hosted';
+        }
+        return 'unknown';
+    }
+    
+    /**
+     * Check if current page has YouTube background videos
+     * 
+     * Public helper method for Resource_Remover to check if YouTube blocking should occur
+     *
+     * @return bool True if YouTube background videos detected
+     */
+    public function has_youtube_background_videos() {
+        $videos = $this->detect_elementor_background_videos();
+        
+        foreach ($videos as $video) {
+            if ($video['type'] === 'youtube' && $video['element_type'] !== 'video_widget') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 }
