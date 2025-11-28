@@ -159,7 +159,7 @@ class CoreBoost {
             $this->tag_manager->register_hooks($this->loader);
             
             // Initialize video facade for click-to-play videos
-            new Video_Facade($this->options, $this->loader);
+            new \CoreBoost\PublicCore\Video_Facade($this->options, $this->loader);
         }
     }
     
