@@ -177,6 +177,16 @@ class CoreBoost {
     }
     
     /**
+     * Get Hero_Optimizer instance
+     * Allows other classes to reuse singleton instead of creating new instances
+     *
+     * @return Hero_Optimizer|null
+     */
+    public function get_hero_optimizer() {
+        return $this->hero_optimizer;
+    }
+    
+    /**
      * Get default options
      *
      * @return array

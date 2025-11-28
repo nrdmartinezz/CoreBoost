@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.4] - 2025-11-27
+
+### Fixed
+
+- **Smart YouTube Blocking Performance Optimization** - Dramatically improved performance with minimal impact
+  - Fixed backwards conditional logic that prevented YouTube scripts from being blocked
+  - Added request-level caching to prevent multiple detections per page load (was running 7+ times)
+  - Refactored to use CoreBoost singleton Hero_Optimizer instead of creating new instances
+  - Broadened YouTube URL pattern matching to catch all YouTube domains (`youtube.com`, `ytimg.com`)
+  - Optimized recursive search with early termination when YouTube background video found
+  - Reduced search depth from 5 to 3 levels (hero sections are always near top)
+  - Limited search to first 3 sections at root level for maximum performance
+
+### Changed
+
+- YouTube blocking now uses simple domain detection instead of specific URL patterns
+- Detection runs ONCE per page load and result is cached in static property
+- Added `get_hero_optimizer()` public method to CoreBoost class for singleton access
+- Legacy `block_youtube_embed_ui` setting now works independently of smart blocking
+
+### Performance Impact
+
+- **Before**: 7+ Hero_Optimizer instantiations, 7+ transient checks, 7+ JSON decodes per page
+- **After**: 1 detection run, 1 transient check, 1 JSON decode, N memory lookups
+- Eliminates object creation overhead (new Loader, new Hero_Optimizer on every script tag)
+- Zero performance impact on pages without YouTube background videos
+
 ## [2.0.3] - 2025-11-27
 
 ### Added
