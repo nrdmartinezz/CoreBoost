@@ -46,10 +46,23 @@ class Autoloader {
         $class_parts = explode(DIRECTORY_SEPARATOR, $class_name);
         $class_file = array_pop($class_parts);
         
+        // Convert directory names to lowercase and handle special mappings
+        // PublicCore -> public, Admin -> admin, Core -> core
+        $class_parts = array_map(function($part) {
+            // Special case: PublicCore maps to 'public' directory
+            if ($part === 'PublicCore') {
+                return 'public';
+            }
+            return strtolower($part);
+        }, $class_parts);
+        
         // Handle special case for main CoreBoost class
         if ($class_file === 'CoreBoost') {
             $class_file = 'class-coreboost.php';
         } else {
+            // Convert underscores to hyphens first (GTM_Settings -> GTM-Settings)
+            $class_file = str_replace('_', '-', $class_file);
+            
             // Convert CamelCase to kebab-case
             $class_file = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $class_file));
             $class_file = 'class-' . $class_file . '.php';
