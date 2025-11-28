@@ -61,7 +61,8 @@ class Hero_Optimizer {
      * Main hero image preloading function
      */
     public function preload_hero_images() {
-        if (is_admin() || $this->options['preload_method'] === 'disabled') {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview']) || $this->options['preload_method'] === 'disabled') {
             return;
         }
         

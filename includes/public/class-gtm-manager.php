@@ -64,6 +64,11 @@ class GTM_Manager {
      * Output GTM head script
      */
     public function output_gtm_head() {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
+        
         $container_id = $this->options['gtm_container_id'];
         
         // Safety check - skip if existing GTM detected
@@ -132,6 +137,11 @@ window.dataLayer = window.coreboostGTM.dataLayer;
      * Output GTM body (noscript fallback)
      */
     public function output_gtm_body() {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
+        
         if ($this->has_output_body_tag()) {
             return; // Already output
         }
@@ -151,6 +161,11 @@ window.dataLayer = window.coreboostGTM.dataLayer;
      * Output GTM body fallback for themes without wp_body_open
      */
     public function output_gtm_body_fallback() {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
+        
         if ($this->has_output_body_tag()) {
             return; // Already output in wp_body_open
         }

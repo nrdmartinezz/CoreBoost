@@ -176,7 +176,10 @@ class CSS_Optimizer {
      * Debug CSS detection and output information
      */
     public function debug_css_detection() {
-        if (!$this->options['debug_mode'] || is_admin()) return;
+        // Don't output debug info on admin pages, preview contexts, or AJAX requests
+        if (!$this->options['debug_mode'] || is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
         
         global $wp_styles;
         if (!isset($wp_styles->queue) || empty($wp_styles->queue)) {
@@ -213,7 +216,10 @@ class CSS_Optimizer {
      * Log enqueued styles for debugging
      */
     public function log_enqueued_styles() {
-        if (!$this->options['debug_mode'] || is_admin()) return;
+        // Don't log on admin pages, preview contexts, or AJAX requests
+        if (!$this->options['debug_mode'] || is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
         
         global $wp_styles;
         if (!isset($wp_styles->queue) || empty($wp_styles->queue)) return;

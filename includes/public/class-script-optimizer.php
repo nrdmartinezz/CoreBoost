@@ -142,7 +142,8 @@ class Script_Optimizer {
      * Add resource hints for critical scripts
      */
     public function add_script_resource_hints() {
-        if (!$this->options['enable_script_defer'] || is_admin()) {
+        // Safety check: don't output on admin or preview contexts
+        if (!$this->options['enable_script_defer'] || is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
         

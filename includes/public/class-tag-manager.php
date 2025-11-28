@@ -93,8 +93,8 @@ class Tag_Manager {
      * Output head tags
      */
     public function output_head_tags() {
-        // Safety check: don't output on admin
-        if (is_admin()) {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
 
@@ -126,8 +126,8 @@ class Tag_Manager {
      * Output body tags (at top of body)
      */
     public function output_body_tags() {
-        // Safety check: don't output on admin
-        if (is_admin()) {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
 
@@ -159,8 +159,8 @@ class Tag_Manager {
      * Output footer tags
      */
     public function output_footer_tags() {
-        // Safety check: don't output on admin
-        if (is_admin()) {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
 
@@ -192,8 +192,8 @@ class Tag_Manager {
      * Output delay loading script
      */
     public function output_delay_script() {
-        // Safety check: don't output on admin
-        if (is_admin()) {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
 
