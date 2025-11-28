@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.5] - 2025-11-27
+
+### Fixed
+
+- **Smart YouTube Blocking Now Fully Functional** - Fixed critical bug preventing YouTube iframes from being blocked
+  - Added proper HTML entity decoding for `data-settings` attribute parsing
+  - Now removes ALL Background Group Control video settings: `background_video_link`, `background_play_on_mobile`, `background_video_fallback`, `background_play_once`
+  - Changes `background_background` from 'video' to 'classic' to prevent Elementor from recreating iframe
+  - Properly re-encodes JSON with `htmlspecialchars()` to maintain attribute integrity
+  - Prevents Elementor's frontend.js from creating iframe by removing video URL before JavaScript execution
+
+### Changed
+
+- Regex pattern now matches all `data-settings` attributes instead of only those containing `background_video_link`
+- Improved efficiency by checking for `background_video_link` string before JSON parsing
+- Enhanced debug comments to indicate data-settings modification
+
+### Technical Details
+
+- Based on Elementor Background Group Control documentation
+- Handles HTML entity encoding/decoding correctly (`&quot;` → `"` → `&quot;`)
+- Uses `JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE` flags for clean JSON output
+- Debug mode adds `data-coreboost-youtube-removed="1"` attribute to modified elements
+
 ## [2.0.4] - 2025-11-27
 
 ### Fixed
