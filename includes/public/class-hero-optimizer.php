@@ -323,6 +323,11 @@ class Hero_Optimizer {
             return $this->extract_vimeo_thumbnail_url($video_url);
         }
         
+        // For hosted videos or unknown types, try to use a static background image fallback
+        if (isset($first_element['settings']['background_image']['url'])) {
+            return $first_element['settings']['background_image']['url'];
+        }
+        
         return null;
     }
     
