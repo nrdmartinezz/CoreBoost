@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2] - 2025-11-27
+
+### Fixed
+
+- **Footer Tags Duplication Bug** - Fixed custom tags appearing twice in footer
+  - Improved delay script to handle all HTML element types (noscript, img, div, etc.)
+  - Previously only extracted `<script>` tags, causing `<noscript>` elements to display twice
+  - Now uses universal element handler that moves all child nodes properly
+  - Affected file: `includes/public/class-tag-manager.php` (lines 249-264)
+  - Fixes Google Tag Manager noscript tag appearing twice on page
+
+### Technical Details
+
+- Replaced script-specific extraction with universal `while (firstChild)` approach
+- Ensures complete extraction of footer template container
+- Works with any HTML element type in footer tags
+- Prevents template remnants from displaying
+
 ## [2.1.1] - 2025-11-27
 
 ### Added

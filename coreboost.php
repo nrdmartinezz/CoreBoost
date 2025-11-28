@@ -3,7 +3,7 @@
  * Plugin Name: CoreBoost
  * Plugin URI: https://github.com/nrdmartinezz/coreboost
  * Description: Comprehensive site optimization plugin with LCP optimization for Elementor hero sections, advanced CSS deferring with critical CSS, Google Fonts & Adobe Fonts optimization, script optimization, and performance enhancements.
- * Version: 2.1.1
+ * Version: 2.1.2
  * Author: nrdmartinezz
  * Author URI: https://github.com/nrdmartinezz
  * License: GPL v2 or later
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('COREBOOST_VERSION', '2.1.1');
+define('COREBOOST_VERSION', '2.1.2');
 define('COREBOOST_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('COREBOOST_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('COREBOOST_PLUGIN_BASENAME', plugin_basename(__FILE__));
