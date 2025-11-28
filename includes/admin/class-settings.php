@@ -275,7 +275,7 @@ class Settings {
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                               'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
                               'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
-                              'block_youtube_player_css', 'block_youtube_embed_ui'),
+                              'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui'),
             'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
                                'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids'),
             'text' => array('css_defer_method'),
