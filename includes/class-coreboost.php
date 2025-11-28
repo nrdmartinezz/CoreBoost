@@ -157,6 +157,9 @@ class CoreBoost {
             $this->resource_remover = new Resource_Remover($this->options, $this->loader);
             $this->tag_manager = new Tag_Manager($this->options);
             $this->tag_manager->register_hooks($this->loader);
+            
+            // Initialize video facade for click-to-play videos
+            new Video_Facade($this->options, $this->loader);
         }
     }
     

@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-11-27
+
+### Added
+
+- **Smart Video Facades** - Click-to-play facades for above-the-fold video widgets
+  - Detects YouTube/Vimeo videos in first 3 sections of pages
+  - Replaces with thumbnail + play button facade
+  - Saves ~1MB per video by deferring script loading
+  - Videos load on click instead of on page load
+  - Native integration with Elementor video widget
+  - Smooth transition to embedded player with fade effect
+  - Click analytics tracking support (GTM/GA compatible)
+  - Thumbnail images automatically extracted from video service
+
+### Features
+
+- **Facade Component** - Custom lightweight HTML/CSS/JS facade
+  - 16x16 play button overlay
+  - Hover effects for better UX
+  - Responsive 16:9 aspect ratio
+  - Keyboard accessible (ARIA labels)
+  - Mobile-friendly touch targets
+
+- **Video Detection** - Scans Elementor data for video widgets
+  - Extracts YouTube/Vimeo URLs from settings
+  - Limits to above-the-fold (first 3 sections)
+  - Supports direct URLs and Elementor format
+  - Preserves video titles and metadata
+
+- **Lazy Iframe Loading** - Creates iframe on demand
+  - YouTube: Uses embed.youtube.com endpoint
+  - Vimeo: Uses player.vimeo.com endpoint  
+  - Auto-plays when user clicks facade
+  - Preloads vendor script on interaction
+
+### Technical Details
+
+- Added `Video_Facade` class in `includes/public/class-video-facade.php`
+- Added `detect_above_fold_video_widgets()` method to `Hero_Optimizer`
+- New setting: "Smart Video Facades" in Advanced Settings tab
+- Inline script uses `requestIdleCallback` for optimal performance
+- No external dependencies - uses native DOM APIs
+- Debug mode displays facade implementation details
+
+### Performance Impact
+
+- **Per Video**: ~1-1.5MB saved (YouTube API + Player CSS)
+- **Multiple Videos**: Compounding savings (2 videos = ~2-3MB, etc.)
+- **Trade-off**: User must click to play (intentional for performance)
+- **Best For**: Hero sections, landing pages, video galleries
+
 ## [2.0.5] - 2025-11-27
 
 ### Fixed

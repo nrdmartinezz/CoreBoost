@@ -572,4 +572,124 @@ class Hero_Optimizer {
         
         return false;
     }
+    
+    /**
+     * Detect above-the-fold video widgets for facade replacement
+     * Scans first 3 sections for embedded video widgets
+     *
+     * @return array Array of video widget data
+     */
+    public function detect_above_fold_video_widgets() {
+        if (!defined('ELEMENTOR_VERSION')) {
+            return array();
+        }
+        
+        global $post;
+        if (!$post) {
+            return array();
+        }
+        
+        $videos = array();
+        $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
+        
+        if ($elementor_data) {
+            $data = json_decode($elementor_data, true);
+            if (is_array($data)) {
+                $videos = $this->find_video_widgets($data);
+            }
+        }
+        
+        return $videos;
+    }
+    
+    /**
+     * Recursively find video widgets in Elementor data (above fold)
+     *
+     * @param array $elements Elementor elements array
+     * @param int $depth Current recursion depth
+     * @return array Array of video widget data
+     */
+    private function find_video_widgets($elements, $depth = 0) {
+        // Only scan first 3 levels (above the fold)
+        if ($depth > 3 || !is_array($elements)) {
+            return array();
+        }
+        
+        $videos = array();
+        $section_count = 0;
+        
+        foreach ($elements as $element) {
+            if (!is_array($element)) {
+                continue;
+            }
+            
+            // Count sections at depth 0
+            if ($depth === 0 && isset($element['elType']) && $element['elType'] === 'section') {
+                $section_count++;
+                // Only check first 3 sections
+                if ($section_count > 3) {
+                    break;
+                }
+            }
+            
+            // Check for video widget
+            if (isset($element['widgetType']) && $element['widgetType'] === 'video') {
+                $video_data = $this->extract_video_widget_data($element);
+                if ($video_data) {
+                    $videos[] = $video_data;
+                }
+            }
+            
+            // Recurse through nested elements
+            if (isset($element['elements']) && is_array($element['elements'])) {
+                $nested_videos = $this->find_video_widgets($element['elements'], $depth + 1);
+                $videos = array_merge($videos, $nested_videos);
+            }
+        }
+        
+        return $videos;
+    }
+    
+    /**
+     * Extract video URL from Elementor video widget settings
+     *
+     * @param array $element Elementor element data
+     * @return array|null Video data or null
+     */
+    private function extract_video_widget_data($element) {
+        if (!isset($element['settings'])) {
+            return null;
+        }
+        
+        $settings = $element['settings'];
+        $video_url = null;
+        $video_type = null;
+        
+        // Check for YouTube URL
+        if (isset($settings['youtube_url']) && !empty($settings['youtube_url'])) {
+            $video_url = $settings['youtube_url'];
+            $video_type = 'youtube';
+        }
+        // Check for Vimeo URL
+        elseif (isset($settings['vimeo_url']) && !empty($settings['vimeo_url'])) {
+            $video_url = $settings['vimeo_url'];
+            $video_type = 'vimeo';
+        }
+        // Check for hosted video
+        elseif (isset($settings['hosted_url']) && !empty($settings['hosted_url'])) {
+            $video_url = $settings['hosted_url'];
+            $video_type = 'hosted';
+        }
+        
+        if (!$video_url) {
+            return null;
+        }
+        
+        return array(
+            'url' => $video_url,
+            'type' => $video_type,
+            'title' => isset($settings['video_title']) ? $settings['video_title'] : '',
+            'element_id' => isset($element['id']) ? $element['id'] : uniqid('video-'),
+        );
+    }
 }
