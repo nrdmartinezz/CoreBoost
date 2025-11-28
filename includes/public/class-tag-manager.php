@@ -252,24 +252,14 @@ class Tag_Manager {
                     var footerContent = footerTags.textContent || footerTags.innerText;
                     var footerTemp = document.createElement('div');
                     footerTemp.innerHTML = footerContent;
-                    var footerScripts = footerTemp.getElementsByTagName('script');
-                    for (var i = 0; i < footerScripts.length; i++) {
-                        var script = document.createElement('script');
-                        if (footerScripts[i].src) {
-                            script.src = footerScripts[i].src;
-                        }
-                        if (footerScripts[i].innerHTML) {
-                            script.innerHTML = footerScripts[i].innerHTML;
-                        }
-                        // Copy attributes
-                        for (var j = 0; j < footerScripts[i].attributes.length; j++) {
-                            var attr = footerScripts[i].attributes[j];
-                            if (attr.name !== 'src' && attr.name !== 'type') {
-                                script.setAttribute(attr.name, attr.value);
-                            }
-                        }
-                        document.body.appendChild(script);
+                    
+                    // Move all child nodes from the temporary container to the end of body
+                    // This handles scripts, noscript, and any other elements
+                    while (footerTemp.firstChild) {
+                        document.body.appendChild(footerTemp.firstChild);
                     }
+                    
+                    // Remove the template container
                     footerTags.parentNode.removeChild(footerTags);
                 }
                 
