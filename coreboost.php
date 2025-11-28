@@ -65,6 +65,11 @@ register_deactivation_hook(__FILE__, 'coreboost_deactivate');
  * Initialize the plugin
  */
 function coreboost_run() {
+    // Don't run on admin pages at all
+    if (is_admin()) {
+        return;
+    }
+    
     $plugin = CoreBoost\CoreBoost::get_instance();
     $plugin->run();
 }
