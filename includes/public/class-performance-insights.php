@@ -41,6 +41,11 @@ class CoreBoost_Performance_Insights {
 	 * @param CoreBoost_Analytics_Engine $analytics Analytics engine.
 	 */
 	public function __construct( $analytics ) {
+		// Only initialize on frontend (not admin or AJAX requests)
+		if ( is_admin() || wp_doing_ajax() ) {
+			return;
+		}
+
 		$this->analytics = $analytics;
 		$this->register_hooks();
 	}

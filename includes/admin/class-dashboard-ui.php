@@ -36,6 +36,11 @@ class CoreBoost_Dashboard_UI {
 	 * @param array                      $options Plugin options.
 	 */
 	public function __construct( $analytics, $options = array() ) {
+		// Only initialize in admin area
+		if ( ! is_admin() ) {
+			return;
+		}
+
 		$this->analytics = $analytics;
 		$this->options   = $options;
 		$this->register_hooks();

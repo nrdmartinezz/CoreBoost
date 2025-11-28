@@ -60,6 +60,11 @@ class Tag_Manager {
      * @param \CoreBoost\Loader $loader Plugin loader
      */
     public function register_hooks($loader) {
+        // Only register on frontend
+        if (is_admin() || wp_doing_ajax()) {
+            return;
+        }
+
         // Only register hooks if at least one tag position has content
         if ($this->has_tags()) {
             $loader->add_action('wp_head', $this, 'output_head_tags', 1);

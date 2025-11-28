@@ -44,7 +44,10 @@ class CSS_Optimizer {
     public function __construct($options, $loader) {
         $this->options = $options;
         $this->loader = $loader;
-        $this->define_hooks();
+        // Only register on frontend
+        if (!is_admin()) {
+            $this->define_hooks();
+        }
     }
     
     /**

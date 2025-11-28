@@ -64,6 +64,11 @@ class CoreBoost_Analytics_Engine {
 	 * @param bool  $debug_mode Debug mode flag.
 	 */
 	public function __construct( $options = array(), $debug_mode = false ) {
+		// Only initialize on frontend (not admin or AJAX requests)
+		if ( is_admin() || wp_doing_ajax() ) {
+			return;
+		}
+
 		$this->options     = $options;
 		$this->debug_mode  = $debug_mode;
 		$this->load_metrics();

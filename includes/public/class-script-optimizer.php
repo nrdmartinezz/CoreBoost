@@ -57,14 +57,17 @@ class Script_Optimizer {
     public function __construct($options, $loader) {
         $this->options = $options;
         $this->loader = $loader;
-        $this->exclusions = new Script_Exclusions($options);
-        
-        // Initialize event hijacker if enabled (Phase 4)
-        if (!empty($options['enable_event_hijacking'])) {
-            $this->event_hijacker = new Event_Hijacker($options);
+        // Only register on frontend
+        if (!is_admin()) {
+            $this->exclusions = new Script_Exclusions($options);
+            
+            // Initialize event hijacker if enabled (Phase 4)
+            if (!empty($options['enable_event_hijacking'])) {
+                $this->event_hijacker = new Event_Hijacker($options);
+            }
+            
+            $this->define_hooks();
         }
-        
-        $this->define_hooks();
     }
     
     /**
