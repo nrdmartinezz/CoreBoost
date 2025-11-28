@@ -134,7 +134,7 @@ class GTM_Detector {
             if (file_exists($file_path)) {
                 $content = file_get_contents($file_path);
                 
-                // Check for GTM script
+                // Pattern 1: Check for GTM script URL
                 if (preg_match('/googletagmanager\.com\/gtm\.js\?id=(GTM-[A-Z0-9]+)/', $content, $matches)) {
                     $sources[] = array(
                         'type' => 'theme',
@@ -143,6 +143,51 @@ class GTM_Detector {
                         'container' => $matches[1],
                         'recommendation' => 'Remove GTM code from ' . $file . ' before enabling CoreBoost GTM.'
                     );
+                }
+                
+                // Pattern 2: Check for inline GTM snippet with dataLayer (common in functions.php)
+                // Matches: (function(w,d,s,l,i){...})(window,document,'script','dataLayer','GTM-XXXXX');
+                if (preg_match('/[\'"](dataLayer)[\'"],[\s]*[\'"](GTM-[A-Z0-9]+)[\'"]/i', $content, $matches)) {
+                    $container_id = $matches[2];
+                    // Check if already detected
+                    $already_detected = false;
+                    foreach ($sources as $source) {
+                        if ($source['type'] === 'theme' && $source['container'] === $container_id) {
+                            $already_detected = true;
+                            break;
+                        }
+                    }
+                    if (!$already_detected) {
+                        $sources[] = array(
+                            'type' => 'theme',
+                            'name' => $theme->get('Name'),
+                            'file' => $file,
+                            'container' => $container_id,
+                            'recommendation' => 'Remove inline GTM code from ' . $file . ' before enabling CoreBoost GTM.'
+                        );
+                    }
+                }
+                
+                // Pattern 3: Broad catch-all for GTM container IDs in quotes
+                if (preg_match('/[\'"\s](GTM-[A-Z0-9]{4,})[\'"]/', $content, $matches)) {
+                    $container_id = $matches[1];
+                    // Check if already detected
+                    $already_detected = false;
+                    foreach ($sources as $source) {
+                        if ($source['type'] === 'theme' && $source['container'] === $container_id) {
+                            $already_detected = true;
+                            break;
+                        }
+                    }
+                    if (!$already_detected) {
+                        $sources[] = array(
+                            'type' => 'theme',
+                            'name' => $theme->get('Name'),
+                            'file' => $file,
+                            'container' => $container_id,
+                            'recommendation' => 'Remove GTM container reference from ' . $file . ' before enabling CoreBoost GTM.'
+                        );
+                    }
                 }
                 
                 // Check for GTM noscript
@@ -185,8 +230,58 @@ class GTM_Detector {
         do_action('wp_head');
         $head_content = ob_get_clean();
         
-        // Find all GTM container IDs in head
+        // Pattern 1: Find all GTM container IDs in head by script URL
         if (preg_match_all('/googletagmanager\.com\/gtm\.js\?id=(GTM-[A-Z0-9]+)/', $head_content, $matches)) {
+            foreach ($matches[1] as $container_id) {
+                if (!in_array($container_id, $containers)) {
+                    $containers[] = $container_id;
+                }
+            }
+        }
+        
+        // Pattern 2: Find inline GTM snippets with dataLayer in head
+        if (preg_match_all('/[\'"](dataLayer)[\'"],[\s]*[\'"](GTM-[A-Z0-9]+)[\'"]/i', $head_content, $matches)) {
+            foreach ($matches[2] as $container_id) {
+                if (!in_array($container_id, $containers)) {
+                    $containers[] = $container_id;
+                }
+            }
+        }
+        
+        // Pattern 3: Broad catch-all for GTM container IDs in head
+        if (preg_match_all('/[\'"\s](GTM-[A-Z0-9]{4,})[\'"]/', $head_content, $matches)) {
+            foreach ($matches[1] as $container_id) {
+                if (!in_array($container_id, $containers)) {
+                    $containers[] = $container_id;
+                }
+            }
+        }
+        
+        // Hook into wp_footer to capture output
+        ob_start();
+        do_action('wp_footer');
+        $footer_content = ob_get_clean();
+        
+        // Pattern 1: Find all GTM container IDs in footer by script URL
+        if (preg_match_all('/googletagmanager\.com\/gtm\.js\?id=(GTM-[A-Z0-9]+)/', $footer_content, $matches)) {
+            foreach ($matches[1] as $container_id) {
+                if (!in_array($container_id, $containers)) {
+                    $containers[] = $container_id;
+                }
+            }
+        }
+        
+        // Pattern 2: Find inline GTM snippets with dataLayer in footer
+        if (preg_match_all('/[\'"](dataLayer)[\'"],[\s]*[\'"](GTM-[A-Z0-9]+)[\'"]/i', $footer_content, $matches)) {
+            foreach ($matches[2] as $container_id) {
+                if (!in_array($container_id, $containers)) {
+                    $containers[] = $container_id;
+                }
+            }
+        }
+        
+        // Pattern 3: Broad catch-all for GTM container IDs in footer
+        if (preg_match_all('/[\'"\s](GTM-[A-Z0-9]{4,})[\'"]/', $footer_content, $matches)) {
             foreach ($matches[1] as $container_id) {
                 if (!in_array($container_id, $containers)) {
                     $containers[] = $container_id;

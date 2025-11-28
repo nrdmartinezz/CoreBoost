@@ -30,11 +30,11 @@ class Settings {
     private $options;
     
     /**
-     * GTM Settings instance
+     * Tag Settings instance
      *
-     * @var GTM_Settings
+     * @var Tag_Settings
      */
-    private $gtm_settings;
+    private $tag_settings;
     
     /**
      * Constructor
@@ -43,7 +43,7 @@ class Settings {
      */
     public function __construct($options) {
         $this->options = $options;
-        $this->gtm_settings = new GTM_Settings($options);
+        $this->tag_settings = new Tag_Settings($options);
     }
     
     /**
@@ -52,8 +52,8 @@ class Settings {
     public function register_settings() {
         register_setting('coreboost_options_group', 'coreboost_options', array($this, 'sanitize_options'));
         
-        // Register GTM settings
-        $this->gtm_settings->register_settings();
+        // Register Custom Tag settings
+        $this->tag_settings->register_settings();
         
         // Hero Image Optimization Tab
         add_settings_section(
@@ -129,6 +129,7 @@ class Settings {
         $this->add_dynamic_field('inline_script_ids', __('Inline Script IDs', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('enable_inline_style_removal', __('Remove Inline Styles by ID', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('inline_style_ids', __('Inline Style IDs', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
+        $this->add_dynamic_field('smart_youtube_blocking', __('Smart YouTube Blocking', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('block_youtube_player_css', __('Block YouTube Player CSS', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('block_youtube_embed_ui', __('Block YouTube Embed UI', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('debug_mode', __('Debug Mode', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
@@ -307,7 +308,7 @@ class Settings {
                 }
                 if ($has_advanced_fields && in_array($field, array('enable_caching', 'debug_mode', 'enable_unused_css_removal',
                     'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
-                    'block_youtube_player_css', 'block_youtube_embed_ui'))) {
+                    'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui'))) {
                     $is_current_form = true;
                 }
                 
@@ -335,13 +336,13 @@ class Settings {
             }
         }
         
-        // Check if GTM tab was submitted
-        $has_gtm_fields = isset($input['gtm_enabled']) || isset($input['gtm_container_id']) || isset($input['gtm_load_strategy']);
+        // Check if Custom Tags tab was submitted
+        $has_tag_fields = isset($input['tag_head_scripts']) || isset($input['tag_body_scripts']) || 
+                         isset($input['tag_footer_scripts']) || isset($input['tag_load_strategy']);
         
-        if ($has_gtm_fields) {
-            // Sanitize GTM settings
-            $gtm_sanitized = $this->gtm_settings->sanitize_gtm_settings($input);
-            $sanitized = array_merge($sanitized, $gtm_sanitized);
+        if ($has_tag_fields) {
+            // Sanitize tag settings
+            $sanitized = $this->tag_settings->sanitize_settings($input, $sanitized);
         }
         
         // Clear cache when settings change

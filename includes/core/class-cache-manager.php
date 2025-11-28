@@ -35,6 +35,22 @@ class Cache_Manager {
     }
     
     /**
+     * Clear all background video detection cache
+     */
+    public static function clear_video_cache() {
+        global $wpdb;
+        
+        // Clear object cache
+        if (function_exists('wp_cache_flush_group')) {
+            wp_cache_flush_group('coreboost_video_cache');
+        }
+        
+        // Clear transients
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_coreboost_bg_videos_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_coreboost_bg_videos_%'");
+    }
+    
+    /**
      * Clear third-party caching plugin caches
      */
     public static function clear_third_party_caches() {
@@ -64,6 +80,7 @@ class Cache_Manager {
      */
     public static function flush_all_caches() {
         self::clear_hero_cache();
+        self::clear_video_cache();
         
         if (function_exists('wp_cache_flush')) {
             wp_cache_flush();
