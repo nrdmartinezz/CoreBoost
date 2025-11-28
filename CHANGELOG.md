@@ -7,6 +7,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2024-12-XX
+
+### Added
+
+- **Google Tag Manager Management**: Complete GTM integration with async/defer loading strategies
+  - Smart conflict detection - automatically detects existing GTM implementations (plugins, themes, hardcoded)
+  - Safety-first approach - always defers to existing implementations to prevent site breakage
+  - Multiple load strategies: Immediate, Balanced (3s - default), Aggressive (5s), User Interaction, Browser Idle
+  - Container validation with GTM-XXXXXXX format checking
+  - New "GTM & Tracking" admin tab with intuitive interface
+
+- **GTM Core Classes**:
+  - `GTM_Detector`: Scans for existing GTM in plugins, themes, and output buffer
+  - `GTM_Manager`: Frontend GTM loader with configurable delay strategies
+  - `GTM_Settings`: Admin settings interface with conflict reporting
+
+### Changed
+
+- **Script Optimizer**: Now excludes GTM scripts from optimization when GTM management is enabled
+- **Admin Interface**: Added fifth tab "GTM & Tracking" with detection status widget
+- **Default Options**: Added GTM settings with balanced 3-second delay as recommended default
+
+### Technical
+
+- Version bumped from 1.2.0 to 2.0.0 (major version for new GTM feature)
+- GTM detection results cached for performance (1 hour expiry)
+- JavaScript cache-clearing functionality for GTM detection
+- Integration with existing optimizer classes for conflict prevention
+
+## [1.2.0] - 2024-12-XX
+
+### Changed
+
+- **Complete Architecture Refactor**: Restructured plugin from monolithic 2097-line file to modern modular WordPress architecture
+  - Implemented PSR-4 autoloading with namespace `CoreBoost\{Admin,PublicCore,Core}`
+  - Separated concerns into focused single-responsibility classes
+  - Created organized folder structure: `includes/{admin,public,core}/`
+  - Reduced main plugin file from 2097 lines to 70 lines (97% reduction)
+  - Improved maintainability, testability, and extensibility
+  - **100% backward compatible** - all existing hooks, filters, and options preserved
+
+### Added
+
+- **New Infrastructure Classes**:
+  - `Autoloader`: PSR-4 autoloader with kebab-case file naming
+  - `Loader`: Centralized hook management system
+  - `Activator`/`Deactivator`: Clean activation/deactivation handlers
+  - `CoreBoost`: Main orchestrator with singleton pattern and dependency injection
+
+- **New Core Utility Classes**:
+  - `Config`: Centralized configuration management
+  - `Cache_Manager`: Unified cache operations (hero cache, third-party caches)
+  - `Debug_Helper`: Debug comment output utility
+  - `Field_Renderer`: Reusable form field rendering
+
+- **New Admin Classes**:
+  - `Admin`: Admin area coordinator
+  - `Settings`: Settings registration and sanitization
+  - `Settings_Page`: Admin page HTML rendering with tabs
+  - `Admin_Bar`: WordPress admin bar menu integration
+
+- **New Frontend Optimizer Classes**:
+  - `Hero_Optimizer`: LCP optimization and hero image preloading (5 methods)
+  - `Script_Optimizer`: JavaScript defer/async with jQuery dependency detection
+  - `CSS_Optimizer`: CSS deferring, critical CSS output, pattern matching
+  - `Font_Optimizer`: Google/Adobe font optimization with preconnect
+  - `Resource_Remover`: Unused resource removal and YouTube blocking
+
+### Technical Improvements
+
+- **Better Code Organization**: Each feature in dedicated class with clear responsibility
+- **Dependency Injection**: All classes receive `$options` and `$loader` in constructor
+- **Improved Testing**: Individual classes can be unit tested in isolation
+- **Better Documentation**: PHPDoc blocks for all classes and methods
+- **Safer Updates**: Original file backed up as `coreboost.php.backup`
+
+### Notes
+
+- This is an **architectural improvement only** - no feature changes or option modifications
+- All existing settings and configurations continue to work identically
+- Plugin behavior remains exactly the same as v1.1.2
+- Prepares codebase for v2.0.0 with planned GTM tracking features
+
 ## [1.1.2] - 2024-11-27
 
 ### Improved

@@ -27,7 +27,24 @@ jobs:
         # Copy plugin files (exclude development files)
         cp coreboost.php coreboost-release/
         cp readme.txt coreboost-release/
+        cp README.md coreboost-release/
+        cp CHANGELOG.md coreboost-release/
+        
+        # Copy modular includes directory (22 PHP classes - v2.0.0)
+        cp -r includes coreboost-release/
+        
+        # Copy assets
         cp -r assets coreboost-release/
+        
+        # Verify structure
+        echo "Verifying release structure..."
+        test -d coreboost-release/includes && echo "✅ includes/ directory included"
+        CLASS_COUNT=$(find coreboost-release/includes -name "*.php" | wc -l)
+        echo "Class files in release: $CLASS_COUNT"
+        if [ "$CLASS_COUNT" -lt 20 ]; then
+          echo "❌ ERROR: Expected at least 20 class files, found $CLASS_COUNT"
+          exit 1
+        fi
         
         # Create ZIP file
         cd coreboost-release

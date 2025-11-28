@@ -111,7 +111,27 @@ PHP
         mkdir -p /tmp/wordpress/wp-content/plugins/coreboost
         cp coreboost.php /tmp/wordpress/wp-content/plugins/coreboost/
         cp readme.txt /tmp/wordpress/wp-content/plugins/coreboost/
+        
+        # Copy modular includes directory (22 PHP classes)
+        cp -r includes /tmp/wordpress/wp-content/plugins/coreboost/
+        
+        # Copy assets directory
         cp -r assets /tmp/wordpress/wp-content/plugins/coreboost/ 2>/dev/null || echo "No assets directory"
+        
+        # Verify file structure
+        echo "Verifying plugin structure..."
+        test -d /tmp/wordpress/wp-content/plugins/coreboost/includes && echo "✅ includes/ directory copied"
+        test -d /tmp/wordpress/wp-content/plugins/coreboost/includes/admin && echo "✅ includes/admin/ exists"
+        test -d /tmp/wordpress/wp-content/plugins/coreboost/includes/public && echo "✅ includes/public/ exists"
+        test -d /tmp/wordpress/wp-content/plugins/coreboost/includes/core && echo "✅ includes/core/ exists"
+        
+        # Count PHP class files (should be 22)
+        CLASS_COUNT=$(find /tmp/wordpress/wp-content/plugins/coreboost/includes -name "*.php" | wc -l)
+        echo "Found $CLASS_COUNT PHP class files"
+        if [ "$CLASS_COUNT" -lt 20 ]; then
+          echo "❌ ERROR: Expected at least 20 class files, found $CLASS_COUNT"
+          exit 1
+        fi
         
         # Activate plugin
         cd /tmp/wordpress
@@ -167,10 +187,35 @@ PHP
         # Check required files exist
         test -f coreboost.php && echo "✅ Main plugin file exists"
         test -f readme.txt && echo "✅ Readme file exists"
+        test -f CHANGELOG.md && echo "✅ Changelog exists"
         
         # Check plugin header
         grep -q "Plugin Name:" coreboost.php && echo "✅ Plugin header found"
         grep -q "Version:" coreboost.php && echo "✅ Version found"
+        
+        # Check modular structure (v2.0.0)
+        test -d includes && echo "✅ includes/ directory exists"
+        test -d includes/admin && echo "✅ includes/admin/ exists"
+        test -d includes/public && echo "✅ includes/public/ exists"
+        test -d includes/core && echo "✅ includes/core/ exists"
+        
+        # Count class files
+        CLASS_COUNT=$(find includes -name "class-*.php" | wc -l)
+        echo "Found $CLASS_COUNT class files"
+        if [ "$CLASS_COUNT" -lt 20 ]; then
+          echo "❌ ERROR: Expected at least 20 class files, found $CLASS_COUNT"
+          exit 1
+        fi
+        
+        # Verify main classes exist
+        test -f includes/class-coreboost.php && echo "✅ Main CoreBoost class exists"
+        test -f includes/class-loader.php && echo "✅ Loader class exists"
+        test -f includes/class-autoloader.php && echo "✅ Autoloader class exists"
+        
+        # Verify v2.0.0 GTM classes
+        test -f includes/core/class-gtm-detector.php && echo "✅ GTM_Detector class exists (v2.0.0)"
+        test -f includes/public/class-gtm-manager.php && echo "✅ GTM_Manager class exists (v2.0.0)"
+        test -f includes/admin/class-gtm-settings.php && echo "✅ GTM_Settings class exists (v2.0.0)"
         
         echo "✅ File structure check passed"
 
@@ -351,7 +396,19 @@ PHP
         # Copy plugin files
         cp coreboost.php coreboost-build/
         cp readme.txt coreboost-build/
+        cp README.md coreboost-build/
+        cp CHANGELOG.md coreboost-build/
+        
+        # Copy modular includes (22 PHP classes)
+        cp -r includes coreboost-build/
+        
+        # Copy assets
         cp -r assets coreboost-build/ 2>/dev/null || echo "No assets directory"
+        
+        # Verify structure before zipping
+        echo "Verifying build structure..."
+        find coreboost-build -type f -name "*.php" | wc -l
+        test -d coreboost-build/includes && echo "✅ includes/ copied"
         
         # Create ZIP
         cd coreboost-build
@@ -359,9 +416,18 @@ PHP
         cd ..
         
         # Verify ZIP contents
+        echo "ZIP contents:"
         unzip -l coreboost-test-build.zip
         
-        echo "✅ Plugin ZIP created successfully"
+        # Count PHP files in ZIP
+        PHP_COUNT=$(unzip -l coreboost-test-build.zip | grep "\.php$" | wc -l)
+        echo "PHP files in ZIP: $PHP_COUNT"
+        if [ "$PHP_COUNT" -lt 23 ]; then
+          echo "❌ ERROR: Expected at least 23 PHP files (1 main + 22 classes), found $PHP_COUNT"
+          exit 1
+        fi
+        
+        echo "✅ Plugin ZIP created successfully with all classes"
         
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
