@@ -157,18 +157,18 @@ class CoreBoost {
      * Define all hooks
      */
     private function define_hooks() {
-        // Initialize analytics engine (Phase 5)
-        $this->analytics_engine = new \CoreBoost_Analytics_Engine($this->options, defined('WP_DEBUG') && WP_DEBUG);
-        
         // Initialize admin area
         if (is_admin()) {
             $this->admin = new Admin($this->options, $this->loader);
-            // Initialize dashboard UI (Phase 5)
-            $this->dashboard_ui = new \CoreBoost_Dashboard_UI($this->analytics_engine, $this->options);
+            // Initialize dashboard UI (Phase 5) - will lazy-load analytics engine when needed
+            $this->dashboard_ui = new \CoreBoost_Dashboard_UI(null, $this->options);
         }
         
         // Initialize frontend optimizers
         if (!is_admin()) {
+            // Initialize analytics engine (Phase 5) - frontend only
+            $this->analytics_engine = new \CoreBoost_Analytics_Engine($this->options, defined('WP_DEBUG') && WP_DEBUG);
+            
             $this->hero_optimizer = new Hero_Optimizer($this->options, $this->loader);
             $this->script_optimizer = new Script_Optimizer($this->options, $this->loader);
             $this->css_optimizer = new CSS_Optimizer($this->options, $this->loader);

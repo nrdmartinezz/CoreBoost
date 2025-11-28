@@ -60,6 +60,18 @@ class CoreBoost_Dashboard_UI {
 	}
 
 	/**
+	 * Get or lazy-load analytics engine
+	 *
+	 * @return CoreBoost_Analytics_Engine
+	 */
+	private function get_analytics() {
+		if ( ! $this->analytics ) {
+			$this->analytics = new \CoreBoost_Analytics_Engine( $this->options, false );
+		}
+		return $this->analytics;
+	}
+
+	/**
 	 * Register dashboard page
 	 *
 	 * @return void
@@ -335,9 +347,10 @@ class CoreBoost_Dashboard_UI {
 			wp_send_json_error( 'Unauthorized' );
 		}
 
+		$analytics = $this->get_analytics();
 		$data = array(
-			'summary'         => $this->analytics->get_dashboard_summary(),
-			'recommendations' => $this->analytics->generate_recommendations(),
+			'summary'         => $analytics->get_dashboard_summary(),
+			'recommendations' => $analytics->generate_recommendations(),
 		);
 
 		wp_send_json_success( $data );
@@ -355,7 +368,8 @@ class CoreBoost_Dashboard_UI {
 			wp_send_json_error( 'Unauthorized' );
 		}
 
-		$data = $this->analytics->export_analytics();
+		$analytics = $this->get_analytics();
+		$data = $analytics->export_analytics();
 
 		// Return as JSON file download
 		header( 'Content-Disposition: attachment; filename=coreboost-analytics-' . current_time( 'Y-m-d-H-i-s' ) . '.json' );
@@ -386,7 +400,8 @@ class CoreBoost_Dashboard_UI {
 			wp_send_json_error( 'Missing test data' );
 		}
 
-		$result = $this->analytics->start_ab_test( $test_name, $variant_a, $variant_b, $duration );
+		$analytics = $this->get_analytics();
+		$result = $analytics->start_ab_test( $test_name, $variant_a, $variant_b, $duration );
 
 		wp_send_json_success(
 			array(
