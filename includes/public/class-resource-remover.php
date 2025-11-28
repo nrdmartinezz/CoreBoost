@@ -225,7 +225,8 @@ class Resource_Remover {
             return;
         }
         if ($this->options['enable_css_defer'] || $this->options['enable_script_defer'] || 
-            $this->options['enable_inline_script_removal'] || $this->options['enable_inline_style_removal']) {
+            $this->options['enable_inline_script_removal'] || $this->options['enable_inline_style_removal'] ||
+            (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking'])) {
             ob_start(array($this, 'process_inline_assets'));
         }
     }
@@ -236,6 +237,11 @@ class Resource_Remover {
     public function process_inline_assets($html) {
         if (is_admin()) {
             return $html;
+        }
+        
+        // Remove YouTube background video iframes if smart blocking enabled
+        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
+            $html = $this->remove_youtube_background_iframes($html);
         }
         
         // Remove inline scripts and styles by ID first
@@ -252,6 +258,55 @@ class Resource_Remover {
         if ($this->options['enable_script_defer']) {
             $script_pattern = '/<script([^>]*)src=["\']([^"\'\']+)["\']([^>]*)><\/script>/i';
             $html = preg_replace_callback($script_pattern, array($this, 'process_inline_script_callback'), $html);
+        }
+        
+        return $html;
+    }
+    
+    /**
+     * Remove YouTube background video iframes from Elementor sections
+     * 
+     * @param string $html HTML content
+     * @return string Modified HTML
+     */
+    private function remove_youtube_background_iframes($html) {
+        if (!$this->should_block_youtube_resources()) {
+            return $html;
+        }
+        
+        // Pattern to match Elementor background video iframes
+        // These are typically in divs with class 'elementor-background-video-container'
+        $pattern = '/<div[^>]*class="[^"]*elementor-background-video-container[^"]*"[^>]*>.*?<iframe[^>]*src="[^"]*youtube\.com\/embed\/[^"]*"[^>]*>.*?<\/iframe>.*?<\/div>/is';
+        
+        $html = preg_replace_callback($pattern, function($matches) {
+            if ($this->options['debug_mode']) {
+                return "<!-- CoreBoost: Removed YouTube background video iframe to prevent script loading -->\n";
+            }
+            return '';
+        }, $html);
+        
+        // Also catch standalone YouTube iframes that might be background videos
+        // Look for iframes with specific Elementor attributes
+        $iframe_pattern = '/<iframe[^>]*class="[^"]*elementor-background-video-hosted[^"]*"[^>]*src="[^"]*youtube\.com\/embed\/[^"]*"[^>]*>.*?<\/iframe>/is';
+        
+        $html = preg_replace_callback($iframe_pattern, function($matches) {
+            if ($this->options['debug_mode']) {
+                return "<!-- CoreBoost: Removed YouTube background video iframe -->\n";
+            }
+            return '';
+        }, $html);
+        
+        // Block any inline scripts trying to load YouTube API
+        $html = preg_replace(
+            '/<script[^>]*>.*?(?:youtube\.com\/iframe_api|www\.youtube\.com\/player_api).*?<\/script>/is',
+            $this->options['debug_mode'] ? "<!-- CoreBoost: Blocked inline YouTube API script -->\n" : '',
+            $html
+        );
+        
+        if ($this->options['debug_mode']) {
+            // Add debug info at the beginning of body
+            $debug_comment = "<!-- CoreBoost: Smart YouTube blocking active - background video iframes removed -->\n";
+            $html = preg_replace('/(<body[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
         }
         
         return $html;

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2025-11-27
+
+### Added
+
+- **Smart YouTube Blocking** - Automatically detects Elementor background videos and blocks unnecessary YouTube resources
+  - Detects YouTube background videos in Elementor sections and columns
+  - Blocks YouTube iframe API, player CSS, and embed UI scripts only when background videos are detected
+  - Removes YouTube iframes from HTML output to prevent dynamic script loading
+  - Cached detection with automatic cache clearing on Elementor save
+  - New setting: "Smart YouTube Blocking" in Advanced Settings tab
+
+### Fixed
+
+- **YouTube CSP Violations**: YouTube iframes in Elementor background videos were loading scripts dynamically, causing Content Security Policy violations and unnecessary resource loading
+- Added output buffer processing to remove YouTube background video iframes entirely, preventing all script loading attempts
+- Blocks inline scripts attempting to load YouTube API (`youtube.com/iframe_api`, `youtube.com/player_api`)
+
+### Technical Details
+
+- Added `detect_elementor_background_videos()` method in Hero_Optimizer
+- Added `find_background_videos()` recursive search through Elementor data structure
+- Added `has_youtube_background_videos()` public helper for Resource_Remover
+- Added `remove_youtube_background_iframes()` HTML processing in Resource_Remover
+- Background video detection results cached in `coreboost_bg_videos_{post_id}` transients
+- Added `clear_video_cache()` method in Cache_Manager
+- New database option: `smart_youtube_blocking` (default: false)
+
 ## [2.0.2] - 2025-11-27
 
 ### 🚀 Major Changes
