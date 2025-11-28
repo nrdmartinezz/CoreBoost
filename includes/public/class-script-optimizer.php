@@ -35,6 +35,13 @@ class Script_Optimizer {
     private $loader;
     
     /**
+     * Script exclusions instance
+     *
+     * @var Script_Exclusions
+     */
+    private $exclusions;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -43,6 +50,7 @@ class Script_Optimizer {
     public function __construct($options, $loader) {
         $this->options = $options;
         $this->loader = $loader;
+        $this->exclusions = new Script_Exclusions($options);
         $this->define_hooks();
     }
     
@@ -61,9 +69,8 @@ class Script_Optimizer {
     public function defer_scripts($tag, $handle) {
         if (!$this->options['enable_script_defer'] || is_admin()) return $tag;
         
-        // Check excluded scripts (jQuery, critical scripts)
-        $excluded_scripts = array_filter(array_map('trim', explode("\n", $this->options['exclude_scripts'])));
-        if (in_array($handle, $excluded_scripts)) {
+        // Check excluded scripts using new exclusions system
+        if ($this->exclusions->is_excluded($handle)) {
             Debug_Helper::comment('Excluded from deferring: ' . $handle . ' (critical dependency)', $this->options['debug_mode']);
             return $tag;
         }

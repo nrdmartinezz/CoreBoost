@@ -37,6 +37,13 @@ class Settings {
     private $tag_settings;
     
     /**
+     * Script Settings instance
+     *
+     * @var Script_Settings
+     */
+    private $script_settings;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -44,6 +51,7 @@ class Settings {
     public function __construct($options) {
         $this->options = $options;
         $this->tag_settings = new Tag_Settings($options);
+        $this->script_settings = new Script_Settings($options);
     }
     
     /**
@@ -54,6 +62,9 @@ class Settings {
         
         // Register Custom Tag settings
         $this->tag_settings->register_settings();
+        
+        // Register Script Optimization settings
+        $this->script_settings->register_settings();
         
         // Hero Image Optimization Tab
         add_settings_section(
@@ -343,6 +354,15 @@ class Settings {
         if ($has_tag_fields) {
             // Sanitize tag settings
             $sanitized = $this->tag_settings->sanitize_settings($input, $sanitized);
+        }
+        
+        // Check if Script Optimization tab was submitted
+        $has_script_fields = isset($input['enable_default_exclusions']) || isset($input['script_exclusion_patterns']) || 
+                            isset($input['script_load_strategy']) || isset($input['script_custom_delay']);
+        
+        if ($has_script_fields) {
+            // Sanitize script settings
+            $sanitized = $this->script_settings->sanitize_settings($input, $sanitized);
         }
         
         // Clear cache when settings change

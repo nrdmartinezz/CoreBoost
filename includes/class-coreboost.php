@@ -236,6 +236,9 @@ class CoreBoost {
             'tag_footer_scripts' => '',
             'tag_load_strategy' => 'balanced',
             'tag_custom_delay' => 3000,
+            // Script Exclusions (v2.2.0 Phase 1)
+            'script_exclusion_patterns' => '',
+            'enable_default_exclusions' => true,
             // Smart YouTube blocking (v2.0.3)
             'smart_youtube_blocking' => false
         );
