@@ -34,6 +34,9 @@ class Settings_Page {
      */
     public function __construct($options) {
         $this->options = $options;
+        
+        // Handle cache clearing early to prevent headers already sent
+        add_action('admin_init', array($this, 'handle_cache_clearing'), 5);
     }
     
     /**
@@ -42,9 +45,6 @@ class Settings_Page {
     public function render_admin_page() {
         $active_tab = filter_input(INPUT_GET, 'tab', FILTER_SANITIZE_SPECIAL_CHARS);
         $active_tab = $active_tab ? sanitize_key($active_tab) : 'hero';
-        
-        // Handle cache clearing
-        $this->handle_cache_clearing();
         
         // Show settings updated message
         $this->show_settings_updated_message($active_tab);
@@ -203,8 +203,15 @@ class Settings_Page {
     
     /**
      * Handle cache clearing
+     * Called early via admin_init to prevent headers already sent error
      */
-    private function handle_cache_clearing() {
+    public function handle_cache_clearing() {
+        // Only check on our settings page
+        $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
+        if ($page !== 'coreboost') {
+            return;
+        }
+        
         $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
         $nonce_get = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
         

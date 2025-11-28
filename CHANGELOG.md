@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-11-27
+
+### Fixed
+
+- **Headers Already Sent Error**: Fixed cache clearing redirect that was called after output started - now uses early `admin_init` hook (priority 5)
+- **GTM Validation**: Container ID validation now only triggers when GTM is actually enabled, preventing false error messages on fresh installs
+- **GTM Empty Field Error**: Added proper handling for empty container ID field - no longer shows validation errors when field is intentionally left blank
+
+### Changed
+
+- Cache clearing now checks for correct admin page before processing to prevent interference with other plugins
+- GTM settings auto-disable if enabled without a valid container ID, with helpful error message
+
 ## [2.0.0] - 2025-11-27
 
 🎉 **The "We Promise It Actually Works Now" Release**
@@ -38,7 +51,12 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 
 ### Fixed
 
-- **Autoloader Edge Case**: Fixed the `CoreBoost\CoreBoost` class mapping issue (was looking for `class-core-boost.php` instead of `class-coreboost.php`) - because naming things is hard and naming *ourselves* is even harder
+- **Autoloader Critical Bugs** (3 fixes that prevented activation):
+  - Fixed `CoreBoost\CoreBoost` class mapping (was looking for `class-core-boost.php` instead of `class-coreboost.php`)
+  - Fixed underscore handling in class names (`GTM_Settings`, `Admin_Bar`, etc. now convert correctly)
+  - Fixed namespace-to-directory mapping (`PublicCore` now correctly maps to `public/` directory)
+- **Headers Already Sent Error**: Fixed cache clearing redirect that happened after output started - now uses early `admin_init` hook
+- **GTM Validation**: GTM container ID validation now only triggers when GTM is actually enabled, not when field is empty by default
 - **Activation Compatibility**: Plugin now activates cleanly on fresh WordPress installations without fatal errors
 
 ### Technical
