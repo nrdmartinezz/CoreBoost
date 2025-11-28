@@ -71,6 +71,8 @@ class Settings_Page {
                     <?php do_settings_sections('coreboost-scripts'); ?>
                 <?php elseif ($active_tab == 'css'): ?>
                     <?php do_settings_sections('coreboost-css'); ?>
+                <?php elseif ($active_tab == 'gtm'): ?>
+                    <?php do_settings_sections('coreboost-gtm'); ?>
                 <?php elseif ($active_tab == 'advanced'): ?>
                     <?php do_settings_sections('coreboost-advanced'); ?>
                 <?php endif; ?>
@@ -99,6 +101,9 @@ class Settings_Page {
             </a>
             <a href="?page=coreboost&tab=css" class="nav-tab <?php echo $active_tab == 'css' ? 'nav-tab-active' : ''; ?>">
                 <?php _e('CSS & Critical CSS', 'coreboost'); ?>
+            </a>
+            <a href="?page=coreboost&tab=gtm" class="nav-tab <?php echo $active_tab == 'gtm' ? 'nav-tab-active' : ''; ?>">
+                <?php _e('GTM & Tracking', 'coreboost'); ?>
             </a>
             <a href="?page=coreboost&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>">
                 <?php _e('Advanced Settings', 'coreboost'); ?>
@@ -138,6 +143,15 @@ class Settings_Page {
                     <li><?php _e('Page-specific CSS is additional to global CSS', 'coreboost'); ?></li>
                     <li><?php _e('Test thoroughly after enabling CSS deferring', 'coreboost'); ?></li>
                 </ul>
+            <?php elseif ($active_tab == 'gtm'): ?>
+                <h3><?php _e('GTM Load Strategies Explained', 'coreboost'); ?></h3>
+                <ul>
+                    <li><strong><?php _e('Balanced (Recommended):', 'coreboost'); ?></strong> <?php _e('Loads GTM after 3 seconds. Best for most sites - maintains functionality while improving performance.', 'coreboost'); ?></li>
+                    <li><strong><?php _e('Interaction:', 'coreboost'); ?></strong> <?php _e('Loads on first user action. Maximum performance but may delay some tracking.', 'coreboost'); ?></li>
+                    <li><strong><?php _e('Aggressive:', 'coreboost'); ?></strong> <?php _e('5-second delay. Use for sites where tracking is less critical.', 'coreboost'); ?></li>
+                </ul>
+                <h4><?php _e('Important Notes', 'coreboost'); ?></h4>
+                <p><?php _e('CoreBoost will automatically detect existing GTM implementations to prevent conflicts. Always test your tracking after enabling.', 'coreboost'); ?></p>
             <?php elseif ($active_tab == 'advanced'): ?>
                 <h3><?php _e('Cache Management', 'coreboost'); ?></h3>
                 <p>
@@ -164,6 +178,7 @@ class Settings_Page {
             'css' => array('enable_css_defer', 'css_defer_method', 'styles_to_defer', 'enable_font_optimization', 
                           'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts',
                           'font_display_swap', 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
+            'gtm' => array('gtm_enabled', 'gtm_container_id', 'gtm_load_strategy', 'gtm_custom_delay'),
             'advanced' => array('enable_caching', 'enable_unused_css_removal', 'unused_css_list', 'enable_unused_js_removal', 
                                'unused_js_list', 'enable_inline_script_removal', 'inline_script_ids', 
                                'enable_inline_style_removal', 'inline_style_ids', 'block_youtube_player_css', 

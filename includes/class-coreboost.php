@@ -14,6 +14,7 @@ use CoreBoost\PublicCore\Script_Optimizer;
 use CoreBoost\PublicCore\CSS_Optimizer;
 use CoreBoost\PublicCore\Font_Optimizer;
 use CoreBoost\PublicCore\Resource_Remover;
+use CoreBoost\PublicCore\GTM_Manager;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -89,6 +90,13 @@ class CoreBoost {
     private $resource_remover;
     
     /**
+     * GTM manager instance
+     *
+     * @var GTM_Manager
+     */
+    private $gtm_manager;
+    
+    /**
      * Get single instance
      *
      * @return CoreBoost
@@ -147,6 +155,7 @@ class CoreBoost {
             $this->css_optimizer = new CSS_Optimizer($this->options, $this->loader);
             $this->font_optimizer = new Font_Optimizer($this->options, $this->loader);
             $this->resource_remover = new Resource_Remover($this->options, $this->loader);
+            $this->gtm_manager = new GTM_Manager($this->options, $this->loader);
         }
     }
     
@@ -206,7 +215,13 @@ class CoreBoost {
             'enable_inline_script_removal' => false,
             'inline_script_ids' => '',
             'enable_inline_style_removal' => false,
-            'inline_style_ids' => ''
+            'inline_style_ids' => '',
+            // GTM settings (v2.0.0)
+            'gtm_enabled' => false,
+            'gtm_container_id' => '',
+            'gtm_load_strategy' => 'balanced',
+            'gtm_custom_delay' => 3000,
+            'gtm_tags' => array()
         );
     }
 }

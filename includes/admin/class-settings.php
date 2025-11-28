@@ -30,12 +30,20 @@ class Settings {
     private $options;
     
     /**
+     * GTM Settings instance
+     *
+     * @var GTM_Settings
+     */
+    private $gtm_settings;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
      */
     public function __construct($options) {
         $this->options = $options;
+        $this->gtm_settings = new GTM_Settings($options);
     }
     
     /**
@@ -43,6 +51,9 @@ class Settings {
      */
     public function register_settings() {
         register_setting('coreboost_options_group', 'coreboost_options', array($this, 'sanitize_options'));
+        
+        // Register GTM settings
+        $this->gtm_settings->register_settings();
         
         // Hero Image Optimization Tab
         add_settings_section(
@@ -322,6 +333,15 @@ class Settings {
             if (isset($input[$field])) {
                 $sanitized[$field] = wp_strip_all_tags($input[$field]);
             }
+        }
+        
+        // Check if GTM tab was submitted
+        $has_gtm_fields = isset($input['gtm_enabled']) || isset($input['gtm_container_id']) || isset($input['gtm_load_strategy']);
+        
+        if ($has_gtm_fields) {
+            // Sanitize GTM settings
+            $gtm_sanitized = $this->gtm_settings->sanitize_gtm_settings($input);
+            $sanitized = array_merge($sanitized, $gtm_sanitized);
         }
         
         // Clear cache when settings change

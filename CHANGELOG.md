@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2024-12-XX
+
+### Added
+
+- **Google Tag Manager Management**: Complete GTM integration with async/defer loading strategies
+  - Smart conflict detection - automatically detects existing GTM implementations (plugins, themes, hardcoded)
+  - Safety-first approach - always defers to existing implementations to prevent site breakage
+  - Multiple load strategies: Immediate, Balanced (3s - default), Aggressive (5s), User Interaction, Browser Idle
+  - Container validation with GTM-XXXXXXX format checking
+  - New "GTM & Tracking" admin tab with intuitive interface
+
+- **GTM Core Classes**:
+  - `GTM_Detector`: Scans for existing GTM in plugins, themes, and output buffer
+  - `GTM_Manager`: Frontend GTM loader with configurable delay strategies
+  - `GTM_Settings`: Admin settings interface with conflict reporting
+
+### Changed
+
+- **Script Optimizer**: Now excludes GTM scripts from optimization when GTM management is enabled
+- **Admin Interface**: Added fifth tab "GTM & Tracking" with detection status widget
+- **Default Options**: Added GTM settings with balanced 3-second delay as recommended default
+
+### Technical
+
+- Version bumped from 1.2.0 to 2.0.0 (major version for new GTM feature)
+- GTM detection results cached for performance (1 hour expiry)
+- JavaScript cache-clearing functionality for GTM detection
+- Integration with existing optimizer classes for conflict prevention
+
 ## [1.2.0] - 2024-12-XX
 
 ### Changed

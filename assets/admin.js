@@ -46,6 +46,16 @@ jQuery(document).ready(function($) {
         });
     });
     
+    // GTM detection cache clearing
+    window.coreboostClearGTMCache = function() {
+        if (confirm('Re-scan the site for existing GTM implementations? This will clear the detection cache.')) {
+            // Add a query parameter to reload the page and clear cache
+            var url = new URL(window.location.href);
+            url.searchParams.set('coreboost_clear_gtm_cache', '1');
+            window.location.href = url.toString();
+        }
+    };
+    
     // Add visual feedback for admin bar menu
     $('#wp-admin-bar-coreboost').hover(
         function() {

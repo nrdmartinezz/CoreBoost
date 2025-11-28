@@ -9,6 +9,7 @@
 namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Debug_Helper;
+use CoreBoost\Core\GTM_Detector;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -60,6 +61,14 @@ class Script_Optimizer {
      */
     public function defer_scripts($tag, $handle) {
         if (!$this->options['enable_script_defer'] || is_admin()) return $tag;
+        
+        // Exclude GTM scripts if GTM is enabled
+        if (!empty($this->options['gtm_enabled'])) {
+            if (GTM_Detector::is_gtm_script($handle, $tag)) {
+                Debug_Helper::comment('Excluded GTM script from optimization: ' . $handle, $this->options['debug_mode']);
+                return $tag;
+            }
+        }
         
         // Check excluded scripts (jQuery, critical scripts)
         $excluded_scripts = array_filter(array_map('trim', explode("\n", $this->options['exclude_scripts'])));

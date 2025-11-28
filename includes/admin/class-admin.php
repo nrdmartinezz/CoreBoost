@@ -10,6 +10,7 @@ namespace CoreBoost\Admin;
 
 use CoreBoost\Core\Config;
 use CoreBoost\Core\Cache_Manager;
+use CoreBoost\Core\GTM_Detector;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -100,6 +101,9 @@ class Admin {
         
         // Frontend cache clearing handler
         $this->loader->add_action('init', $this, 'handle_frontend_cache_clear');
+        
+        // GTM detection cache clearing
+        $this->loader->add_action('admin_init', $this, 'handle_gtm_cache_clear');
     }
     
     /**
@@ -257,5 +261,19 @@ class Admin {
         wp_send_json_success(array(
             'message' => __('All caches cleared successfully!', 'coreboost')
         ));
+    }
+    
+    /**
+     * Handle GTM detection cache clearing
+     */
+    public function handle_gtm_cache_clear() {
+        if (isset($_GET['coreboost_clear_gtm_cache']) && current_user_can('manage_options')) {
+            GTM_Detector::clear_detection_cache();
+            
+            // Redirect to remove query parameter
+            $redirect_url = remove_query_arg('coreboost_clear_gtm_cache');
+            wp_redirect($redirect_url);
+            exit;
+        }
     }
 }
