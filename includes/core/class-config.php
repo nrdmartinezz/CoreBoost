@@ -74,6 +74,8 @@ class Config {
             'hello-elementor',          // Hello Elementor theme
             'elementor-icons',          // Elementor icons
             'wp-block-library-theme',   // WordPress block theme
+            'parent-style',             // Parent theme main stylesheet
+            'child-style',              // Child theme main stylesheet
         );
     }
     
