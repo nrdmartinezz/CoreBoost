@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2025-11-27
+
+### 🚀 Major Changes
+
+- **Replaced GTM Manager with Custom Tag Manager** - Complete architecture refactor to eliminate performance bottlenecks
+- Removed resource-intensive GTM detection system (output buffer captures, file scanning)
+- Simplified tag management: users can now add any custom scripts (GTM, GA4, Facebook Pixel, etc.)
+
+### ✨ New Features
+
+- **Custom Tag Manager** with three script positions:
+  - Head Scripts (for early-loading tracking codes)
+  - Body Scripts (for noscript tags and top-of-body content)
+  - Footer Scripts (for non-critical analytics)
+- All 6 load strategies preserved (Immediate, Balanced, Aggressive, User Interaction, Browser Idle, Custom Delay)
+- Simplified admin interface with helpful examples and common use cases
+- Support for any tracking service or custom JavaScript
+
+### 🔧 Technical Improvements
+
+- Eliminated infinite loading issue caused by output buffer hook captures
+- Removed GTM_Detector class (413 lines of detection logic)
+- Removed GTM_Manager class (339 lines)
+- Removed GTM_Settings class (309 lines)
+- Replaced with Tag_Manager (345 lines) and Tag_Settings (303 lines)
+- Removed GTM-specific exclusions from Script_Optimizer
+- Removed GTM cache clearing from Admin class
+- **Net Result**: ~400 lines of code removed, significant performance improvement
+
+### 🗄️ Database Changes
+
+- **Removed Options**: `gtm_enabled`, `gtm_container_id`, `gtm_load_strategy`, `gtm_custom_delay`, `gtm_tags`
+- **New Options**: `tag_head_scripts`, `tag_body_scripts`, `tag_footer_scripts`, `tag_load_strategy`, `tag_custom_delay`
+- **Removed Transients**: `coreboost_gtm_detection`, `coreboost_gtm_body_output_*`
+
+### ⚠️ Breaking Changes
+
+- Existing GTM configurations will need to be re-entered in the new Custom Tags interface
+- "GTM & Tracking" tab renamed to "Custom Tags"
+- Users upgrading from v2.0.0 or v2.0.1 should copy their GTM container ID before updating
+
+### 📝 Migration Notes
+
+- GTM users: Copy your container snippet from Google Tag Manager and paste into "Head Scripts"
+- GTM noscript: Paste noscript iframe into "Body Scripts"
+- All delay strategies work the same way as before
+
 ## [2.0.1] - 2025-11-27
 
 ### Fixed

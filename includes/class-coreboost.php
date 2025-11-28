@@ -14,7 +14,7 @@ use CoreBoost\PublicCore\Script_Optimizer;
 use CoreBoost\PublicCore\CSS_Optimizer;
 use CoreBoost\PublicCore\Font_Optimizer;
 use CoreBoost\PublicCore\Resource_Remover;
-use CoreBoost\PublicCore\GTM_Manager;
+use CoreBoost\PublicCore\Tag_Manager;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -90,11 +90,11 @@ class CoreBoost {
     private $resource_remover;
     
     /**
-     * GTM manager instance
+     * Tag manager instance
      *
-     * @var GTM_Manager
+     * @var Tag_Manager
      */
-    private $gtm_manager;
+    private $tag_manager;
     
     /**
      * Get single instance
@@ -155,7 +155,8 @@ class CoreBoost {
             $this->css_optimizer = new CSS_Optimizer($this->options, $this->loader);
             $this->font_optimizer = new Font_Optimizer($this->options, $this->loader);
             $this->resource_remover = new Resource_Remover($this->options, $this->loader);
-            $this->gtm_manager = new GTM_Manager($this->options, $this->loader);
+            $this->tag_manager = new Tag_Manager($this->options);
+            $this->tag_manager->register_hooks($this->loader);
         }
     }
     
@@ -216,12 +217,12 @@ class CoreBoost {
             'inline_script_ids' => '',
             'enable_inline_style_removal' => false,
             'inline_style_ids' => '',
-            // GTM settings (v2.0.0)
-            'gtm_enabled' => false,
-            'gtm_container_id' => '',
-            'gtm_load_strategy' => 'balanced',
-            'gtm_custom_delay' => 3000,
-            'gtm_tags' => array()
+            // Custom Tag Manager settings (v2.0.2)
+            'tag_head_scripts' => '',
+            'tag_body_scripts' => '',
+            'tag_footer_scripts' => '',
+            'tag_load_strategy' => 'balanced',
+            'tag_custom_delay' => 3000
         );
     }
 }
