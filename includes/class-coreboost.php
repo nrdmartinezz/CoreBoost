@@ -97,6 +97,20 @@ class CoreBoost {
     private $tag_manager;
     
     /**
+     * Analytics engine instance
+     *
+     * @var \CoreBoost_Analytics_Engine
+     */
+    private $analytics_engine;
+    
+    /**
+     * Dashboard UI instance
+     *
+     * @var \CoreBoost_Dashboard_UI
+     */
+    private $dashboard_ui;
+    
+    /**
      * Get single instance
      *
      * @return CoreBoost
@@ -143,9 +157,14 @@ class CoreBoost {
      * Define all hooks
      */
     private function define_hooks() {
+        // Initialize analytics engine (Phase 5)
+        $this->analytics_engine = new \CoreBoost_Analytics_Engine($this->options, defined('WP_DEBUG') && WP_DEBUG);
+        
         // Initialize admin area
         if (is_admin()) {
             $this->admin = new Admin($this->options, $this->loader);
+            // Initialize dashboard UI (Phase 5)
+            $this->dashboard_ui = new \CoreBoost_Dashboard_UI($this->analytics_engine, $this->options);
         }
         
         // Initialize frontend optimizers
@@ -187,6 +206,16 @@ class CoreBoost {
      */
     public function get_hero_optimizer() {
         return $this->hero_optimizer;
+    }
+    
+    /**
+     * Get Analytics_Engine instance
+     * Allows other classes to access the analytics engine for metrics recording
+     *
+     * @return \CoreBoost_Analytics_Engine|null
+     */
+    public function get_analytics_engine() {
+        return $this->analytics_engine;
     }
     
     /**
@@ -236,6 +265,22 @@ class CoreBoost {
             'tag_footer_scripts' => '',
             'tag_load_strategy' => 'balanced',
             'tag_custom_delay' => 3000,
+            // Script Exclusions (v2.2.0 Phase 1)
+            'script_exclusion_patterns' => '',
+            'enable_default_exclusions' => true,
+            // Advanced Pattern Matching (v2.3.0 Phase 3)
+            'script_wildcard_patterns' => '',
+            'script_regex_patterns' => '',
+            'script_plugin_profiles' => '',
+            // Event Hijacking (v2.4.0 Phase 4)
+            'enable_event_hijacking' => false,
+            'event_hijack_triggers' => 'user_interaction,browser_idle',
+            'script_load_priority' => 'standard',
+            // Dashboard & Analytics (v2.5.0 Phase 5)
+            'enable_analytics' => true,
+            'analytics_retention_days' => 30,
+            'enable_ab_testing' => false,
+            'enable_recommendations' => true,
             // Smart YouTube blocking (v2.0.3)
             'smart_youtube_blocking' => false
         );
