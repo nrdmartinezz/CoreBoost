@@ -38,6 +38,14 @@ require_once COREBOOST_PLUGIN_DIR . 'includes/class-autoloader.php';
 CoreBoost\Autoloader::register();
 
 /**
+ * Load Phase 5 classes (Analytics & Dashboard)
+ * These are global namespace classes that need manual loading
+ */
+require_once COREBOOST_PLUGIN_DIR . 'includes/public/class-analytics-engine.php';
+require_once COREBOOST_PLUGIN_DIR . 'includes/admin/class-dashboard-ui.php';
+require_once COREBOOST_PLUGIN_DIR . 'includes/public/class-performance-insights.php';
+
+/**
  * Plugin activation hook
  */
 function coreboost_activate() {
