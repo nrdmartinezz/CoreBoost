@@ -25,8 +25,8 @@ class Debug_Helper {
      * @param bool $enabled Whether debug mode is enabled
      */
     public static function comment($message, $enabled = true) {
-        // Don't output comments during AJAX requests to avoid corrupting JSON responses
-        if ($enabled && !wp_doing_ajax()) {
+        // Don't output comments during AJAX requests or on admin pages to avoid corrupting responses
+        if ($enabled && !wp_doing_ajax() && !is_admin()) {
             echo '<!-- CoreBoost: ' . esc_html($message) . ' -->' . "\n";
         }
     }
