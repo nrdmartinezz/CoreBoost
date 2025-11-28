@@ -42,6 +42,13 @@ class Script_Optimizer {
     private $exclusions;
     
     /**
+     * Event hijacker instance (Phase 4)
+     *
+     * @var Event_Hijacker
+     */
+    private $event_hijacker;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -51,6 +58,12 @@ class Script_Optimizer {
         $this->options = $options;
         $this->loader = $loader;
         $this->exclusions = new Script_Exclusions($options);
+        
+        // Initialize event hijacker if enabled (Phase 4)
+        if (!empty($options['enable_event_hijacking'])) {
+            $this->event_hijacker = new Event_Hijacker($options);
+        }
+        
         $this->define_hooks();
     }
     

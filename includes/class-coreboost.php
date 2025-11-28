@@ -239,6 +239,14 @@ class CoreBoost {
             // Script Exclusions (v2.2.0 Phase 1)
             'script_exclusion_patterns' => '',
             'enable_default_exclusions' => true,
+            // Advanced Pattern Matching (v2.3.0 Phase 3)
+            'script_wildcard_patterns' => '',
+            'script_regex_patterns' => '',
+            'script_plugin_profiles' => '',
+            // Event Hijacking (v2.4.0 Phase 4)
+            'enable_event_hijacking' => false,
+            'event_hijack_triggers' => 'user_interaction,browser_idle',
+            'script_load_priority' => 'standard',
             // Smart YouTube blocking (v2.0.3)
             'smart_youtube_blocking' => false
         );

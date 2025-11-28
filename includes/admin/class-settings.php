@@ -44,6 +44,13 @@ class Settings {
     private $script_settings;
     
     /**
+     * Advanced Optimization Settings instance
+     *
+     * @var Advanced_Optimization_Settings
+     */
+    private $advanced_settings;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -52,6 +59,7 @@ class Settings {
         $this->options = $options;
         $this->tag_settings = new Tag_Settings($options);
         $this->script_settings = new Script_Settings($options);
+        $this->advanced_settings = new Advanced_Optimization_Settings($options);
     }
     
     /**
@@ -65,6 +73,9 @@ class Settings {
         
         // Register Script Optimization settings
         $this->script_settings->register_settings();
+        
+        // Register Advanced Optimization settings (Phase 3-4)
+        $this->advanced_settings->register_settings();
         
         // Hero Image Optimization Tab
         add_settings_section(
@@ -363,6 +374,16 @@ class Settings {
         if ($has_script_fields) {
             // Sanitize script settings
             $sanitized = $this->script_settings->sanitize_settings($input, $sanitized);
+        }
+        
+        // Check if Advanced Optimization tab was submitted
+        $has_advanced_fields = isset($input['script_wildcard_patterns']) || isset($input['script_regex_patterns']) || 
+                              isset($input['script_plugin_profiles']) || isset($input['enable_event_hijacking']) ||
+                              isset($input['event_hijack_triggers']) || isset($input['script_load_priority']);
+        
+        if ($has_advanced_fields) {
+            // Sanitize advanced settings
+            $sanitized = $this->advanced_settings->sanitize_settings($input, $sanitized);
         }
         
         // Clear cache when settings change
