@@ -225,25 +225,18 @@ class Tag_Manager {
                 // Load body tags
                 var bodyTags = document.getElementById('coreboost-body-tags');
                 if (bodyTags) {
-                    bodyTags.style.display = 'block';
-                    var bodyScripts = bodyTags.getElementsByTagName('script');
-                    for (var i = 0; i < bodyScripts.length; i++) {
-                        var script = document.createElement('script');
-                        if (bodyScripts[i].src) {
-                            script.src = bodyScripts[i].src;
-                        }
-                        if (bodyScripts[i].innerHTML) {
-                            script.innerHTML = bodyScripts[i].innerHTML;
-                        }
-                        // Copy attributes
-                        for (var j = 0; j < bodyScripts[i].attributes.length; j++) {
-                            var attr = bodyScripts[i].attributes[j];
-                            if (attr.name !== 'src' && attr.name !== 'type') {
-                                script.setAttribute(attr.name, attr.value);
-                            }
-                        }
-                        document.body.appendChild(script);
+                    var bodyContent = bodyTags.textContent || bodyTags.innerText;
+                    var bodyTemp = document.createElement('div');
+                    bodyTemp.innerHTML = bodyContent;
+                    
+                    // Move all child nodes from the temporary container to the body
+                    // This handles scripts, noscript, and any other elements
+                    while (bodyTemp.firstChild) {
+                        document.body.appendChild(bodyTemp.firstChild);
                     }
+                    
+                    // Remove the template container
+                    bodyTags.parentNode.removeChild(bodyTags);
                 }
                 
                 // Load footer tags
