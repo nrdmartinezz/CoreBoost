@@ -114,7 +114,7 @@ class Advanced_Optimization_Settings {
         ?>
         <p><?php esc_html_e('Advanced pattern matching for powerful script exclusion control. Combine wildcard patterns for flexibility with regex for precision matching.', 'coreboost'); ?></p>
         <div class="notice notice-info inline">
-            <p><strong>📚 Pattern Types:</strong></p>
+            <p><strong>Ã°Å¸â€œÅ¡ Pattern Types:</strong></p>
             <ul style="margin-left: 20px; list-style: disc; margin-top: 5px;">
                 <li><strong>Wildcard:</strong> Use * for matching. Example: <code>jquery-ui-*</code> matches all jQuery UI widgets</li>
                 <li><strong>Regex:</strong> Full regex support. Example: <code>/^elementor[-_]/i</code> matches Elementor scripts</li>
@@ -229,7 +229,7 @@ class Advanced_Optimization_Settings {
         ?>
         <p><?php esc_html_e('Control when and how scripts load using event-driven triggers and priority-based queues. Maximizes performance while maintaining functionality.', 'coreboost'); ?></p>
         <div class="notice notice-warning inline">
-            <p><strong>⚡ Advanced Feature:</strong> Event hijacking requires careful testing. Start with default settings and adjust based on your site performance metrics.</p>
+            <p><strong>Ã¢Å¡Â¡ Advanced Feature:</strong> Event hijacking requires careful testing. Start with default settings and adjust based on your site performance metrics.</p>
         </div>
         <?php
     }

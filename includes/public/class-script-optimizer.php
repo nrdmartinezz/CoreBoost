@@ -8,8 +8,6 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
-
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -87,7 +85,6 @@ class Script_Optimizer {
         
         // Check excluded scripts using new exclusions system
         if ($this->exclusions->is_excluded($handle)) {
-            Debug_Helper::comment('Excluded from deferring: ' . $handle . ' (critical dependency)', $this->options['debug_mode']);
             return $tag;
         }
         
@@ -120,17 +117,13 @@ class Script_Optimizer {
         if ($has_jquery_dependency && in_array($handle, $scripts_to_async)) {
             $use_async = false;
             $use_defer = true;
-            Debug_Helper::comment('Forcing defer for jQuery-dependent script (was in async list): ' . $handle, $this->options['debug_mode']);
         }
         
         if ($use_async) {
-            Debug_Helper::comment('Using async for independent script: ' . $handle, $this->options['debug_mode']);
             return str_replace(' src', ' async src', $tag);
         } elseif ($use_defer) {
             if ($has_jquery_dependency) {
-                Debug_Helper::comment('Using defer for jQuery-dependent script: ' . $handle . ' (depends on jQuery)', $this->options['debug_mode']);
             } else {
-                Debug_Helper::comment('Using defer for dependent script: ' . $handle, $this->options['debug_mode']);
             }
             return str_replace(' src', ' defer src', $tag);
         }
@@ -168,7 +161,6 @@ class Script_Optimizer {
                     $src = site_url($src);
                 }
                 echo '<link rel="preload" href="' . esc_url($src) . '" as="script" fetchpriority="' . esc_attr($priority) . '">' . "\n";
-                Debug_Helper::comment('Preloading critical script: ' . $handle, $this->options['debug_mode']);
             }
         }
     }

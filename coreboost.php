@@ -21,6 +21,15 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// CRITICAL: Kill all CoreBoost output in Elementor preview context BEFORE anything runs
+if (isset($_GET['elementor-preview']) || (defined('DOING_AJAX') && DOING_AJAX && isset($_POST['action']) && strpos($_POST['action'], 'elementor') !== false)) {
+    // Early exit hook to prevent any CoreBoost output in Elementor contexts
+    add_action('init', function() {
+        // Ensure no frontend optimizers touch AJAX/preview requests
+        define('COREBOOST_ELEMENTOR_PREVIEW', true);
+    }, 0);
+}
+
 // Define plugin constants
 define('COREBOOST_VERSION', '2.5.0');
 

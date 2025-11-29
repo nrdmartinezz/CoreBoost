@@ -8,7 +8,6 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
 use CoreBoost\Core\Config;
 
 // Prevent direct access
@@ -75,11 +74,8 @@ class CSS_Optimizer {
         $should_defer = $this->should_defer_style($handle, $styles_to_defer);
         
         if (!$should_defer) {
-            Debug_Helper::comment("NOT deferring CSS: {$handle} (no match found)", $this->options['debug_mode']);
             return $html;
         }
-        
-        Debug_Helper::comment("Deferring CSS: {$handle}", $this->options['debug_mode']);
         
         if ($this->options['css_defer_method'] === 'preload_with_critical') {
             // Advanced method with preload and critical CSS
@@ -133,7 +129,6 @@ class CSS_Optimizer {
         }
         
         if (!empty($critical_css)) {
-            Debug_Helper::comment('Outputting critical CSS', $this->options['debug_mode']);
             echo '<style id="coreboost-critical-css">' . "\n" . $critical_css . "\n" . '</style>' . "\n";
         }
     }
@@ -181,6 +176,11 @@ class CSS_Optimizer {
      * Debug CSS detection and output information
      */
     public function debug_css_detection() {
+        // CRITICAL: Don't output anything in Elementor preview contexts
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Don't output debug info on admin pages, preview contexts, or AJAX requests
         if (!$this->options['debug_mode'] || is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;

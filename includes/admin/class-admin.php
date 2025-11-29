@@ -204,7 +204,7 @@ class Admin {
             }
         </style>
         <div class="coreboost-notice" id="coreboost-notice">
-            ✓ CoreBoost cache cleared successfully!
+            Ã¢Å“â€œ CoreBoost cache cleared successfully!
         </div>
         <script>
             setTimeout(function() {

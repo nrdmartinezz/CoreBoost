@@ -102,7 +102,7 @@ class GTM_Settings {
         
         if ($detection['found']) {
             echo '<div class="notice notice-warning inline">';
-            echo '<p><strong>' . __('⚠️ Existing GTM Implementation Detected', 'coreboost') . '</strong></p>';
+            echo '<p><strong>' . __('Ã¢Å¡Â Ã¯Â¸Â Existing GTM Implementation Detected', 'coreboost') . '</strong></p>';
             echo '<p>' . __('CoreBoost detected existing Google Tag Manager implementations on your site. To prevent conflicts, please resolve these before enabling CoreBoost GTM:', 'coreboost') . '</p>';
             echo '<ul style="list-style: disc; margin-left: 20px;">';
             
@@ -123,7 +123,7 @@ class GTM_Settings {
             echo '</div>';
         } else {
             echo '<div class="notice notice-success inline">';
-            echo '<p><strong>' . __('✓ No Conflicts Detected', 'coreboost') . '</strong></p>';
+            echo '<p><strong>' . __('Ã¢Å“â€œ No Conflicts Detected', 'coreboost') . '</strong></p>';
             echo '<p>' . __('No existing GTM implementations found. Safe to enable CoreBoost GTM Management.', 'coreboost') . '</p>';
             echo '<p><button type="button" class="button" onclick="coreboostClearGTMCache()">' . __('Re-scan', 'coreboost') . '</button></p>';
             echo '</div>';
@@ -166,9 +166,9 @@ class GTM_Settings {
         if (!empty($value)) {
             $valid = preg_match('/^GTM-[A-Z0-9]+$/', $value);
             if ($valid) {
-                echo '<p class="description" style="color: #46b450;">✓ ' . __('Valid container ID format', 'coreboost') . '</p>';
+                echo '<p class="description" style="color: #46b450;">Ã¢Å“â€œ ' . __('Valid container ID format', 'coreboost') . '</p>';
             } else {
-                echo '<p class="description" style="color: #d63638;">✗ ' . __('Invalid container ID format. Should be GTM-XXXXXXX', 'coreboost') . '</p>';
+                echo '<p class="description" style="color: #d63638;">Ã¢Å“â€” ' . __('Invalid container ID format. Should be GTM-XXXXXXX', 'coreboost') . '</p>';
             }
         }
     }
@@ -188,22 +188,22 @@ class GTM_Settings {
             'balanced' => array(
                 'label' => __('Balanced (Recommended)', 'coreboost'),
                 'description' => __('Load GTM after 3 seconds. Best balance of performance and functionality.', 'coreboost'),
-                'performance' => __('Performance: ⚡⚡ Good', 'coreboost')
+                'performance' => __('Performance: Ã¢Å¡Â¡Ã¢Å¡Â¡ Good', 'coreboost')
             ),
             'aggressive' => array(
                 'label' => __('Aggressive', 'coreboost'),
                 'description' => __('Load GTM after 5 seconds. Maximum performance optimization.', 'coreboost'),
-                'performance' => __('Performance: ⚡⚡⚡ Excellent', 'coreboost')
+                'performance' => __('Performance: Ã¢Å¡Â¡Ã¢Å¡Â¡Ã¢Å¡Â¡ Excellent', 'coreboost')
             ),
             'interaction' => array(
                 'label' => __('User Interaction', 'coreboost'),
                 'description' => __('Load GTM on first user interaction (click, scroll, touch). Maximum savings.', 'coreboost'),
-                'performance' => __('Performance: ⚡⚡⚡ Excellent', 'coreboost')
+                'performance' => __('Performance: Ã¢Å¡Â¡Ã¢Å¡Â¡Ã¢Å¡Â¡ Excellent', 'coreboost')
             ),
             'idle' => array(
                 'label' => __('Browser Idle', 'coreboost'),
                 'description' => __('Load GTM when browser is idle. Uses requestIdleCallback API.', 'coreboost'),
-                'performance' => __('Performance: ⚡⚡⚡ Excellent', 'coreboost')
+                'performance' => __('Performance: Ã¢Å¡Â¡Ã¢Å¡Â¡Ã¢Å¡Â¡ Excellent', 'coreboost')
             ),
             'custom' => array(
                 'label' => __('Custom Delay', 'coreboost'),

@@ -8,7 +8,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -71,14 +71,12 @@ class Font_Optimizer {
         if ($this->options['defer_google_fonts'] && 
             (strpos($href, 'fonts.googleapis.com') !== false || strpos($href, 'fonts.gstatic.com') !== false)) {
             $is_font = true;
-            Debug_Helper::comment("Optimizing Google Font: {$handle}", $this->options['debug_mode']);
         }
         
         // Check if this is an Adobe Font
         if ($this->options['defer_adobe_fonts'] && 
             (strpos($href, 'use.typekit.net') !== false || strpos($href, 'fonts.adobe.com') !== false)) {
             $is_font = true;
-            Debug_Helper::comment("Optimizing Adobe Font: {$handle}", $this->options['debug_mode']);
         }
         
         if (!$is_font) {
@@ -115,12 +113,10 @@ class Font_Optimizer {
         if ($this->options['defer_google_fonts']) {
             $preconnects[] = '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>';
             $preconnects[] = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>';
-            Debug_Helper::comment('Added Google Fonts preconnect', $this->options['debug_mode']);
         }
         
         if ($this->options['defer_adobe_fonts']) {
             $preconnects[] = '<link rel="preconnect" href="https://use.typekit.net" crossorigin>';
-            Debug_Helper::comment('Added Adobe Fonts preconnect', $this->options['debug_mode']);
         }
         
         if (!empty($preconnects)) {

@@ -8,7 +8,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -470,8 +470,6 @@ class Hero_Optimizer {
         if (empty($image_url)) {
             return;
         }
-        
-        Debug_Helper::comment('Preloading hero image: ' . esc_url($image_url), $this->options['debug_mode']);
         
         echo '<link rel="preload" href="' . esc_url($image_url) . '" as="image" fetchpriority="high">' . "\n";
     }

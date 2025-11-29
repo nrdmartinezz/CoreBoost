@@ -9,7 +9,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 // Prevent direct access
 if (!defined('ABSPATH')) {

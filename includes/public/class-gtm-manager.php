@@ -8,7 +8,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 use CoreBoost\Core\GTM_Detector;
 
 // Prevent direct access
@@ -64,6 +64,11 @@ class GTM_Manager {
      * Output GTM head script
      */
     public function output_gtm_head() {
+        // CRITICAL: Don't output in Elementor preview/AJAX
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Safety check: don't output on admin or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
@@ -73,11 +78,8 @@ class GTM_Manager {
         
         // Safety check - skip if existing GTM detected
         if (GTM_Detector::should_skip_gtm_output($container_id)) {
-            Debug_Helper::comment('CoreBoost GTM: Skipped - existing GTM implementation detected', $this->options['debug_mode']);
             return;
         }
-        
-        Debug_Helper::comment('CoreBoost GTM: Loading container ' . $container_id, $this->options['debug_mode']);
         
         // Get load strategy
         $strategy = isset($this->options['gtm_load_strategy']) ? $this->options['gtm_load_strategy'] : 'balanced';
@@ -134,9 +136,19 @@ window.dataLayer = window.coreboostGTM.dataLayer;
     }
     
     /**
-     * Output GTM body (noscript fallback)
+     * Output GTM noscript fallback
      */
-    public function output_gtm_body() {
+    public function output_gtm_body_fallback() {
+        // CRITICAL: Don't output in Elementor preview/AJAX
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
+        
         // Safety check: don't output on admin or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
@@ -176,8 +188,6 @@ window.dataLayer = window.coreboostGTM.dataLayer;
         if (GTM_Detector::should_skip_gtm_output($container_id)) {
             return;
         }
-        
-        Debug_Helper::comment('CoreBoost GTM: Noscript fallback (wp_body_open not supported by theme)', $this->options['debug_mode']);
         $this->output_noscript_iframe($container_id);
     }
     
@@ -196,9 +206,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     
     /**
-     * Output delay loading script
+     * Output delay script
      */
     public function output_delay_script() {
+        // CRITICAL: Don't output in Elementor preview/AJAX
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Safety check: don't output on admin or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;

@@ -15,7 +15,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -111,7 +111,6 @@ class Script_Exclusions {
         $this->all_exclusions = array_unique($this->all_exclusions);
         
         if ($this->debug_mode && !empty($this->all_exclusions)) {
-            Debug_Helper::comment('CoreBoost: Script exclusions initialized (' . count($this->all_exclusions) . ' patterns)', $this->debug_mode);
         }
     }
     
@@ -291,9 +290,6 @@ class Script_Exclusions {
     public function is_excluded($handle) {
         // Layer 1-3: Check exact match first (fastest)
         if (in_array($handle, $this->all_exclusions, true)) {
-            if ($this->debug_mode) {
-                Debug_Helper::comment('CoreBoost: Script excluded (exact match): ' . $handle, $this->debug_mode);
-            }
             return true;
         }
         
@@ -311,9 +307,6 @@ class Script_Exclusions {
             foreach ($profiles as $profile_key) {
                 $profile = $this->pattern_matcher->get_plugin_profile($profile_key);
                 if ($profile && $this->pattern_matcher->matches($handle, $profile)) {
-                    if ($this->debug_mode) {
-                        Debug_Helper::comment("CoreBoost: Script excluded (plugin profile '$profile_key'): " . $handle, $this->debug_mode);
-                    }
                     return true;
                 }
             }

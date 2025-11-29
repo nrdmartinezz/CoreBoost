@@ -15,7 +15,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -189,27 +189,18 @@ class Pattern_Matcher {
         // Strategy 1: Exact match (fastest)
         if ($this->exact_match($handle, $patterns)) {
             $this->stats['exact_matches']++;
-            if ($this->debug_mode) {
-                Debug_Helper::comment("CoreBoost: Pattern match (exact): $handle", $this->debug_mode);
-            }
             return true;
         }
         
         // Strategy 2: Wildcard matching
         if ($this->wildcard_match($handle, $patterns)) {
             $this->stats['wildcard_matches']++;
-            if ($this->debug_mode) {
-                Debug_Helper::comment("CoreBoost: Pattern match (wildcard): $handle", $this->debug_mode);
-            }
             return true;
         }
         
         // Strategy 3: Regex matching (most flexible)
         if ($this->regex_match($handle, $patterns)) {
             $this->stats['regex_matches']++;
-            if ($this->debug_mode) {
-                Debug_Helper::comment("CoreBoost: Pattern match (regex): $handle", $this->debug_mode);
-            }
             return true;
         }
         
@@ -284,9 +275,6 @@ class Pattern_Matcher {
                     $this->regex_cache[$cache_key] = $pattern;
                 } else {
                     // Invalid regex, skip
-                    if ($this->debug_mode) {
-                        Debug_Helper::comment("CoreBoost: Invalid regex pattern: $pattern", $this->debug_mode);
-                    }
                     continue;
                 }
             }

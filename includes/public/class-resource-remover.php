@@ -8,7 +8,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -78,23 +78,11 @@ class Resource_Remover {
         
         $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_css_list'])));
         
-        if ($this->options['debug_mode'] && !empty($handles)) {
-            Debug_Helper::comment("CoreBoost: Attempting to remove " . count($handles) . " CSS handle(s): " . implode(', ', $handles), $this->options['debug_mode']);
-        }
-        
         foreach ($handles as $handle) {
             if (wp_style_is($handle, 'enqueued') || wp_style_is($handle, 'registered')) {
                 wp_dequeue_style($handle);
                 wp_deregister_style($handle);
-                
-                if ($this->options['debug_mode']) {
-                    Debug_Helper::comment("✓ Removed unused CSS: {$handle}", $this->options['debug_mode']);
-                }
             } else {
-                if ($this->options['debug_mode']) {
-                    Debug_Helper::comment("✗ CSS handle not found: {$handle} (not enqueued or registered)", $this->options['debug_mode']);
-                }
-            }
         }
     }
     
@@ -108,23 +96,11 @@ class Resource_Remover {
         
         $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_js_list'])));
         
-        if ($this->options['debug_mode'] && !empty($handles)) {
-            Debug_Helper::comment("CoreBoost: Attempting to remove " . count($handles) . " JS handle(s): " . implode(', ', $handles), $this->options['debug_mode']);
-        }
-        
         foreach ($handles as $handle) {
             if (wp_script_is($handle, 'enqueued') || wp_script_is($handle, 'registered')) {
                 wp_dequeue_script($handle);
                 wp_deregister_script($handle);
-                
-                if ($this->options['debug_mode']) {
-                    Debug_Helper::comment("✓ Removed unused script: {$handle}", $this->options['debug_mode']);
-                }
             } else {
-                if ($this->options['debug_mode']) {
-                    Debug_Helper::comment("✗ Script handle not found: {$handle} (not enqueued or registered)", $this->options['debug_mode']);
-                }
-            }
         }
     }
     
@@ -143,7 +119,6 @@ class Resource_Remover {
         if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
             if ($this->should_block_youtube_resources()) {
                 if ($this->options['debug_mode']) {
-                    Debug_Helper::comment("Blocked YouTube script (background video detected): {$src}", $this->options['debug_mode']);
                     return "<!-- CoreBoost: Blocked YouTube script (background video detected) -->\n";
                 }
                 return '';
@@ -153,10 +128,6 @@ class Resource_Remover {
         // Legacy setting - block YouTube embed UI scripts independently
         if (isset($this->options['block_youtube_embed_ui']) && $this->options['block_youtube_embed_ui']) {
             if (strpos($src, 'youtube.com/yts/') !== false) {
-                if ($this->options['debug_mode']) {
-                    Debug_Helper::comment("Blocked YouTube embed UI script: {$src}", $this->options['debug_mode']);
-                    return "<!-- CoreBoost: Blocked YouTube embed UI script -->\n";
-                }
                 return '';
             }
         }
@@ -177,20 +148,12 @@ class Resource_Remover {
         
         // Block YouTube player CSS
         if ($this->options['block_youtube_player_css'] && strpos($href, 'www.youtube.com/s/player') !== false) {
-            if ($this->options['debug_mode']) {
-                Debug_Helper::comment("Blocked YouTube player CSS: {$href}", $this->options['debug_mode']);
-                return "<!-- CoreBoost: Blocked YouTube player CSS -->\n";
-            }
             return '';
         }
         
         // Block YouTube CSS when smart blocking enabled and background videos detected
         if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
             if (strpos($href, 'youtube.com') !== false || strpos($href, 'ytimg.com') !== false) {
-                if ($this->options['debug_mode']) {
-                    Debug_Helper::comment("Blocked YouTube CSS (background video detected): {$href}", $this->options['debug_mode']);
-                    return "<!-- CoreBoost: Blocked YouTube CSS (background video detected) -->\n";
-                }
                 return '';
             }
         }
@@ -227,9 +190,6 @@ class Resource_Remover {
                 $has_youtube_bg = $hero_optimizer->has_youtube_background_videos();
                 
                 if ($has_youtube_bg) {
-                    if ($this->options['debug_mode']) {
-                        Debug_Helper::comment("YouTube background video detected - blocking unnecessary resources", $this->options['debug_mode']);
-                    }
                     self::$youtube_detection_cache = true;
                 }
             }
@@ -242,6 +202,11 @@ class Resource_Remover {
      * Start output buffer to catch inline/hardcoded CSS and scripts
      */
     public function start_output_buffer() {
+        // CRITICAL: Don't buffer in Elementor preview/AJAX contexts
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Don't buffer on admin, AJAX, or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
@@ -464,9 +429,9 @@ SCRIPT;
             
             if ($this->options['debug_mode']) {
                 if ($count > 0) {
-                    $debug_comment = "<!-- CoreBoost: ✓ Removed inline script with ID: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€œ Removed inline script with ID: {$id} -->\n";
                 } else {
-                    $debug_comment = "<!-- CoreBoost: ✗ Inline script ID not found: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€” Inline script ID not found: {$id} -->\n";
                 }
                 $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
             }
@@ -506,9 +471,9 @@ SCRIPT;
             
             if ($this->options['debug_mode']) {
                 if ($count > 0) {
-                    $debug_comment = "<!-- CoreBoost: ✓ Removed inline style with ID: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€œ Removed inline style with ID: {$id} -->\n";
                 } else {
-                    $debug_comment = "<!-- CoreBoost: ✗ Inline style ID not found: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€” Inline style ID not found: {$id} -->\n";
                 }
                 $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
             }
@@ -549,32 +514,26 @@ SCRIPT;
         if (strpos($src, 'youtube.com/iframe_api') !== false || strpos($src, 'www.youtube.com/') !== false) {
             $use_async = true;
             $should_defer = true;
-            Debug_Helper::comment('Using async for inline YouTube API: ' . basename($src), $this->options['debug_mode']);
         }
         // Elementor scripts (dependent - use defer)
         elseif (strpos($src, '/elementor/') !== false || strpos($src, '/elementor-pro/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment('Deferring inline Elementor script: ' . basename($src), $this->options['debug_mode']);
         }
         // smartmenus (dependent - use defer)
         elseif (strpos($src, '/smartmenus/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment('Deferring inline smartmenus script: ' . basename($src), $this->options['debug_mode']);
         }
         // Other jQuery UI components (not core - can defer)
         elseif (strpos($src, '/jquery-ui/') !== false && strpos($src, 'core.min.js') === false) {
             $should_defer = true;
-            Debug_Helper::comment('Deferring inline jQuery UI component: ' . basename($src), $this->options['debug_mode']);
         }
         // WordPress core dist scripts
         elseif (strpos($src, '/wp-includes/js/dist/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment('Deferring inline WordPress script: ' . basename($src), $this->options['debug_mode']);
         }
         // WooCommerce scripts
         elseif (strpos($src, '/woocommerce/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment('Deferring inline WooCommerce script: ' . basename($src), $this->options['debug_mode']);
         }
         
         if (!$should_defer) {
@@ -599,40 +558,33 @@ SCRIPT;
         // Elementor Pro patterns
         if (strpos($href, '/elementor-pro/assets/css/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment("Deferring inline Elementor Pro CSS: {$href}", $this->options['debug_mode']);
         }
         // Elementor patterns
         elseif (strpos($href, '/elementor/assets/css/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment("Deferring inline Elementor CSS: {$href}", $this->options['debug_mode']);
         }
         // WooCommerce patterns
         elseif (strpos($href, '/woocommerce/assets/css/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment("Deferring inline WooCommerce CSS: {$href}", $this->options['debug_mode']);
         }
         // Contact Form 7
         elseif (strpos($href, '/contact-form-7/') !== false) {
             $should_defer = true;
-            Debug_Helper::comment("Deferring inline Contact Form 7 CSS: {$href}", $this->options['debug_mode']);
         }
         // Custom theme CSS files
         elseif (preg_match('/\/custom-[a-z0-9\-]+\.min\.css$/i', $href) || 
                 preg_match('/\/custom-[a-z0-9\-]+\.css$/i', $href)) {
             $should_defer = true;
-            Debug_Helper::comment("Deferring inline Custom CSS: {$href}", $this->options['debug_mode']);
         }
         // Widget and animation CSS
         elseif (strpos($href, '/widget-') !== false || 
                 strpos($href, '/fadeIn') !== false ||
                 strpos($href, '/swiper') !== false) {
             $should_defer = true;
-            Debug_Helper::comment("Deferring inline Widget/Animation CSS: {$href}", $this->options['debug_mode']);
         }
         // Plugin CSS in uploads folder
         elseif (strpos($href, '/uploads/') !== false && strpos($href, '.css') !== false) {
             $should_defer = true;
-            Debug_Helper::comment("Deferring inline Uploaded CSS: {$href}", $this->options['debug_mode']);
         }
         
         if (!$should_defer) {

@@ -15,7 +15,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -155,9 +155,6 @@ class Event_Hijacker {
         // Validate triggers
         foreach ($config['triggers'] as $trigger) {
             if (!isset($this->trigger_conditions[$trigger])) {
-                if ($this->debug_mode) {
-                    Debug_Helper::comment("CoreBoost: Unknown trigger condition: $trigger", $this->debug_mode);
-                }
                 return false;
             }
         }

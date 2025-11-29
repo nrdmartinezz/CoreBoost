@@ -10,7 +10,7 @@
 
 namespace CoreBoost\PublicCore;
 
-use CoreBoost\Core\Debug_Helper;
+
 
 class Tag_Manager {
 
@@ -93,6 +93,11 @@ class Tag_Manager {
      * Output head tags
      */
     public function output_head_tags() {
+        // CRITICAL: Don't output in Elementor preview/AJAX
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Safety check: don't output on admin or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
@@ -100,10 +105,6 @@ class Tag_Manager {
 
         if (empty($this->options['tag_head_scripts'])) {
             return;
-        }
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Head tags output start', $this->debug_mode);
         }
 
         // For immediate strategy, output directly
@@ -116,16 +117,17 @@ class Tag_Manager {
             echo $this->options['tag_head_scripts'] . "\n";
             echo "</script>\n";
         }
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Head tags output end (Strategy: ' . $this->load_strategy . ')', $this->debug_mode);
-        }
     }
 
     /**
      * Output body tags (at top of body)
      */
     public function output_body_tags() {
+        // CRITICAL: Don't output in Elementor preview/AJAX
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Safety check: don't output on admin or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
@@ -133,10 +135,6 @@ class Tag_Manager {
 
         if (empty($this->options['tag_body_scripts'])) {
             return;
-        }
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Body tags output start', $this->debug_mode);
         }
 
         // For immediate strategy, output directly
@@ -149,16 +147,17 @@ class Tag_Manager {
             echo $this->options['tag_body_scripts'] . "\n";
             echo "</div>\n";
         }
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Body tags output end', $this->debug_mode);
-        }
     }
 
     /**
      * Output footer tags
      */
     public function output_footer_tags() {
+        // CRITICAL: Don't output in Elementor preview/AJAX
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Safety check: don't output on admin or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
@@ -166,10 +165,6 @@ class Tag_Manager {
 
         if (empty($this->options['tag_footer_scripts'])) {
             return;
-        }
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Footer tags output start', $this->debug_mode);
         }
 
         // For immediate strategy, output directly
@@ -182,27 +177,24 @@ class Tag_Manager {
             echo $this->options['tag_footer_scripts'] . "\n";
             echo "</script>\n";
         }
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Footer tags output end', $this->debug_mode);
-        }
     }
 
     /**
-     * Output delay loading script
+     * Output delay script
      */
     public function output_delay_script() {
-        // Safety check: don't output on admin or preview contexts
+        // CRITICAL: Don't output in Elementor preview/AJAX
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
+        // Safety check - don't output on admin or preview contexts
         if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
 
-        if ($this->load_strategy === 'immediate') {
+        if (!$this->has_tags() || $this->load_strategy === 'immediate') {
             return;
-        }
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Delay script output start (Strategy: ' . $this->load_strategy . ')', $this->debug_mode);
         }
 
         ?>
@@ -333,9 +325,5 @@ class Tag_Manager {
         })();
         </script>
         <?php
-
-        if ($this->debug_mode) {
-            Debug_Helper::comment('CoreBoost: Delay script output end', $this->debug_mode);
-        }
     }
 }

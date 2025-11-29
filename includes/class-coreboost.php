@@ -157,6 +157,11 @@ class CoreBoost {
      * Define all hooks
      */
     private function define_hooks() {
+        // CRITICAL: Skip ALL optimization in Elementor preview/AJAX contexts
+        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+            return;
+        }
+        
         // Initialize admin area
         if (is_admin()) {
             $this->admin = new Admin($this->options, $this->loader);

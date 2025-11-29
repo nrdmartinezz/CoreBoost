@@ -155,7 +155,7 @@ class CoreBoost_Dashboard_UI {
 			<!-- Summary Cards -->
 			<div class="coreboost-dashboard-cards">
 				<div class="dashboard-card">
-					<div class="card-icon">📊</div>
+					<div class="card-icon">Ã°Å¸â€œÅ </div>
 					<div class="card-content">
 						<h3><?php esc_html_e( 'Total Scripts', 'coreboost' ); ?></h3>
 						<p class="card-value"><?php echo esc_html( $summary['total_scripts'] ); ?></p>
@@ -163,7 +163,7 @@ class CoreBoost_Dashboard_UI {
 				</div>
 
 				<div class="dashboard-card">
-					<div class="card-icon">⏱️</div>
+					<div class="card-icon">Ã¢ÂÂ±Ã¯Â¸Â</div>
 					<div class="card-content">
 						<h3><?php esc_html_e( 'Avg Load Time', 'coreboost' ); ?></h3>
 						<p class="card-value"><?php echo esc_html( $summary['total_load_time_ms'] ); ?>ms</p>
@@ -171,7 +171,7 @@ class CoreBoost_Dashboard_UI {
 				</div>
 
 				<div class="dashboard-card">
-					<div class="card-icon">📦</div>
+					<div class="card-icon">Ã°Å¸â€œÂ¦</div>
 					<div class="card-content">
 						<h3><?php esc_html_e( 'Total Size', 'coreboost' ); ?></h3>
 						<p class="card-value"><?php echo esc_html( $summary['total_size_kb'] ); ?>KB</p>
@@ -179,7 +179,7 @@ class CoreBoost_Dashboard_UI {
 				</div>
 
 				<div class="dashboard-card">
-					<div class="card-icon">✂️</div>
+					<div class="card-icon">Ã¢Å“â€šÃ¯Â¸Â</div>
 					<div class="card-content">
 						<h3><?php esc_html_e( 'Bytes Saved', 'coreboost' ); ?></h3>
 						<p class="card-value"><?php echo esc_html( $summary['bytes_saved_mb'] ); ?>MB</p>
@@ -288,10 +288,10 @@ class CoreBoost_Dashboard_UI {
 								<div class="rec-title">
 									<?php
 									$icons = array(
-										'critical' => '🔴',
-										'warning'  => '🟠',
-										'info'     => '🔵',
-										'success'  => '🟢',
+										'critical' => 'Ã°Å¸â€Â´',
+										'warning'  => 'Ã°Å¸Å¸Â ',
+										'info'     => 'Ã°Å¸â€Âµ',
+										'success'  => 'Ã°Å¸Å¸Â¢',
 									);
 									echo isset( $icons[ $rec['type'] ] ) ? $icons[ $rec['type'] ] . ' ' : '';
 									echo esc_html( $rec['title'] );
