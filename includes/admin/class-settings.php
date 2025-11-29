@@ -333,11 +333,15 @@ class Settings {
         if (isset($input['lazy_load_exclude_count'])) {
             $sanitized['lazy_load_exclude_count'] = absint($input['lazy_load_exclude_count']);
         }
+
+        if (isset($input['hero_preload_cache_ttl'])) {
+            $sanitized['hero_preload_cache_ttl'] = absint($input['hero_preload_cache_ttl']);
+        }
         
         // Sanitize fields by type
         $field_types = array(
             'boolean' => array('enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 
-                              'enable_responsive_preload', 'enable_caching', 'enable_font_optimization',
+                              'enable_responsive_preload', 'enable_hero_preload_extraction', 'enable_caching', 'enable_font_optimization',
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                               'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
                               'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
@@ -351,7 +355,7 @@ class Settings {
         // Detect which tab submitted the form
         $has_script_fields = isset($input['scripts_to_defer']) || isset($input['scripts_to_async']) || isset($input['exclude_scripts']);
         $has_css_fields = isset($input['styles_to_defer']) || isset($input['critical_css_global']) || isset($input['css_defer_method']);
-        $has_hero_fields = isset($input['preload_method']) || isset($input['specific_pages']);
+        $has_hero_fields = isset($input['preload_method']) || isset($input['specific_pages']) || isset($input['enable_hero_preload_extraction']) || isset($input['hero_preload_cache_ttl']);
         $has_advanced_fields = isset($input['unused_css_list']) || isset($input['unused_js_list']) || 
                                 isset($input['inline_script_ids']) || isset($input['inline_style_ids']);
         
@@ -369,7 +373,7 @@ class Settings {
                     'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts'))) {
                     $is_current_form = true;
                 }
-                if ($has_hero_fields && in_array($field, array('enable_responsive_preload', 'enable_foreground_conversion'))) {
+                if ($has_hero_fields && in_array($field, array('enable_responsive_preload', 'enable_foreground_conversion', 'enable_hero_preload_extraction'))) {
                     $is_current_form = true;
                 }
                 if ($has_advanced_fields && in_array($field, array('enable_caching', 'enable_unused_css_removal',
