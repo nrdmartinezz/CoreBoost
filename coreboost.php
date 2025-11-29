@@ -22,10 +22,10 @@ if (!defined('ABSPATH')) {
 }
 
 // CRITICAL: Kill all CoreBoost output in Elementor preview context BEFORE anything runs
-// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
+// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-// phpcs:ignore WordPress.Security.NonceVerification.Missing
 $action = isset($_POST['action']) ? sanitize_text_field( wp_unslash( $_POST['action'] ) ) : '';
+// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 if (!empty($elementor_preview) || (defined('DOING_AJAX') && DOING_AJAX && !empty($action) && strpos($action, 'elementor') !== false)) {
     // Early exit hook to prevent any CoreBoost output in Elementor contexts
     add_action('init', function() {
