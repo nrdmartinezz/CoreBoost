@@ -109,9 +109,6 @@ class Script_Exclusions {
         
         // Remove duplicates
         $this->all_exclusions = array_unique($this->all_exclusions);
-        
-        if ($this->debug_mode && !empty($this->all_exclusions)) {
-        }
     }
     
     /**

@@ -44,7 +44,6 @@ class Activator {
             'enable_foreground_conversion' => false,
             'enable_responsive_preload' => false,
             'enable_caching' => false,
-            'debug_mode' => false,
             'lazy_load_exclude_count' => 2,
             'scripts_to_defer' => "contact-form-7\nwc-cart-fragments\nelementor-frontend",
             'scripts_to_async' => "youtube-iframe-api\niframe-api",

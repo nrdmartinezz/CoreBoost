@@ -154,7 +154,6 @@ class Settings {
         $this->add_dynamic_field('smart_youtube_blocking', __('Smart YouTube Blocking', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('block_youtube_player_css', __('Block YouTube Player CSS', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('block_youtube_embed_ui', __('Block YouTube Embed UI', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
-        $this->add_dynamic_field('debug_mode', __('Debug Mode', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
     }
     
     /**
@@ -293,7 +292,7 @@ class Settings {
         // Sanitize fields by type
         $field_types = array(
             'boolean' => array('enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 
-                              'enable_responsive_preload', 'enable_caching', 'debug_mode', 'enable_font_optimization',
+                              'enable_responsive_preload', 'enable_caching', 'enable_font_optimization',
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                               'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
                               'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
@@ -328,7 +327,7 @@ class Settings {
                 if ($has_hero_fields && in_array($field, array('enable_responsive_preload', 'enable_foreground_conversion'))) {
                     $is_current_form = true;
                 }
-                if ($has_advanced_fields && in_array($field, array('enable_caching', 'debug_mode', 'enable_unused_css_removal',
+                if ($has_advanced_fields && in_array($field, array('enable_caching', 'enable_unused_css_removal',
                     'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
                     'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui'))) {
                     $is_current_form = true;

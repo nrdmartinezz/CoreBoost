@@ -122,9 +122,6 @@ class Script_Optimizer {
         if ($use_async) {
             return str_replace(' src', ' async src', $tag);
         } elseif ($use_defer) {
-            if ($has_jquery_dependency) {
-            } else {
-            }
             return str_replace(' src', ' defer src', $tag);
         }
         

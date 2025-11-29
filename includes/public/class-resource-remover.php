@@ -82,7 +82,7 @@ class Resource_Remover {
             if (wp_style_is($handle, 'enqueued') || wp_style_is($handle, 'registered')) {
                 wp_dequeue_style($handle);
                 wp_deregister_style($handle);
-            } else {
+            }
         }
     }
     
@@ -100,9 +100,8 @@ class Resource_Remover {
             if (wp_script_is($handle, 'enqueued') || wp_script_is($handle, 'registered')) {
                 wp_dequeue_script($handle);
                 wp_deregister_script($handle);
-            } else {
+            }
         }
-    }
     
     /**
      * Block YouTube player resources from script tags
