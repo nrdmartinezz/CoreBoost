@@ -242,7 +242,8 @@ class Resource_Remover {
      * Start output buffer to catch inline/hardcoded CSS and scripts
      */
     public function start_output_buffer() {
-        if (is_admin()) {
+        // Don't buffer on admin, AJAX, or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
         if ($this->options['enable_css_defer'] || $this->options['enable_script_defer'] || 
