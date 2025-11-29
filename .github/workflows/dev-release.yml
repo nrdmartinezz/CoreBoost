@@ -38,14 +38,16 @@ jobs:
         CURRENT=${{ steps.current_version.outputs.VERSION }}
         RELEASE_TYPE=${{ github.event.inputs.release_type }}
         
-        # Get latest release tag to increment dev number
-        LATEST_TAG=$(git describe --tags --match "${CURRENT}-${RELEASE_TYPE}.*" 2>/dev/null | head -1)
+        # Get all matching tags and find the highest dev number
+        TAGS=$(git tag -l "${CURRENT}-${RELEASE_TYPE}.*" 2>/dev/null | sort -V)
         
-        if [ -z "$LATEST_TAG" ]; then
+        if [ -z "$TAGS" ]; then
           DEV_NUMBER=1
         else
+          # Get the last (highest) tag
+          LATEST_TAG=$(echo "$TAGS" | tail -1)
           # Extract dev number and increment
-          DEV_NUMBER=$(echo $LATEST_TAG | sed "s/.*${RELEASE_TYPE}\\.//" | xargs)
+          DEV_NUMBER=$(echo "$LATEST_TAG" | sed "s/v\?${CURRENT}-${RELEASE_TYPE}\\.//" | xargs)
           DEV_NUMBER=$((DEV_NUMBER + 1))
         fi
         
@@ -83,9 +85,6 @@ jobs:
     - name: Create Release Notes
       id: release_notes
       run: |
-        RELEASE_TYPE=${{ github.event.inputs.release_type }}
-        DEV_VERSION=${{ steps.dev_version.outputs.DEV_VERSION }}
-        
         cat > release-notes.md << 'EOF'
         # CoreBoost ${{ steps.dev_version.outputs.DEV_VERSION }} - ${{ github.event.inputs.release_type }} Release
         
@@ -105,9 +104,9 @@ jobs:
         - Report issues on GitHub
         - Check the main branch for the latest stable version
         
-        **Built:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')
         **Build:** ${{ github.run_number }}
         **Commit:** ${{ github.sha }}
+        **Created:** ${{ github.event.repository.updated_at }}
         EOF
         
         cat release-notes.md
