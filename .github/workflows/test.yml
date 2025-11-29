@@ -97,7 +97,7 @@ jobs:
         
         # Create wp-config.php with connection retry
         cd /tmp/wordpress
-        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root --extra-php <<PHP
+        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root --extra-php << 'PHP'
 define('DB_CHARSET', 'utf8mb4');
 define('DB_COLLATE', '');
 PHP
