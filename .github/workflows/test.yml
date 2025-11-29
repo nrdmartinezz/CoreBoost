@@ -365,8 +365,8 @@ jobs:
         
         // Test class instantiation
         try {
-            if (class_exists('CoreBoost')) {
-                \$plugin = CoreBoost::get_instance();
+            if (class_exists('CoreBoost\CoreBoost')) {
+                \$plugin = CoreBoost\CoreBoost::get_instance();
                 echo '✅ Plugin class instantiated successfully\n';
             } else {
                 echo '❌ CoreBoost class not found\n';
