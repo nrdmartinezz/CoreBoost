@@ -626,41 +626,76 @@ SCRIPT;
 
     /**
      * Extract hero image URL from marked element in buffer and inject preload tag
+     * Handles both direct background images and responsive/nested images
      *
      * @param string $html The HTML buffer content
      * @return string The HTML buffer with hero preload tag injected
      */
     private function extract_hero_preload_from_buffer($html) {
         // Search for marker attribute: data-coreboost-hero-image="true"
-        $pattern = '/data-coreboost-hero-image="true"[^>]*data-settings=(["\'])([^"\']+)\1/i';
+        $marker_pattern = '/data-coreboost-hero-image="true"[^>]*>/i';
         
-        if (preg_match($pattern, $html, $matches)) {
-            // Extract the JSON data
-            $json_data = isset($matches[2]) ? $matches[2] : '';
-            
-            if (empty($json_data)) {
-                return $html;
+        if (!preg_match($marker_pattern, $html, $marker_match)) {
+            return $html;
+        }
+        
+        // Get the marked element and extract its content (up to 10KB to find nested images)
+        $marker_pos = strpos($html, $marker_match[0]);
+        $search_start = $marker_pos;
+        $search_end = min($marker_pos + 10000, strlen($html));
+        $element_section = substr($html, $search_start, $search_end - $search_start);
+        
+        $image_url = null;
+        
+        // 1. Try to find data-settings on the marked element itself (direct background)
+        $settings_pattern = '/data-settings=(["\'])([^"\']+)\1/i';
+        if (preg_match($settings_pattern, $element_section, $settings_match)) {
+            $json_data = isset($settings_match[2]) ? $settings_match[2] : '';
+            if (!empty($json_data)) {
+                $settings = json_decode($json_data, true);
+                if (is_array($settings)) {
+                    // Try common Elementor paths for background images
+                    if (!empty($settings['background_image']['url'])) {
+                        $image_url = $settings['background_image']['url'];
+                    } elseif (!empty($settings['background']['background_image']['url'])) {
+                        $image_url = $settings['background']['background_image']['url'];
+                    }
+                }
             }
-            
-            // Decode JSON and extract background image URL
-            $settings = json_decode($json_data, true);
-            if (!is_array($settings)) {
-                return $html;
+        }
+        
+        // 2. If no direct background, look for img tags with srcset (responsive images)
+        if (empty($image_url)) {
+            // Find img tags within the marked element
+            $img_pattern = '/<img[^>]*?src=["\']([^"\']+)["\'][^>]*?>/i';
+            if (preg_match($img_pattern, $element_section, $img_match)) {
+                $image_url = $img_match[1];
             }
-            
-            // Try to find the image URL in common Elementor paths
-            $image_url = null;
-            
-            if (!empty($settings['background_image']['url'])) {
-                $image_url = $settings['background_image']['url'];
-            } elseif (!empty($settings['background']['background_image']['url'])) {
-                $image_url = $settings['background']['background_image']['url'];
+        }
+        
+        // 3. Look for picture elements with source tags
+        if (empty($image_url)) {
+            $picture_pattern = '/<picture[^>]*>.*?<img[^>]*?src=["\']([^"\']+)["\'][^>]*?>/is';
+            if (preg_match($picture_pattern, $element_section, $picture_match)) {
+                $image_url = $picture_match[1];
             }
-            
-            // If we found an image URL, inject the preload tag
-            if (!empty($image_url)) {
-                return $this->inject_hero_preload($html, $image_url);
+        }
+        
+        // 4. Look for style-based background-image URLs
+        if (empty($image_url)) {
+            $style_pattern = '/style=(["\'])([^"\']*background-image:\s*url\([^)]+\)[^"\']*)\1/i';
+            if (preg_match($style_pattern, $element_section, $style_match)) {
+                $style_content = $style_match[2];
+                $url_pattern = '/background-image:\s*url\(\s*["\']?([^"\'\)]+)["\']?\s*\)/i';
+                if (preg_match($url_pattern, $style_content, $url_match)) {
+                    $image_url = $url_match[1];
+                }
             }
+        }
+        
+        // If we found an image URL, inject the preload tag
+        if (!empty($image_url)) {
+            return $this->inject_hero_preload($html, $image_url);
         }
         
         return $html;
