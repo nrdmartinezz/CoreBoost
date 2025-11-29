@@ -136,40 +136,6 @@ window.dataLayer = window.coreboostGTM.dataLayer;
     }
     
     /**
-     * Output GTM noscript fallback
-     */
-    public function output_gtm_body_fallback() {
-        // CRITICAL: Don't output in Elementor preview/AJAX
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
-            return;
-        }
-        
-        // Safety check: don't output on admin or preview contexts
-        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
-            return;
-        }
-        
-        // Safety check: don't output on admin or preview contexts
-        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
-            return;
-        }
-        
-        if ($this->has_output_body_tag()) {
-            return; // Already output
-        }
-        
-        $container_id = $this->options['gtm_container_id'];
-        
-        // Safety check
-        if (GTM_Detector::should_skip_gtm_output($container_id)) {
-            return;
-        }
-        
-        $this->output_noscript_iframe($container_id);
-        $this->mark_body_tag_output();
-    }
-    
-    /**
      * Output GTM body fallback for themes without wp_body_open
      */
     public function output_gtm_body_fallback() {

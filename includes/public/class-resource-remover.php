@@ -102,6 +102,7 @@ class Resource_Remover {
                 wp_deregister_script($handle);
             }
         }
+    }
     
     /**
      * Block YouTube player resources from script tags
