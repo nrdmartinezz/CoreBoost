@@ -95,12 +95,9 @@ jobs:
         # Download and setup WordPress
         wp core download --version=${{ matrix.wordpress-version }} --path=/tmp/wordpress --allow-root
         
-        # Create wp-config.php with connection retry
+        # Create wp-config.php
         cd /tmp/wordpress
-        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root --extra-php << 'PHP'
-define('DB_CHARSET', 'utf8mb4');
-define('DB_COLLATE', '');
-PHP
+        wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --allow-root
         
         # Install WordPress
         wp core install --url=http://localhost --title="Test Site" --admin_user=admin --admin_password=admin --admin_email=test@example.com --allow-root
