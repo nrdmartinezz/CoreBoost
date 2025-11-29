@@ -51,7 +51,13 @@ class Config {
             'smart_youtube_blocking' => array('type' => 'checkbox', 'default' => false, 'description' => 'Defer Elementor YouTube background video loading to prevent render blocking. Videos load after page interactive, eliminating CSP violations and script blocking while keeping video backgrounds.'),
             'smart_video_facades' => array('type' => 'checkbox', 'default' => false, 'description' => 'Replace above-the-fold video widgets with click-to-play facades. Defers YouTube/Vimeo loading, reducing initial resource load by ~1MB per video. Videos play when clicked.'),
             'block_youtube_player_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube player CSS files (useful for background videos that don\'t need player UI).'),
-            'block_youtube_embed_ui' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube embed UI scripts (useful for autoplay background videos).')
+            'block_youtube_embed_ui' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube embed UI scripts (useful for autoplay background videos).'),
+            // Image Optimization Fields (Phase 1)
+            'enable_image_optimization' => array('type' => 'checkbox', 'default' => false, 'description' => 'Enable comprehensive image optimization including lazy loading, width/height attributes, aspect ratio CSS, and async decoding.'),
+            'enable_lazy_loading' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add native lazy loading to off-screen images. Respects lazy_load_exclude_count to keep LCP images unaffected.'),
+            'add_width_height_attributes' => array('type' => 'checkbox', 'default' => false, 'description' => 'Automatically add width and height attributes to images to prevent Cumulative Layout Shift (CLS).'),
+            'generate_aspect_ratio_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Generate CSS aspect-ratio rules for images to provide double protection against CLS during load.'),
+            'add_decoding_async' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add decoding="async" to images to prevent render-blocking image decode operations.')
         );
     }
     
