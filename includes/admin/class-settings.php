@@ -120,6 +120,8 @@ class Settings {
         add_settings_field('preload_method', __('Preload Method', 'coreboost'), array($this, 'preload_method_callback'), 'coreboost-hero', 'coreboost_hero_section');
         $this->add_dynamic_field('enable_responsive_preload', __('Responsive Preloading', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
         $this->add_dynamic_field('enable_foreground_conversion', __('Enable Foreground CSS', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
+        $this->add_dynamic_field('enable_hero_preload_extraction', __('Enable Marker-Based Hero Preload', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
+        add_settings_field('hero_preload_cache_ttl', __('Hero Preload Cache TTL', 'coreboost'), array($this, 'hero_preload_cache_ttl_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('specific_pages', __('Page-Specific Images', 'coreboost'), array($this, 'specific_pages_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('lazy_load_exclude_count', __('Exclude First X Images from Lazy Load', 'coreboost'), array($this, 'lazy_load_exclude_count_callback'), 'coreboost-hero', 'coreboost_hero_section');
         
@@ -240,6 +242,21 @@ class Settings {
         echo '<input type="number" name="coreboost_options[lazy_load_exclude_count]" value="' . esc_attr($value) . '" min="0" max="10" /> ';
         echo '<p class="description">' . __('Automatically disable lazy loading and apply `fetchpriority="high"` to the first X images on the page. Recommended: 2-3.', 'coreboost') . '</p>';
     }
+
+    public function hero_preload_cache_ttl_callback() {
+        $value = isset($this->options['hero_preload_cache_ttl']) ? (int)$this->options['hero_preload_cache_ttl'] : 2592000;
+        $options = array(
+            86400 => __('1 Day', 'coreboost'),
+            604800 => __('7 Days', 'coreboost'),
+            2592000 => __('30 Days (Recommended)', 'coreboost')
+        );
+        echo '<select name="coreboost_options[hero_preload_cache_ttl]">';
+        foreach ($options as $ttl => $label) {
+            echo '<option value="' . esc_attr($ttl) . '"' . selected($value, $ttl, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select>';
+        echo '<p class="description">' . __('Cache duration for preload detection results. Longer cache = better performance. Manual cache clear available in settings.', 'coreboost') . '</p>';
+    }
     
     public function css_defer_method_callback() {
         $methods = array(
@@ -288,11 +305,15 @@ class Settings {
         if (isset($input['lazy_load_exclude_count'])) {
             $sanitized['lazy_load_exclude_count'] = absint($input['lazy_load_exclude_count']);
         }
+
+        if (isset($input['hero_preload_cache_ttl'])) {
+            $sanitized['hero_preload_cache_ttl'] = absint($input['hero_preload_cache_ttl']);
+        }
         
         // Sanitize fields by type
         $field_types = array(
             'boolean' => array('enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 
-                              'enable_responsive_preload', 'enable_caching', 'enable_font_optimization',
+                              'enable_responsive_preload', 'enable_hero_preload_extraction', 'enable_caching', 'enable_font_optimization',
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                               'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
                               'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
@@ -306,7 +327,7 @@ class Settings {
         // Detect which tab submitted the form
         $has_script_fields = isset($input['scripts_to_defer']) || isset($input['scripts_to_async']) || isset($input['exclude_scripts']);
         $has_css_fields = isset($input['styles_to_defer']) || isset($input['critical_css_global']) || isset($input['css_defer_method']);
-        $has_hero_fields = isset($input['preload_method']) || isset($input['specific_pages']);
+        $has_hero_fields = isset($input['preload_method']) || isset($input['specific_pages']) || isset($input['enable_hero_preload_extraction']) || isset($input['hero_preload_cache_ttl']);
         $has_advanced_fields = isset($input['unused_css_list']) || isset($input['unused_js_list']) || 
                                 isset($input['inline_script_ids']) || isset($input['inline_style_ids']);
         
@@ -324,7 +345,7 @@ class Settings {
                     'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts'))) {
                     $is_current_form = true;
                 }
-                if ($has_hero_fields && in_array($field, array('enable_responsive_preload', 'enable_foreground_conversion'))) {
+                if ($has_hero_fields && in_array($field, array('enable_responsive_preload', 'enable_foreground_conversion', 'enable_hero_preload_extraction'))) {
                     $is_current_form = true;
                 }
                 if ($has_advanced_fields && in_array($field, array('enable_caching', 'enable_unused_css_removal',

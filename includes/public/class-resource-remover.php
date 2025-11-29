@@ -248,6 +248,11 @@ class Resource_Remover {
             $html = preg_replace_callback($script_pattern, array($this, 'process_inline_script_callback'), $html);
         }
         
+        // Extract hero preload (marker-based only)
+        if (!empty($this->options['enable_hero_preload_extraction'])) {
+            $html = $this->extract_hero_preload_from_buffer($html);
+        }
+        
         return $html;
     }
     
@@ -617,5 +622,82 @@ SCRIPT;
             $deferred_html = str_replace("rel='stylesheet'", "rel='stylesheet' media='print' onload=\"this.media='all'\"", $deferred_html);
             return $deferred_html . '<noscript>' . $full_tag . '</noscript>';
         }
+    }
+
+    /**
+     * Extract hero image URL from marked element in buffer and inject preload tag
+     *
+     * @param string $html The HTML buffer content
+     * @return string The HTML buffer with hero preload tag injected
+     */
+    private function extract_hero_preload_from_buffer($html) {
+        // Search for marker attribute: data-coreboost-hero-image="true"
+        $pattern = '/data-coreboost-hero-image="true"[^>]*data-settings=(["\'])([^"\']+)\1/i';
+        
+        if (preg_match($pattern, $html, $matches)) {
+            // Extract the JSON data
+            $json_data = isset($matches[2]) ? $matches[2] : '';
+            
+            if (empty($json_data)) {
+                return $html;
+            }
+            
+            // Decode JSON and extract background image URL
+            $settings = json_decode($json_data, true);
+            if (!is_array($settings)) {
+                return $html;
+            }
+            
+            // Try to find the image URL in common Elementor paths
+            $image_url = null;
+            
+            if (!empty($settings['background_image']['url'])) {
+                $image_url = $settings['background_image']['url'];
+            } elseif (!empty($settings['background']['background_image']['url'])) {
+                $image_url = $settings['background']['background_image']['url'];
+            }
+            
+            // If we found an image URL, inject the preload tag
+            if (!empty($image_url)) {
+                return $this->inject_hero_preload($html, $image_url);
+            }
+        }
+        
+        return $html;
+    }
+
+    /**
+     * Inject preload link tag for hero image before closing head tag
+     *
+     * @param string $html The HTML buffer content
+     * @param string $image_url The image URL to preload
+     * @return string The HTML buffer with preload tag injected
+     */
+    private function inject_hero_preload($html, $image_url) {
+        // Check if we already have a preload for this URL to avoid duplicates
+        if (strpos($html, 'preload" href="' . esc_url($image_url)) !== false) {
+            return $html;
+        }
+        
+        // Check cache first
+        $post_id = get_the_ID();
+        $cache_key = 'coreboost_hero_preload_' . (int) $post_id;
+        $cached_preload = get_transient($cache_key);
+        
+        // If not in cache, create preload tag and cache it
+        if ($cached_preload === false) {
+            $preload_tag = '<link rel="preload" href="' . esc_url($image_url) . '" as="image" fetchpriority="high">' . "\n";
+            
+            // Get cache TTL from settings (default 30 days)
+            $ttl = !empty($this->options['hero_preload_cache_ttl']) ? $this->options['hero_preload_cache_ttl'] : (30 * 24 * 60 * 60);
+            
+            set_transient($cache_key, $preload_tag, $ttl);
+            $cached_preload = $preload_tag;
+        }
+        
+        // Inject before closing head tag
+        $html = str_replace('</head>', $cached_preload . '</head>', $html);
+        
+        return $html;
     }
 }
