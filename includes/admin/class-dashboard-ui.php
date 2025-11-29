@@ -394,7 +394,7 @@ class CoreBoost_Dashboard_UI {
 		$test_name = isset( $_POST['test_name'] ) ? sanitize_text_field( wp_unslash( $_POST['test_name'] ) ) : '';
 		$variant_a = isset( $_POST['variant_a'] ) ? sanitize_text_field( wp_unslash( $_POST['variant_a'] ) ) : '';
 		$variant_b = isset( $_POST['variant_b'] ) ? sanitize_text_field( wp_unslash( $_POST['variant_b'] ) ) : '';
-		$duration  = isset( $_POST['duration'] ) ? absint( wp_unslash( $_POST['duration'] ) ) : 86400;
+		$duration  = isset( $_POST['duration'] ) ? absint( sanitize_text_field( wp_unslash( $_POST['duration'] ) ) ) : 86400;
 
 		if ( empty( $test_name ) || empty( $variant_a ) || empty( $variant_b ) ) {
 			wp_send_json_error( 'Missing test data' );

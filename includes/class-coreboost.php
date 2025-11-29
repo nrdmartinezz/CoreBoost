@@ -171,7 +171,8 @@ class CoreBoost {
         
         // Initialize frontend optimizers
         // Skip on admin pages and preview contexts (Elementor, etc)
-        if (!is_admin() && !wp_doing_ajax() && !isset($_GET['elementor-preview'])) {
+        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
+        if (!is_admin() && !wp_doing_ajax() && empty($elementor_preview)) {
             // Initialize analytics engine (Phase 5) - frontend only
             $this->analytics_engine = new \CoreBoost_Analytics_Engine($this->options, defined('WP_DEBUG') && WP_DEBUG);
             

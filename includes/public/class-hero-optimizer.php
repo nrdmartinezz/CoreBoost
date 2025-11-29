@@ -62,7 +62,8 @@ class Hero_Optimizer {
      */
     public function preload_hero_images() {
         // Safety check: don't output on admin or preview contexts
-        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview']) || $this->options['preload_method'] === 'disabled') {
+        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
+        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview) || $this->options['preload_method'] === 'disabled') {
             return;
         }
         

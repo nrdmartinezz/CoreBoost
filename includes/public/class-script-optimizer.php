@@ -133,7 +133,8 @@ class Script_Optimizer {
      */
     public function add_script_resource_hints() {
         // Safety check: don't output on admin or preview contexts
-        if (!$this->options['enable_script_defer'] || is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
+        if (!$this->options['enable_script_defer'] || is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
             return;
         }
         

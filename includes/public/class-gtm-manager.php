@@ -61,7 +61,7 @@ class GTM_Manager {
     }
     
     /**
-     * Output GTM head script
+     * Output GTM head code
      */
     public function output_gtm_head() {
         // CRITICAL: Don't output in Elementor preview/AJAX
@@ -70,7 +70,8 @@ class GTM_Manager {
         }
         
         // Safety check: don't output on admin or preview contexts
-        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
+        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
             return;
         }
         
@@ -140,7 +141,8 @@ window.dataLayer = window.coreboostGTM.dataLayer;
      */
     public function output_gtm_body_fallback() {
         // Safety check: don't output on admin or preview contexts
-        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
+        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
             return;
         }
         
@@ -181,7 +183,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }
         
         // Safety check: don't output on admin or preview contexts
-        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
+        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
             return;
         }
         

@@ -176,7 +176,8 @@ class Admin {
      */
     public function show_cache_cleared_notice() {
         // Don't show on admin pages, preview contexts, or non-admin users
-        if (!current_user_can('manage_options') || is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
+        if (!current_user_can('manage_options') || is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
             return;
         }
         ?>
