@@ -27,7 +27,7 @@ class Config {
         return array(
             'enable_responsive_preload' => array('type' => 'checkbox', 'default' => true, 'description' => 'Preload different image sizes for mobile and tablet devices.'),
             'enable_foreground_conversion' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add CSS to convert background images to foreground images for better performance.'),
-            'enable_hero_preload_extraction' => array('type' => 'checkbox', 'default' => true, 'description' => 'Extract and preload hero images marked with data-coreboost-hero-image="true" attribute for improved LCP performance.'),
+            'enable_hero_preload_extraction' => array('type' => 'checkbox', 'default' => true, 'description' => 'Extract and preload hero images configured in page-specific images for improved LCP performance.'),
             'hero_preload_cache_ttl' => array('type' => 'select', 'default' => 2592000, 'description' => 'How long to cache preload detection results. Longer cache = better performance, but requires manual cache clear if images change.', 'options' => array(86400 => '1 Day', 604800 => '7 Days', 2592000 => '30 Days')),
             'enable_script_defer' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable automatic script deferring for better performance.'),
             'scripts_to_defer' => array('type' => 'textarea', 'rows' => 5, 'description' => 'Script handles to defer (one per line). Use defer for jQuery-dependent scripts. Leave empty to defer all non-excluded scripts.'),

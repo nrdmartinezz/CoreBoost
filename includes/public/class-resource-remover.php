@@ -634,73 +634,62 @@ SCRIPT;
      * @return string The HTML buffer with hero preload tag injected
      */
     private function extract_hero_preload_from_buffer($html) {
-        // Search for marker attribute: data-coreboost-hero-image="true"
-        $marker_pattern = '/data-coreboost-hero-image="true"[^>]*>/i';
+        global $post;
         
-        if (!preg_match($marker_pattern, $html, $marker_match)) {
+        if (!$post) {
             return $html;
         }
         
-        // Get the marked element and extract its content (up to 10KB to find nested images)
-        $marker_pos = strpos($html, $marker_match[0]);
-        $search_start = $marker_pos;
-        $search_end = min($marker_pos + 10000, strlen($html));
-        $element_section = substr($html, $search_start, $search_end - $search_start);
-        
         $image_url = null;
         
-        // 1. Try to find data-settings on the marked element itself (direct background)
-        $settings_pattern = '/data-settings=(["\'])([^"\']+)\1/i';
-        if (preg_match($settings_pattern, $element_section, $settings_match)) {
-            $json_data = isset($settings_match[2]) ? $settings_match[2] : '';
-            if (!empty($json_data)) {
-                $settings = json_decode($json_data, true);
-                if (is_array($settings)) {
-                    // Try common Elementor paths for background images
-                    if (!empty($settings['background_image']['url'])) {
-                        $image_url = $settings['background_image']['url'];
-                    } elseif (!empty($settings['background']['background_image']['url'])) {
-                        $image_url = $settings['background']['background_image']['url'];
+        // PRIORITY: Check page-specific images configuration first
+        $specific_pages = $this->parse_specific_pages();
+        
+        // Check for home page
+        if (is_front_page() && isset($specific_pages['home'])) {
+            $image_url = $specific_pages['home'];
+        } 
+        // Check for specific page by slug
+        elseif (is_page() && isset($specific_pages[$post->post_name])) {
+            $image_url = $specific_pages[$post->post_name];
+        }
+        
+        // If we found an image URL from page-specific config, inject and return
+        if (!empty($image_url)) {
+            return $this->inject_hero_preload($html, $image_url);
+        }
+        
+        // No page-specific image configured
+        return $html;
+    }
+    
+    /**
+     * Parse page-specific images configuration from settings
+     *
+     * @return array Page-specific image URLs keyed by page slug
+     */
+    private function parse_specific_pages() {
+        $specific_pages = array();
+        
+        if (empty($this->options['specific_pages'])) {
+            return $specific_pages;
+        }
+        
+        foreach (explode("\n", $this->options['specific_pages']) as $line) {
+            $line = trim($line);
+            if (!empty($line)) {
+                $parts = explode('|', $line, 2);
+                if (count($parts) === 2) {
+                    $page_slug = trim($parts[0]);
+                    $image_url = trim($parts[1]);
+                    if (!empty($page_slug) && !empty($image_url)) {
+                        $specific_pages[$page_slug] = $image_url;
                     }
                 }
             }
         }
         
-        // 2. If no direct background, look for img tags with srcset (responsive images)
-        if (empty($image_url)) {
-            // Find img tags within the marked element
-            $img_pattern = '/<img[^>]*?src=["\']([^"\']+)["\'][^>]*?>/i';
-            if (preg_match($img_pattern, $element_section, $img_match)) {
-                $image_url = $img_match[1];
-            }
-        }
-        
-        // 3. Look for picture elements with source tags
-        if (empty($image_url)) {
-            $picture_pattern = '/<picture[^>]*>.*?<img[^>]*?src=["\']([^"\']+)["\'][^>]*?>/is';
-            if (preg_match($picture_pattern, $element_section, $picture_match)) {
-                $image_url = $picture_match[1];
-            }
-        }
-        
-        // 4. Look for style-based background-image URLs
-        if (empty($image_url)) {
-            $style_pattern = '/style=(["\'])([^"\']*background-image:\s*url\([^)]+\)[^"\']*)\1/i';
-            if (preg_match($style_pattern, $element_section, $style_match)) {
-                $style_content = $style_match[2];
-                $url_pattern = '/background-image:\s*url\(\s*["\']?([^"\'\)]+)["\']?\s*\)/i';
-                if (preg_match($url_pattern, $style_content, $url_match)) {
-                    $image_url = $url_match[1];
-                }
-            }
-        }
-        
-        // If we found an image URL, inject the preload tag
-        if (!empty($image_url)) {
-            return $this->inject_hero_preload($html, $image_url);
-        }
-        
-        return $html;
+        return $specific_pages;
     }
 
     /**

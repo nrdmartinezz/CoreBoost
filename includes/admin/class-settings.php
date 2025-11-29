@@ -120,7 +120,7 @@ class Settings {
         add_settings_field('preload_method', __('Preload Method', 'coreboost'), array($this, 'preload_method_callback'), 'coreboost-hero', 'coreboost_hero_section');
         $this->add_dynamic_field('enable_responsive_preload', __('Responsive Preloading', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
         $this->add_dynamic_field('enable_foreground_conversion', __('Enable Foreground CSS', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
-        add_settings_field('enable_hero_preload_extraction', __('Enable Marker-Based Hero Preload', 'coreboost'), array($this, 'enable_hero_preload_extraction_callback'), 'coreboost-hero', 'coreboost_hero_section');
+        add_settings_field('enable_hero_preload_extraction', __('Enable Hero Preload', 'coreboost'), array($this, 'enable_hero_preload_extraction_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('hero_preload_cache_ttl', __('Hero Preload Cache TTL', 'coreboost'), array($this, 'hero_preload_cache_ttl_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('specific_pages', __('Page-Specific Images', 'coreboost'), array($this, 'specific_pages_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('lazy_load_exclude_count', __('Exclude First X Images from Lazy Load', 'coreboost'), array($this, 'lazy_load_exclude_count_callback'), 'coreboost-hero', 'coreboost_hero_section');
@@ -201,11 +201,13 @@ class Settings {
         echo '<p>' . esc_html__('Configure how hero images are detected and preloaded for optimal LCP performance.', 'coreboost') . '</p>';
         
         echo '<div style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 12px; margin: 15px 0; border-radius: 3px;">';
-        echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Marker-Based Hero Preload', 'coreboost') . '</h4>';
-        echo '<p style="margin: 8px 0;">' . esc_html__('Enable the "Enable Marker-Based Hero Preload" option below, then add this attribute to your hero image container in your page builder:', 'coreboost') . '</p>';
-        echo '<code style="background: #fff; padding: 8px 12px; border-radius: 3px; display: block; margin: 10px 0; font-family: monospace; border: 1px solid #e0e0e0; overflow-x: auto;">data-coreboost-hero-image="true"</code>';
-        echo '<p style="margin: 8px 0 0 0;"><strong>' . esc_html__('Example (Elementor):', 'coreboost') . '</strong></p>';
-        echo '<small style="color: #666;">' . esc_html__('In Elementor, add this custom attribute to your hero section or image element using the Advanced tab → Custom Attributes field.', 'coreboost') . '</small>';
+        echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Page-Specific Hero Images', 'coreboost') . '</h4>';
+        echo '<p style="margin: 8px 0;">' . esc_html__('Enter your hero image URLs for specific pages in the "Page-Specific Images" field below. Format: one entry per line as page-slug|image-url', 'coreboost') . '</p>';
+        echo '<code style="background: #fff; padding: 8px 12px; border-radius: 3px; display: block; margin: 10px 0; font-family: monospace; border: 1px solid #e0e0e0; overflow-x: auto;">meet-dr-shafer|/wp-content/uploads/2025/10/image.jpg</code>';
+        echo '<p style="margin: 8px 0 0 0;"><strong>' . esc_html__('Examples:', 'coreboost') . '</strong></p>';
+        echo '<small style="color: #666;">' . esc_html__('home|/wp-content/uploads/hero-home.jpg', 'coreboost') . '<br>';
+        echo esc_html__('meet-dr-shafer|/wp-content/uploads/2025/10/dr-shafer.jpg', 'coreboost') . '<br>';
+        echo esc_html__('services|/wp-content/uploads/services-hero.jpg', 'coreboost') . '</small>';
         echo '</div>';
     }
     
@@ -270,19 +272,16 @@ class Settings {
         $value = isset($this->options['enable_hero_preload_extraction']) ? $this->options['enable_hero_preload_extraction'] : true;
         echo '<label>';
         echo '<input type="checkbox" name="coreboost_options[enable_hero_preload_extraction]" value="1" ' . checked($value, true, false) . ' />';
-        echo ' ' . esc_html__('Enable marker-based hero image preload detection', 'coreboost');
+        echo ' ' . esc_html__('Enable hero image preload extraction', 'coreboost');
         echo '</label>';
         echo '<p class="description">';
-        echo esc_html__('When enabled, CoreBoost will look for the custom attribute ', 'coreboost');
-        echo '<code>data-coreboost-hero-image="true"</code> ';
-        echo esc_html__('on your hero image elements and automatically generate preload links to improve LCP performance.', 'coreboost');
+        echo esc_html__('When enabled, CoreBoost will generate preload links for hero images configured in the "Page-Specific Images" field, improving LCP performance.', 'coreboost');
         echo '</p>';
         echo '<p class="description" style="background-color: #fff8e1; padding: 10px; border-radius: 3px; border-left: 3px solid #FFC107;">';
         echo '<strong>' . esc_html__('How to use:', 'coreboost') . '</strong><br>';
-        echo esc_html__('1. Add the marker attribute to your hero element in your page builder: ', 'coreboost');
-        echo '<code>data-coreboost-hero-image="true"</code><br>';
-        echo esc_html__('2. The plugin will detect it on first page load and cache the result', 'coreboost') . '<br>';
-        echo esc_html__('3. Your hero image will be preloaded on all subsequent visits', 'coreboost');
+        echo esc_html__('1. Enter your page slug and hero image URL above (format: page-slug|image-url)', 'coreboost') . '<br>';
+        echo esc_html__('2. CoreBoost will automatically preload the image when that page loads', 'coreboost') . '<br>';
+        echo esc_html__('3. Results are cached for optimal performance', 'coreboost');
         echo '</p>';
     }
     
