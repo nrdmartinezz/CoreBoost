@@ -39,7 +39,7 @@ class Advanced_Optimization_Settings {
         // Phase 3: Pattern Matching Section
         add_settings_section(
             'coreboost_pattern_matching_section',
-            'Advanced Pattern Matching (Phase 3)',
+            __('Advanced Pattern Matching (Phase 3)', 'coreboost'),
             array($this, 'pattern_matching_section_callback'),
             'coreboost-advanced'
         );
@@ -47,7 +47,7 @@ class Advanced_Optimization_Settings {
         // Wildcard patterns field
         add_settings_field(
             'script_wildcard_patterns',
-            'Wildcard Patterns',
+            __('Wildcard Patterns', 'coreboost'),
             array($this, 'wildcard_patterns_callback'),
             'coreboost-advanced',
             'coreboost_pattern_matching_section'
@@ -56,7 +56,7 @@ class Advanced_Optimization_Settings {
         // Regex patterns field
         add_settings_field(
             'script_regex_patterns',
-            'Regular Expression Patterns',
+            __('Regular Expression Patterns', 'coreboost'),
             array($this, 'regex_patterns_callback'),
             'coreboost-advanced',
             'coreboost_pattern_matching_section'
@@ -65,7 +65,7 @@ class Advanced_Optimization_Settings {
         // Plugin profiles field
         add_settings_field(
             'script_plugin_profiles',
-            'Plugin Profile Exclusions',
+            __('Plugin Profile Exclusions', 'coreboost'),
             array($this, 'plugin_profiles_callback'),
             'coreboost-advanced',
             'coreboost_pattern_matching_section'
@@ -74,7 +74,7 @@ class Advanced_Optimization_Settings {
         // Phase 4: Event Hijacking Section
         add_settings_section(
             'coreboost_event_hijacking_section',
-            'Event-Driven Loading with Priorities (Phase 4)',
+            __('Event-Driven Loading with Priorities (Phase 4)', 'coreboost'),
             array($this, 'event_hijacking_section_callback'),
             'coreboost-advanced'
         );
@@ -82,7 +82,7 @@ class Advanced_Optimization_Settings {
         // Enable event hijacking
         add_settings_field(
             'enable_event_hijacking',
-            'Enable Event Hijacking',
+            __('Enable Event Hijacking', 'coreboost'),
             array($this, 'enable_event_hijacking_callback'),
             'coreboost-advanced',
             'coreboost_event_hijacking_section'
@@ -91,7 +91,7 @@ class Advanced_Optimization_Settings {
         // Event trigger strategy
         add_settings_field(
             'event_hijack_triggers',
-            'Trigger Strategies',
+            __('Trigger Strategies', 'coreboost'),
             array($this, 'event_hijack_triggers_callback'),
             'coreboost-advanced',
             'coreboost_event_hijacking_section'
@@ -100,7 +100,7 @@ class Advanced_Optimization_Settings {
         // Script load priority
         add_settings_field(
             'script_load_priority',
-            'Load Priority Strategy',
+            __('Load Priority Strategy', 'coreboost'),
             array($this, 'script_load_priority_callback'),
             'coreboost-advanced',
             'coreboost_event_hijacking_section'
@@ -114,11 +114,11 @@ class Advanced_Optimization_Settings {
         ?>
         <p><?php esc_html_e('Advanced pattern matching for powerful script exclusion control. Combine wildcard patterns for flexibility with regex for precision matching.', 'coreboost'); ?></p>
         <div class="notice notice-info inline">
-            <p><strong>Ã°Å¸â€œÅ¡ Pattern Types:</strong></p>
+            <p><strong><?php esc_html_e('📋 Pattern Types:', 'coreboost'); ?></strong></p>
             <ul style="margin-left: 20px; list-style: disc; margin-top: 5px;">
-                <li><strong>Wildcard:</strong> Use * for matching. Example: <code>jquery-ui-*</code> matches all jQuery UI widgets</li>
-                <li><strong>Regex:</strong> Full regex support. Example: <code>/^elementor[-_]/i</code> matches Elementor scripts</li>
-                <li><strong>Profiles:</strong> Predefined exclusion sets for popular plugins (Elementor, WooCommerce, etc.)</li>
+                <li><strong><?php esc_html_e('Wildcard:', 'coreboost'); ?></strong> <?php esc_html_e('Use * for matching. Example:', 'coreboost'); ?> <code>jquery-ui-*</code> <?php esc_html_e('matches all jQuery UI widgets', 'coreboost'); ?></li>
+                <li><strong><?php esc_html_e('Regex:', 'coreboost'); ?></strong> <?php esc_html_e('Full regex support. Example:', 'coreboost'); ?> <code>/^elementor[-_]/i</code> <?php esc_html_e('matches Elementor scripts', 'coreboost'); ?></li>
+                <li><strong><?php esc_html_e('Profiles:', 'coreboost'); ?></strong> <?php esc_html_e('Predefined exclusion sets for popular plugins (Elementor, WooCommerce, etc.)', 'coreboost'); ?></li>
             </ul>
         </div>
         <?php
@@ -229,7 +229,7 @@ class Advanced_Optimization_Settings {
         ?>
         <p><?php esc_html_e('Control when and how scripts load using event-driven triggers and priority-based queues. Maximizes performance while maintaining functionality.', 'coreboost'); ?></p>
         <div class="notice notice-warning inline">
-            <p><strong>Ã¢Å¡Â¡ Advanced Feature:</strong> Event hijacking requires careful testing. Start with default settings and adjust based on your site performance metrics.</p>
+            <p><strong><?php esc_html_e('⚡ Advanced Feature:', 'coreboost'); ?></strong> <?php esc_html_e('Event hijacking requires careful testing. Start with default settings and adjust based on your site performance metrics.', 'coreboost'); ?></p>
         </div>
         <?php
     }
