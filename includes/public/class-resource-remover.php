@@ -35,6 +35,13 @@ class Resource_Remover {
     private $loader;
     
     /**
+     * Image optimizer instance
+     *
+     * @var Image_Optimizer
+     */
+    private $image_optimizer;
+    
+    /**
      * Cached YouTube detection result for current request
      * Prevents multiple detections per page load
      *
@@ -53,6 +60,8 @@ class Resource_Remover {
         $this->loader = $loader;
         // Only register on frontend
         if (!is_admin()) {
+            // Initialize image optimizer
+            $this->image_optimizer = new Image_Optimizer($options, $loader);
             $this->define_hooks();
         }
     }
@@ -257,6 +266,11 @@ class Resource_Remover {
         // Extract hero preload (marker-based only)
         if (!empty($this->options['enable_hero_preload_extraction'])) {
             $html = $this->extract_hero_preload_from_buffer($html);
+        }
+        
+        // Optimize images (lazy loading, width/height, aspect ratio)
+        if (!empty($this->options['enable_image_optimization'])) {
+            $html = $this->image_optimizer->optimize_images($html);
         }
         
         return $html;

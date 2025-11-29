@@ -101,6 +101,14 @@ class Settings {
             'coreboost-css'
         );
         
+        // Image Optimization Tab
+        add_settings_section(
+            'coreboost_image_section',
+            __('Image Optimization', 'coreboost'),
+            array($this, 'image_section_callback'),
+            'coreboost-images'
+        );
+        
         // Advanced Settings Tab
         add_settings_section(
             'coreboost_advanced_section',
@@ -142,6 +150,13 @@ class Settings {
         $this->add_dynamic_field('critical_css_home', __('Homepage Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->add_dynamic_field('critical_css_pages', __('Pages Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->add_dynamic_field('critical_css_posts', __('Posts Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
+        
+        // Image Optimization Fields
+        $this->add_dynamic_field('enable_image_optimization', __('Enable Image Optimization', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('enable_lazy_loading', __('Enable Lazy Loading', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('add_width_height_attributes', __('Add Width/Height Attributes', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('generate_aspect_ratio_css', __('Generate Aspect Ratio CSS', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('add_decoding_async', __('Add Decoding="async"', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         
         // Advanced Fields
         $this->add_dynamic_field('enable_caching', __('Enable Caching', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
@@ -217,6 +232,10 @@ class Settings {
     
     public function css_section_callback() {
         echo '<p>' . esc_html__('Advanced CSS optimization with critical CSS inlining and non-critical CSS deferring.', 'coreboost') . '</p>';
+    }
+    
+    public function image_section_callback() {
+        echo '<p>' . esc_html__('Comprehensive image optimization to improve performance and prevent layout shifts. Lazy loading reduces initial page load by deferring off-screen images. Width/height attributes and aspect ratio CSS prevent Cumulative Layout Shift (CLS). Async decoding prevents render-blocking image decode operations.', 'coreboost') . '</p>';
     }
     
     public function advanced_section_callback() {
