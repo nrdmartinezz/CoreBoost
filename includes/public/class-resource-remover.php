@@ -244,10 +244,14 @@ class Resource_Remover {
             $html = preg_replace_callback($css_pattern, array($this, 'process_inline_css_callback'), $html);
         }
         
-        // Process Scripts
+        // Process Scripts - both with src and without closing tag
         if ($this->options['enable_script_defer']) {
-            $script_pattern = '/<script([^>]*)src=["\']([^"\'\']+)["\']([^>]*)><\/script>/i';
+            // Match script tags with src attribute (handles various quote styles and attributes)
+            $script_pattern = '/<script\s+([^>]*?)src=["\']([^\'\"]+?)["\']([^>]*)>/i';
             $html = preg_replace_callback($script_pattern, array($this, 'process_inline_script_callback'), $html);
+            
+            // Also process external scripts by URL pattern matching for non-WordPress registered scripts
+            $html = $this->defer_scripts_by_url($html);
         }
         
         // Extract hero preload (marker-based only)
@@ -492,6 +496,93 @@ SCRIPT;
     /**
      * Callback for processing individual script tags
      */
+    /**
+     * Defer external scripts by URL pattern matching
+     * Catches scripts injected by external systems (Cloudflare, themes) that don't use wp_enqueue_script
+     *
+     * @param string $html HTML content
+     * @return string Modified HTML
+     */
+    private function defer_scripts_by_url($html) {
+        // Get exclusions to check against
+        $exclusions = $this->get_url_exclusions();
+        
+        // Pattern to catch external scripts not caught by main regex
+        // Matches: <script ...src="..." ...> with various attribute orders
+        $pattern = '/<script\s+([^>]*?)src=["\']([^\'\"]+?)["\']([^>]*)>/i';
+        
+        $html = preg_replace_callback($pattern, function($matches) use ($exclusions) {
+            $full_tag = $matches[0];
+            $before_src = $matches[1];
+            $src = $matches[2];
+            $after_src = $matches[3];
+            
+            // Skip if already has defer or async
+            if (strpos($full_tag, ' defer') !== false || strpos($full_tag, ' async') !== false) {
+                return $full_tag;
+            }
+            
+            // Check if this script should be deferred
+            foreach ($exclusions['should_defer_async'] as $pattern) {
+                if (stripos($src, $pattern) !== false) {
+                    // Add async to break render chain for independent scripts
+                    return str_replace('src=', 'async src=', $full_tag);
+                }
+            }
+            
+            foreach ($exclusions['should_defer'] as $pattern) {
+                if (stripos($src, $pattern) !== false) {
+                    // Add defer for potentially dependent scripts
+                    return str_replace('src=', 'defer src=', $full_tag);
+                }
+            }
+            
+            // Check exclusions to skip
+            foreach ($exclusions['skip'] as $pattern) {
+                if (stripos($src, $pattern) !== false) {
+                    return $full_tag;
+                }
+            }
+            
+            return $full_tag;
+        }, $html);
+        
+        return $html;
+    }
+    
+    /**
+     * Get URL patterns for script deferring decisions
+     *
+     * @return array
+     */
+    private function get_url_exclusions() {
+        return array(
+            // Scripts that should use async (independent, break render chain)
+            'should_defer_async' => array(
+                'email-decode',           // Cloudflare email protection
+                'hello-frontend',         // Hello Elementor theme
+                'youtube.com/iframe_api', // YouTube API
+                'www.youtube.com/',       // YouTube embeds
+            ),
+            // Scripts that should use defer (potentially dependent on others)
+            'should_defer' => array(
+                'elementor',
+                'elementor-pro',
+                'smartmenus',
+            ),
+            // Scripts to skip (critical path, must not defer)
+            'skip' => array(
+                'jquery.min.js',
+                'jquery.js',
+                'jquery-core',
+                'jquery-migrate',
+                'jquery-ui-core',
+                'jquery-ui.min.js',
+                'wp-embed',
+            )
+        );
+    }
+
     private function process_inline_script_callback($matches) {
         $full_tag = $matches[0];
         $before_src = $matches[1];
