@@ -37,21 +37,10 @@ jobs:
       run: |
         CURRENT=${{ steps.current_version.outputs.VERSION }}
         RELEASE_TYPE=${{ github.event.inputs.release_type }}
+        RUN_NUMBER=${{ github.run_number }}
         
-        # Get all matching tags and find the highest dev number
-        TAGS=$(git tag -l "${CURRENT}-${RELEASE_TYPE}.*" 2>/dev/null | sort -V)
-        
-        if [ -z "$TAGS" ]; then
-          DEV_NUMBER=1
-        else
-          # Get the last (highest) tag
-          LATEST_TAG=$(echo "$TAGS" | tail -1)
-          # Extract dev number and increment
-          DEV_NUMBER=$(echo "$LATEST_TAG" | sed "s/v\?${CURRENT}-${RELEASE_TYPE}\\.//" | xargs)
-          DEV_NUMBER=$((DEV_NUMBER + 1))
-        fi
-        
-        DEV_VERSION="${CURRENT}-${RELEASE_TYPE}.${DEV_NUMBER}"
+        # Use github.run_number as the dev build number
+        DEV_VERSION="${CURRENT}-${RELEASE_TYPE}.${RUN_NUMBER}"
         echo "DEV_VERSION=$DEV_VERSION" >> $GITHUB_OUTPUT
         echo "Generated dev version: $DEV_VERSION"
     
