@@ -363,7 +363,9 @@ class Settings {
                               'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                               'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
                               'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
-                              'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui'),
+                              'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui',
+                              'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes',
+                              'generate_aspect_ratio_css', 'add_decoding_async'),
             'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
                                'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids'),
             'text' => array('css_defer_method'),
@@ -376,6 +378,9 @@ class Settings {
         $has_hero_fields = isset($input['preload_method']) || isset($input['specific_pages']) || isset($input['enable_hero_preload_extraction']) || isset($input['hero_preload_cache_ttl']);
         $has_advanced_fields = isset($input['unused_css_list']) || isset($input['unused_js_list']) || 
                                 isset($input['inline_script_ids']) || isset($input['inline_style_ids']);
+        $has_image_fields = isset($input['enable_image_optimization']) || isset($input['enable_lazy_loading']) || 
+                           isset($input['add_width_height_attributes']) || isset($input['generate_aspect_ratio_css']) || 
+                           isset($input['add_decoding_async']);
         
         foreach ($field_types['boolean'] as $field) {
             if (array_key_exists($field, $input)) {
@@ -397,6 +402,10 @@ class Settings {
                 if ($has_advanced_fields && in_array($field, array('enable_caching', 'enable_unused_css_removal',
                     'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
                     'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui'))) {
+                    $is_current_form = true;
+                }
+                if ($has_image_fields && in_array($field, array('enable_image_optimization', 'enable_lazy_loading', 
+                    'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async'))) {
                     $is_current_form = true;
                 }
                 

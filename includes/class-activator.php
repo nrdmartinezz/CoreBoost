@@ -70,7 +70,15 @@ class Activator {
             'enable_inline_script_removal' => false,
             'inline_script_ids' => '',
             'enable_inline_style_removal' => false,
-            'inline_style_ids' => ''
+            'inline_style_ids' => '',
+            // Image Optimization Settings (Phase 1)
+            'enable_image_optimization' => false,
+            'enable_lazy_loading' => false,
+            'add_width_height_attributes' => false,
+            'generate_aspect_ratio_css' => false,
+            'add_decoding_async' => false,
+            // YouTube blocking
+            'smart_youtube_blocking' => false
         );
     }
     

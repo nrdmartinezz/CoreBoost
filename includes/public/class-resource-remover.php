@@ -269,7 +269,7 @@ class Resource_Remover {
         }
         
         // Optimize images (lazy loading, width/height, aspect ratio)
-        if (!empty($this->options['enable_image_optimization'])) {
+        if (!empty($this->options['enable_image_optimization']) && isset($this->image_optimizer)) {
             $html = $this->image_optimizer->optimize_images($html);
         }
         
