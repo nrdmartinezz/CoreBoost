@@ -101,6 +101,11 @@ class Font_Optimizer {
      * Add font preconnect links
      */
     public function add_font_preconnects() {
+        // Don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
+        
         if (!$this->options['enable_font_optimization']) {
             return;
         }

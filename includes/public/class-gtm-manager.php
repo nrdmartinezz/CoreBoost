@@ -199,6 +199,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      * Output delay loading script
      */
     public function output_delay_script() {
+        // Safety check: don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
+        
         $strategy = isset($this->options['gtm_load_strategy']) ? $this->options['gtm_load_strategy'] : 'balanced';
         
         if ($strategy === 'immediate') {

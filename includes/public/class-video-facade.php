@@ -157,7 +157,8 @@ HTML;
             return;
         }
         
-        if (is_admin()) {
+        // Don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
         

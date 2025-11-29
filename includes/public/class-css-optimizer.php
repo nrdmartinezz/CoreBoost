@@ -101,6 +101,11 @@ class CSS_Optimizer {
      * Output critical CSS
      */
     public function output_critical_css() {
+        // Don't output on admin or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
+            return;
+        }
+        
         if (!$this->options['enable_css_defer'] || $this->options['css_defer_method'] !== 'preload_with_critical') {
             return;
         }

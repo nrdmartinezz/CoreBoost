@@ -256,7 +256,8 @@ class Resource_Remover {
      * Process inline CSS and scripts in HTML output
      */
     public function process_inline_assets($html) {
-        if (is_admin()) {
+        // Don't process on admin, AJAX, or preview contexts
+        if (is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return $html;
         }
         

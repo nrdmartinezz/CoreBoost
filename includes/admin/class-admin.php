@@ -174,7 +174,8 @@ class Admin {
      * Show cache cleared notice on frontend
      */
     public function show_cache_cleared_notice() {
-        if (!current_user_can('manage_options')) {
+        // Don't show on admin pages, preview contexts, or non-admin users
+        if (!current_user_can('manage_options') || is_admin() || wp_doing_ajax() || isset($_GET['elementor-preview'])) {
             return;
         }
         ?>
