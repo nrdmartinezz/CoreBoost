@@ -88,4 +88,5 @@ add_action('plugins_loaded', 'coreboost_run');
 add_action('elementor/editor/after_save', function($post_id) {
     delete_transient('coreboost_hero_' . $post_id);
     delete_transient('coreboost_bg_videos_' . $post_id);
+    delete_transient('coreboost_hero_preload_' . $post_id);
 });

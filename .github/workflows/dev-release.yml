@@ -1,0 +1,136 @@
+name: Create Dev Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - alpha
+          - beta
+
+permissions:
+  contents: write
+
+jobs:
+  dev_release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get current version
+      id: current_version
+      run: |
+        VERSION=$(grep "Version:" coreboost.php | sed 's/.*Version: //' | tr -d ' ')
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current plugin version: $VERSION"
+    
+    - name: Generate dev version
+      id: dev_version
+      run: |
+        CURRENT=${{ steps.current_version.outputs.VERSION }}
+        RELEASE_TYPE=${{ github.event.inputs.release_type }}
+        
+        # Get latest release tag to increment dev number
+        LATEST_TAG=$(git describe --tags --match "${CURRENT}-${RELEASE_TYPE}.*" 2>/dev/null | head -1)
+        
+        if [ -z "$LATEST_TAG" ]; then
+          DEV_NUMBER=1
+        else
+          # Extract dev number and increment
+          DEV_NUMBER=$(echo $LATEST_TAG | sed "s/.*${RELEASE_TYPE}\\.//" | xargs)
+          DEV_NUMBER=$((DEV_NUMBER + 1))
+        fi
+        
+        DEV_VERSION="${CURRENT}-${RELEASE_TYPE}.${DEV_NUMBER}"
+        echo "DEV_VERSION=$DEV_VERSION" >> $GITHUB_OUTPUT
+        echo "Generated dev version: $DEV_VERSION"
+    
+    - name: Create plugin ZIP
+      run: |
+        # Create a clean directory for the plugin
+        mkdir -p coreboost-dev-release
+        
+        # Copy plugin files
+        cp coreboost.php coreboost-dev-release/
+        cp readme.txt coreboost-dev-release/
+        cp README.md coreboost-dev-release/
+        cp CHANGELOG.md coreboost-dev-release/
+        
+        # Copy directories
+        cp -r includes coreboost-dev-release/
+        cp -r assets coreboost-dev-release/
+        
+        # Verify structure
+        echo "Verifying dev release structure..."
+        CLASS_COUNT=$(find coreboost-dev-release/includes -name "*.php" | wc -l)
+        echo "✅ Class files: $CLASS_COUNT"
+        
+        # Create ZIP file
+        cd coreboost-dev-release
+        zip -r ../coreboost-${{ steps.dev_version.outputs.DEV_VERSION }}.zip .
+        cd ..
+        
+        echo "✅ Dev release ZIP created successfully"
+    
+    - name: Create Release Notes
+      id: release_notes
+      run: |
+        RELEASE_TYPE=${{ github.event.inputs.release_type }}
+        DEV_VERSION=${{ steps.dev_version.outputs.DEV_VERSION }}
+        
+        cat > release-notes.md << 'EOF'
+        # CoreBoost ${{ steps.dev_version.outputs.DEV_VERSION }} - ${{ github.event.inputs.release_type }} Release
+        
+        **This is a development/pre-release build** - Not recommended for production use without testing.
+        
+        ## What's New
+        - Latest development changes from the codebase
+        - Includes all recent optimizations and bug fixes
+        
+        ## Installation
+        1. Download `coreboost-${{ steps.dev_version.outputs.DEV_VERSION }}.zip`
+        2. Extract to your WordPress plugins directory
+        3. Activate the plugin
+        
+        ## Testing Notes
+        - Test thoroughly before deploying to production
+        - Report issues on GitHub
+        - Check the main branch for the latest stable version
+        
+        **Built:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+        **Build:** ${{ github.run_number }}
+        **Commit:** ${{ github.sha }}
+        EOF
+        
+        cat release-notes.md
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.dev_version.outputs.DEV_VERSION }}
+        name: CoreBoost ${{ steps.dev_version.outputs.DEV_VERSION }} (${{ github.event.inputs.release_type }})
+        body_path: release-notes.md
+        draft: false
+        prerelease: true
+        files: |
+          coreboost-${{ steps.dev_version.outputs.DEV_VERSION }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Print Release Info
+      run: |
+        echo "✅ Dev release created successfully!"
+        echo ""
+        echo "Release Tag: v${{ steps.dev_version.outputs.DEV_VERSION }}"
+        echo "Release Type: ${{ github.event.inputs.release_type }}"
+        echo "ZIP File: coreboost-${{ steps.dev_version.outputs.DEV_VERSION }}.zip"
+        echo ""
+        echo "View on GitHub: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.dev_version.outputs.DEV_VERSION }}"

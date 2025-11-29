@@ -67,3 +67,4 @@ logs/
 .env.local
 .env.production
 FONT_OPTIMIZATION.md
+a comprehensive guide to extracting critical css.md

@@ -162,6 +162,9 @@ class Settings_Page {
                     <a href="<?php echo wp_nonce_url(admin_url('options-general.php?page=coreboost&tab=advanced&action=clear_cache'), 'coreboost_clear_cache'); ?>" class="button">
                         <?php _e('Clear All Caches', 'coreboost'); ?>
                     </a>
+                    <a href="<?php echo wp_nonce_url(admin_url('options-general.php?page=coreboost&tab=hero&action=clear_hero_preload_cache'), 'coreboost_clear_hero_preload_cache'); ?>" class="button">
+                        <?php _e('Clear Hero Preload Cache', 'coreboost'); ?>
+                    </a>
                 </p>
                 <h4><?php _e('Debug Mode', 'coreboost'); ?></h4>
                 <p><?php _e('Enable debug mode to see HTML comments showing which optimizations are applied. Disable on production sites.', 'coreboost'); ?></p>
@@ -177,7 +180,7 @@ class Settings_Page {
      */
     private function output_hidden_fields($active_tab) {
         $all_fields = array(
-            'hero' => array('preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 'specific_pages', 'lazy_load_exclude_count'),
+            'hero' => array('preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 'enable_hero_preload_extraction', 'hero_preload_cache_ttl', 'specific_pages', 'lazy_load_exclude_count'),
             'scripts' => array('enable_script_defer', 'scripts_to_defer', 'scripts_to_async', 'exclude_scripts'),
             'css' => array('enable_css_defer', 'css_defer_method', 'styles_to_defer', 'enable_font_optimization', 
                           'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts',
@@ -227,6 +230,21 @@ class Settings_Page {
             wp_redirect(add_query_arg('coreboost_cache_cleared', '1', $redirect_url));
             exit;
         }
+        
+        if ($action === 'clear_hero_preload_cache' && $nonce_get && wp_verify_nonce($nonce_get, 'coreboost_clear_hero_preload_cache')) {
+            // Clear all hero preload cache entries
+            global $wpdb;
+            $wpdb->query(
+                "DELETE FROM {$wpdb->options} 
+                WHERE option_name LIKE 'coreboost_hero_preload_%' 
+                OR option_name LIKE '_transient_coreboost_hero_preload_%'"
+            );
+            
+            // Redirect to show success message
+            $redirect_url = remove_query_arg(array('action', '_wpnonce'));
+            wp_redirect(add_query_arg('coreboost_hero_cache_cleared', '1', $redirect_url));
+            exit;
+        }
     }
     
     /**
@@ -236,6 +254,8 @@ class Settings_Page {
      */
     private function show_settings_updated_message($active_tab) {
         $settings_updated = filter_input(INPUT_GET, 'settings-updated', FILTER_SANITIZE_SPECIAL_CHARS);
+        $cache_cleared = filter_input(INPUT_GET, 'coreboost_cache_cleared', FILTER_SANITIZE_SPECIAL_CHARS);
+        $hero_cache_cleared = filter_input(INPUT_GET, 'coreboost_hero_cache_cleared', FILTER_SANITIZE_SPECIAL_CHARS);
         
         if ($settings_updated === 'true') {
             echo '<div class="notice notice-success is-dismissible"><p>' . __('Settings saved successfully!', 'coreboost') . '</p></div>';
@@ -251,6 +271,14 @@ class Settings_Page {
                     }
                 </script>';
             }
+        }
+        
+        if ($cache_cleared === '1') {
+            echo '<div class="notice notice-success is-dismissible"><p>' . __('All caches cleared successfully!', 'coreboost') . '</p></div>';
+        }
+        
+        if ($hero_cache_cleared === '1') {
+            echo '<div class="notice notice-success is-dismissible"><p>' . __('Hero preload cache cleared successfully!', 'coreboost') . '</p></div>';
         }
     }
 }

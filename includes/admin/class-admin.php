@@ -97,6 +97,7 @@ class Admin {
         
         // AJAX cache clearing
         $this->loader->add_action('wp_ajax_coreboost_clear_cache', $this, 'ajax_clear_cache');
+        $this->loader->add_action('wp_ajax_coreboost_clear_hero_preload_cache', $this, 'ajax_clear_hero_preload_cache');
         
         // Frontend cache clearing handler
         $this->loader->add_action('init', $this, 'handle_frontend_cache_clear');
@@ -257,6 +258,34 @@ class Admin {
         
         wp_send_json_success(array(
             'message' => __('All caches cleared successfully!', 'coreboost')
+        ));
+    }
+
+    /**
+     * AJAX handler for clearing hero preload cache
+     */
+    public function ajax_clear_hero_preload_cache() {
+        // Verify nonce
+        $nonce = filter_input(INPUT_POST, 'nonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        if (!$nonce || !wp_verify_nonce($nonce, 'coreboost_clear_hero_preload_cache_nonce')) {
+            wp_die(__('Security check failed', 'coreboost'));
+        }
+        
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions', 'coreboost'));
+        }
+        
+        // Clear all hero preload cache entries
+        global $wpdb;
+        $wpdb->query(
+            "DELETE FROM {$wpdb->options} 
+            WHERE option_name LIKE 'coreboost_hero_preload_%' 
+            OR option_name LIKE '_transient_coreboost_hero_preload_%'"
+        );
+        
+        wp_send_json_success(array(
+            'message' => __('Hero preload cache cleared successfully!', 'coreboost')
         ));
     }
 }
