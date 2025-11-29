@@ -71,6 +71,8 @@ class Settings_Page {
                     <?php do_settings_sections('coreboost-scripts'); ?>
                 <?php elseif ($active_tab == 'css'): ?>
                     <?php do_settings_sections('coreboost-css'); ?>
+                <?php elseif ($active_tab == 'images'): ?>
+                    <?php do_settings_sections('coreboost-images'); ?>
                 <?php elseif ($active_tab == 'tags'): ?>
                     <?php do_settings_sections('coreboost-tags'); ?>
                 <?php elseif ($active_tab == 'advanced'): ?>
@@ -101,6 +103,9 @@ class Settings_Page {
             </a>
             <a href="?page=coreboost&tab=css" class="nav-tab <?php echo $active_tab == 'css' ? 'nav-tab-active' : ''; ?>">
                 <?php _e('CSS & Critical CSS', 'coreboost'); ?>
+            </a>
+            <a href="?page=coreboost&tab=images" class="nav-tab <?php echo $active_tab == 'images' ? 'nav-tab-active' : ''; ?>">
+                <?php _e('Image Optimization', 'coreboost'); ?>
             </a>
             <a href="?page=coreboost&tab=tags" class="nav-tab <?php echo $active_tab == 'tags' ? 'nav-tab-active' : ''; ?>">
                 <?php _e('Custom Tags', 'coreboost'); ?>
@@ -143,6 +148,17 @@ class Settings_Page {
                     <li><?php _e('Page-specific CSS is additional to global CSS', 'coreboost'); ?></li>
                     <li><?php _e('Test thoroughly after enabling CSS deferring', 'coreboost'); ?></li>
                 </ul>
+            <?php elseif ($active_tab == 'images'): ?>
+                <h3><?php _e('Image Optimization Guide', 'coreboost'); ?></h3>
+                <p><?php _e('Optimize images to improve performance and prevent layout shifts.', 'coreboost'); ?></p>
+                <ul>
+                    <li><strong><?php _e('Lazy Loading:', 'coreboost'); ?></strong> <?php _e('Defers loading of off-screen images. Skips first X images to keep LCP images unaffected.', 'coreboost'); ?></li>
+                    <li><strong><?php _e('Width/Height Attributes:', 'coreboost'); ?></strong> <?php _e('Automatically adds width and height attributes to prevent Cumulative Layout Shift (CLS).', 'coreboost'); ?></li>
+                    <li><strong><?php _e('Aspect Ratio CSS:', 'coreboost'); ?></strong> <?php _e('Generates CSS aspect-ratio rules to maintain image dimensions during load.', 'coreboost'); ?></li>
+                    <li><strong><?php _e('Async Decoding:', 'coreboost'); ?></strong> <?php _e('Prevents render-blocking image decode operations for faster rendering.', 'coreboost'); ?></li>
+                </ul>
+                <h4><?php _e('Performance Impact', 'coreboost'); ?></h4>
+                <p><?php _e('Expected improvements: -100-200ms LCP, reduced CLS, 10-15% bandwidth savings on repeat visits.', 'coreboost'); ?></p>
             <?php elseif ($active_tab == 'tags'): ?>
                 <h3><?php _e('Custom Tag Manager Guide', 'coreboost'); ?></h3>
                 <p><?php _e('Add any tracking scripts or custom code to your site with optimized loading strategies.', 'coreboost'); ?></p>
@@ -185,6 +201,7 @@ class Settings_Page {
             'css' => array('enable_css_defer', 'css_defer_method', 'styles_to_defer', 'enable_font_optimization', 
                           'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts',
                           'font_display_swap', 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
+            'images' => array('enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async'),
             'tags' => array('tag_head_scripts', 'tag_body_scripts', 'tag_footer_scripts', 'tag_load_strategy', 'tag_custom_delay'),
             'advanced' => array('enable_caching', 'enable_unused_css_removal', 'unused_css_list', 'enable_unused_js_removal', 
                                'unused_js_list', 'enable_inline_script_removal', 'inline_script_ids', 
