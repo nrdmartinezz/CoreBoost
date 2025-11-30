@@ -63,7 +63,11 @@ class Config {
             'avif_quality' => array('type' => 'slider', 'default' => 85, 'min' => 75, 'max' => 95, 'step' => 1, 'description' => 'AVIF compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
             'webp_quality' => array('type' => 'slider', 'default' => 85, 'min' => 75, 'max' => 95, 'step' => 1, 'description' => 'WebP compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
             'image_generation_mode' => array('type' => 'select', 'default' => 'on-demand', 'description' => 'Variant generation strategy. On-Demand: Generate on first request (first view slower). Pre-Generate: Generate immediately on upload (uploads slower).', 'options' => array('on-demand' => 'On-Demand (Recommended)', 'eager' => 'Pre-Generate on Upload')),
-            'cleanup_orphans_weekly' => array('type' => 'checkbox', 'default' => true, 'description' => 'Automatically delete image variants for images no longer used on site (runs weekly via WP-Cron). Prevents storage bloat.')
+            'cleanup_orphans_weekly' => array('type' => 'checkbox', 'default' => true, 'description' => 'Automatically delete image variants for images no longer used on site (runs weekly via WP-Cron). Prevents storage bloat.'),
+            // Font Optimization - Preconnect Settings
+            'preconnect_google_fonts' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable preconnect to fonts.googleapis.com for faster Google Fonts loading. Reduces DNS lookup and connection time.'),
+            'preconnect_adobe_fonts' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable preconnect to use.typekit.net for faster Adobe Fonts loading. Reduces DNS lookup and connection time.'),
+            'font_display_swap' => array('type' => 'checkbox', 'default' => true, 'description' => 'Use font-display: swap to display fallback fonts immediately while web fonts load, improving perceived performance and preventing blank text.')
         );
     }
     

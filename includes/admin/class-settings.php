@@ -146,6 +146,9 @@ class Settings {
         add_settings_field('enable_font_optimization', __('Enable Font Optimization', 'coreboost'), array($this, 'enable_font_optimization_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('defer_google_fonts', __('Defer Google Fonts', 'coreboost'), array($this, 'defer_google_fonts_callback'), 'coreboost-css', 'coreboost_css_section');
         add_settings_field('defer_adobe_fonts', __('Defer Adobe Fonts', 'coreboost'), array($this, 'defer_adobe_fonts_callback'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('preconnect_google_fonts', __('Preconnect to Google Fonts', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('preconnect_adobe_fonts', __('Preconnect to Adobe Fonts', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
+        $this->add_dynamic_field('font_display_swap', __('Font Display: Swap', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->add_dynamic_field('critical_css_global', __('Global Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->add_dynamic_field('critical_css_home', __('Homepage Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->add_dynamic_field('critical_css_pages', __('Pages Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
@@ -214,14 +217,12 @@ class Settings {
                 Field_Renderer::render_textarea($field_name, $value, $config['rows'], $config['description'], $class);
                 break;
             case 'slider':
-                // CRITICAL FIX: Implement slider field rendering
                 $min = isset($config['min']) ? (int)$config['min'] : 0;
                 $max = isset($config['max']) ? (int)$config['max'] : 100;
                 $step = isset($config['step']) ? (int)$config['step'] : 1;
                 Field_Renderer::render_slider($field_name, $value, $min, $max, $step, $config['description']);
                 break;
             case 'select':
-                // CRITICAL FIX: Implement select field rendering
                 $options = isset($config['options']) ? $config['options'] : array();
                 Field_Renderer::render_select($field_name, $value, $options, $config['description']);
                 break;
@@ -255,6 +256,45 @@ class Settings {
     
     public function image_section_callback() {
         echo '<p>' . esc_html__('Comprehensive image optimization to improve performance and prevent layout shifts. Lazy loading reduces initial page load by deferring off-screen images. Width/height attributes and aspect ratio CSS prevent Cumulative Layout Shift (CLS). Async decoding prevents render-blocking image decode operations.', 'coreboost') . '</p>';
+        
+        // Bulk Image Converter UI
+        echo '<div style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 16px; margin: 20px 0; border-radius: 3px;">';
+        echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Bulk Image Converter', 'coreboost') . '</h4>';
+        
+        // Status and info
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Status:', 'coreboost') . '</strong> <span id="coreboost-bulk-status" style="font-weight: bold; color: #666;">Not started</span></p>';
+        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Images to convert:', 'coreboost') . '</strong> <span id="coreboost-image-count">-</span></p>';
+        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Batch size:', 'coreboost') . '</strong> <span id="coreboost-batch-size">-</span></p>';
+        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Estimated time:', 'coreboost') . '</strong> <span id="coreboost-est-time">-</span></p>';
+        echo '</div>';
+        
+        // Progress bar
+        echo '<div id="coreboost-progress-container" style="display: none; margin-bottom: 15px;">';
+        echo '<div style="background-color: #e0e0e0; border-radius: 4px; height: 24px; overflow: hidden; margin-bottom: 8px;">';
+        echo '<div id="coreboost-progress-bar" style="background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold;"></div>';
+        echo '</div>';
+        echo '<p style="margin: 8px 0; font-size: 13px;"><span id="coreboost-progress-text">Processing...</span></p>';
+        echo '<p style="margin: 4px 0; font-size: 12px; color: #666;"><span id="coreboost-time-elapsed">Elapsed: 0s</span> | <span id="coreboost-time-remaining">Remaining: calculating...</span></p>';
+        echo '</div>';
+        
+        // Error message
+        echo '<div id="coreboost-error-message" style="display: none; background-color: #ffebee; border-left: 4px solid #f44336; padding: 12px; margin-bottom: 15px; color: #c62828;">';
+        echo '<p style="margin: 0;" id="coreboost-error-text"></p>';
+        echo '</div>';
+        
+        // Success message
+        echo '<div id="coreboost-success-message" style="display: none; background-color: #e8f5e9; border-left: 4px solid #4CAF50; padding: 12px; margin-bottom: 15px; color: #2e7d32;">';
+        echo '<p style="margin: 0;" id="coreboost-success-text"></p>';
+        echo '</div>';
+        
+        // Buttons
+        echo '<div style="margin-top: 15px;">';
+        echo '<button type="button" id="coreboost-start-bulk" class="button button-primary" style="background-color: #4CAF50; border-color: #4CAF50; margin-right: 10px;">' . esc_html__('Start Conversion', 'coreboost') . '</button>';
+        echo '<button type="button" id="coreboost-stop-bulk" class="button" style="display: none; background-color: #f44336; border-color: #f44336; color: white;" disabled>' . esc_html__('Stop', 'coreboost') . '</button>';
+        echo '</div>';
+        
+        echo '</div>';
     }
     
     public function advanced_section_callback() {

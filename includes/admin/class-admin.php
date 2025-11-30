@@ -138,6 +138,10 @@ class Admin {
         if ($hook === 'settings_page_coreboost') {
             wp_enqueue_script('coreboost-settings', COREBOOST_PLUGIN_URL . 'assets/settings.js', array('jquery'), COREBOOST_VERSION, true);
             wp_enqueue_style('coreboost-admin-style', COREBOOST_PLUGIN_URL . 'assets/admin.css', array(), COREBOOST_VERSION);
+            
+            // Enqueue bulk converter functionality
+            wp_enqueue_script('coreboost-bulk-converter', COREBOOST_PLUGIN_URL . 'includes/admin/js/bulk-converter.js', array(), COREBOOST_VERSION, true);
+            wp_enqueue_style('coreboost-bulk-converter-style', COREBOOST_PLUGIN_URL . 'includes/admin/css/bulk-converter.css', array(), COREBOOST_VERSION);
         }
     }
     
