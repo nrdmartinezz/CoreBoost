@@ -171,8 +171,9 @@ class CoreBoost {
         // Get saved options and merge with defaults to ensure all keys exist
         $saved_options = get_option('coreboost_options', array());
         $defaults = $this->get_default_options();
-        // Use global wp_parse_args function (WordPress core)
-        $this->options = \wp_parse_args($saved_options, $defaults);
+        // Merge saved options with defaults - saved options override defaults
+        // Use array_replace instead of wp_parse_args to avoid WordPress dependency
+        $this->options = array_replace($defaults, $saved_options);
         $this->define_hooks();
     }
     
