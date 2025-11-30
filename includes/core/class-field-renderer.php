@@ -48,15 +48,55 @@ class Field_Renderer {
     }
     
     /**
-     * Render select field
+     * Render slider field
      *
      * @param string $name Field name
      * @param mixed $value Field value
-     * @param array $options Select options
+     * @param int $min Minimum value
+     * @param int $max Maximum value
+     * @param int $step Step value
+     * @param string $description Field description
+     */
+    public static function render_slider($name, $value, $min, $max, $step, $description) {
+        $value = isset($value) ? (int)$value : (int)$min;
+        echo '<div style="display: flex; align-items: center; gap: 15px;">';
+        echo '<input type="range" name="coreboost_options[' . esc_attr($name) . ']" ';
+        echo 'min="' . esc_attr($min) . '" max="' . esc_attr($max) . '" step="' . esc_attr($step) . '" ';
+        echo 'value="' . esc_attr($value) . '" ';
+        echo 'style="width: 300px;" ';
+        echo 'oninput="document.getElementById(\'' . esc_attr($name) . '_display\').textContent = this.value;">';
+        echo '<span id="' . esc_attr($name) . '_display" style="min-width: 40px; text-align: center; font-weight: bold;">' . esc_html($value) . '</span>';
+        echo '</div>';
+        echo '<p class="description">' . esc_html($description) . '</p>';
+    }
+    
+    /**
+     * Render select field (updated to accept description only)
+     *
+     * @param string $name Field name
+     * @param mixed $value Field value
+     * @param array $options Select options (key => label)
+     * @param string $description Field description
+     */
+    public static function render_select($name, $value, $options, $description) {
+        echo '<select name="coreboost_options[' . esc_attr($name) . ']">';
+        foreach ($options as $key => $label) {
+            echo '<option value="' . esc_attr($key) . '"' . selected($value, $key, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select>';
+        echo '<p class="description">' . esc_html($description) . '</p>';
+    }
+    
+    /**
+     * Render select field (legacy signature with default parameter)
+     *
+     * @param string $name Field name
+     * @param mixed $value Field value
+     * @param array $options Select options (key => label)
      * @param mixed $default Default value
      * @param string $description Field description
      */
-    public static function render_select($name, $value, $options, $default, $description) {
+    public static function render_select_with_default($name, $value, $options, $default, $description) {
         $value = isset($value) ? $value : $default;
         echo '<select name="coreboost_options[' . esc_attr($name) . ']">';
         foreach ($options as $key => $label) {
