@@ -282,7 +282,7 @@ class Image_Format_Optimizer {
      * Load image resource from file
      *
      * Loads JPEG or PNG image from filesystem into GD image resource.
-     * Handles both formats transparently.
+     * Handles both formats transparently with proper error handling.
      *
      * @param string $image_path Path to image file
      * @return resource|false GD image resource or false on error
@@ -294,21 +294,23 @@ class Image_Format_Optimizer {
         
         $file_ext = strtolower(pathinfo($image_path, PATHINFO_EXTENSION));
         
-        if ($file_ext === 'png') {
-            // Load PNG with alpha channel support
-            $resource = imagecreatefrompng($image_path);
-            if ($resource) {
-                // Enable alpha channel preservation for PNG
-                imagealphablending($resource, false);
-                imagesavealpha($resource, true);
+        try {
+            if ($file_ext === 'png') {
+                // Load PNG - GD will handle transparency
+                // Don't force alpha handling as it can cause issues
+                return imagecreatefrompng($image_path);
+                
+            } else if ($file_ext === 'jpg' || $file_ext === 'jpeg') {
+                // Load JPEG
+                return imagecreatefromjpeg($image_path);
             }
-            return $resource;
-        } else if ($file_ext === 'jpg' || $file_ext === 'jpeg') {
-            // Load JPEG
-            return imagecreatefromjpeg($image_path);
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            error_log('CoreBoost: Image resource loading error: ' . $e->getMessage());
+            return false;
         }
-        
-        return false;
     }
     
     /**
