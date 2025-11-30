@@ -160,7 +160,10 @@ class CoreBoost {
     private function __construct() {
         $this->load_dependencies();
         $this->set_locale();
-        $this->options = get_option('coreboost_options', $this->get_default_options());
+        // Get saved options and merge with defaults to ensure all keys exist
+        $saved_options = get_option('coreboost_options', array());
+        $defaults = $this->get_default_options();
+        $this->options = wp_parse_args($saved_options, $defaults);
         $this->define_hooks();
     }
     
@@ -352,13 +355,13 @@ class CoreBoost {
             // Smart YouTube blocking (v2.0.3)
             'smart_youtube_blocking' => false,
             // Image Optimization (v2.7.0 Phase 1 & 2)
-            'enable_image_optimization' => false,
-            'enable_lazy_loading' => false,
-            'add_width_height_attributes' => false,
-            'generate_aspect_ratio_css' => false,
-            'add_decoding_async' => false,
+            'enable_image_optimization' => true,
+            'enable_lazy_loading' => true,
+            'add_width_height_attributes' => true,
+            'generate_aspect_ratio_css' => true,
+            'add_decoding_async' => true,
             'lazy_load_exclude_count' => 2,
-            'enable_image_format_conversion' => false,
+            'enable_image_format_conversion' => true,
             'avif_quality' => 85,
             'webp_quality' => 85,
             'image_generation_mode' => 'on-demand'
