@@ -250,12 +250,12 @@ class Admin {
         // Verify nonce
         $nonce = filter_input(INPUT_POST, 'nonce', FILTER_SANITIZE_SPECIAL_CHARS);
         if (!$nonce || !wp_verify_nonce($nonce, 'coreboost_clear_cache_nonce')) {
-            wp_die(__('Security check failed', 'coreboost'));
+            wp_send_json_error(__('Security check failed', 'coreboost'));
         }
         
         // Check permissions
         if (!current_user_can('manage_options')) {
-            wp_die(__('Insufficient permissions', 'coreboost'));
+            wp_send_json_error(__('Insufficient permissions', 'coreboost'));
         }
         
         // Clear all caches
@@ -273,12 +273,12 @@ class Admin {
         // Verify nonce
         $nonce = filter_input(INPUT_POST, 'nonce', FILTER_SANITIZE_SPECIAL_CHARS);
         if (!$nonce || !wp_verify_nonce($nonce, 'coreboost_clear_hero_preload_cache_nonce')) {
-            wp_die(__('Security check failed', 'coreboost'));
+            wp_send_json_error(__('Security check failed', 'coreboost'));
         }
         
         // Check permissions
         if (!current_user_can('manage_options')) {
-            wp_die(__('Insufficient permissions', 'coreboost'));
+            wp_send_json_error(__('Insufficient permissions', 'coreboost'));
         }
         
         // Clear all hero preload cache entries
