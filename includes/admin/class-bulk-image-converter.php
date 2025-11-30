@@ -94,7 +94,7 @@ class Bulk_Image_Converter {
      */
     public function ajax_scan_uploads() {
         // Verify nonce and permissions
-        check_ajax_referer('coreboost_nonce', 'nonce');
+        check_ajax_referer('coreboost_bulk_converter');
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Unauthorized');
         }
@@ -158,7 +158,7 @@ class Bulk_Image_Converter {
      */
     public function ajax_process_batch() {
         // Verify nonce and permissions
-        check_ajax_referer('coreboost_nonce', 'nonce');
+        check_ajax_referer('coreboost_bulk_converter');
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Unauthorized');
         }
@@ -228,7 +228,7 @@ class Bulk_Image_Converter {
      */
     public function ajax_stop_conversion() {
         // Verify nonce and permissions
-        check_ajax_referer('coreboost_nonce', 'nonce');
+        check_ajax_referer('coreboost_bulk_converter');
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Unauthorized');
         }
