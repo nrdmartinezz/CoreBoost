@@ -70,9 +70,8 @@ class Image_Format_Optimizer {
     public function __construct($options = array()) {
         $this->options = $options;
         
-        // Set variant storage directory
-        $upload_dir = wp_upload_dir();
-        $this->variants_dir = $upload_dir['basedir'] . '/coreboost-variants';
+        // Defer upload directory initialization (may not exist in CLI context)
+        $this->variants_dir = null;
         
         // Set quality settings from options
         $this->avif_quality = isset($options['avif_quality']) 
@@ -87,9 +86,31 @@ class Image_Format_Optimizer {
             ? $options['image_generation_mode'] 
             : 'on-demand';
         
-        // Register WP-Cron action handler
-        // CRITICAL FIX: This hook handler must be registered or background generation never runs
-        add_action('coreboost_generate_image_variants', array($this, 'handle_background_generation'), 10, 2);
+        // Register WP-Cron action handler (only if WordPress is loaded)
+        if (function_exists('add_action')) {
+            add_action('coreboost_generate_image_variants', array($this, 'handle_background_generation'), 10, 2);
+        }
+    }
+    
+    /**
+     * Get variants directory path (lazy initialization)
+     *
+     * Initializes upload directory on first access to support CLI contexts
+     * where WordPress may not be fully loaded during instantiation.
+     *
+     * @return string|null Path to variants directory or null if not available
+     */
+    private function get_variants_dir() {
+        // Initialize on first access
+        if ($this->variants_dir === null && function_exists('wp_upload_dir')) {
+            $upload_dir = wp_upload_dir();
+            if ($upload_dir && isset($upload_dir['basedir'])) {
+                $this->variants_dir = $upload_dir['basedir'] . '/coreboost-variants';
+            } else {
+                return null;
+            }
+        }
+        return $this->variants_dir;
     }
     
     /**
@@ -604,7 +625,11 @@ class Image_Format_Optimizer {
         
         // Build variant path: /variants/[image-id]/[format]/[filename].ext
         $variant_filename = $filename_no_ext . '.' . $format;
-        $variant_path = $this->variants_dir . '/' . $image_id . '/' . $format . '/' . $variant_filename;
+        $variants_dir = $this->get_variants_dir();
+        if (!$variants_dir) {
+            return '';
+        }
+        $variant_path = $variants_dir . '/' . $image_id . '/' . $format . '/' . $variant_filename;
         
         return $variant_path;
     }

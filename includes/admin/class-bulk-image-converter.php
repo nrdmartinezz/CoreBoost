@@ -278,6 +278,11 @@ class Bulk_Image_Converter {
             return $upload;
         }
         
+        // Only process in WordPress context
+        if (!function_exists('wp_upload_dir')) {
+            return $upload;
+        }
+        
         $file_path = $upload['file'];
         
         // Convert to absolute path if needed
@@ -318,6 +323,12 @@ class Bulk_Image_Converter {
      * @return array Array of image file paths
      */
     private function scan_uploads_folder() {
+        // Only call in WordPress context
+        if (!function_exists('wp_upload_dir')) {
+            error_log('CoreBoost: WordPress not loaded, cannot scan uploads');
+            return array();
+        }
+        
         $upload_dir = wp_upload_dir();
         
         // Validate upload directory exists
@@ -356,6 +367,12 @@ class Bulk_Image_Converter {
      * Delete existing variants folder
      */
     private function delete_existing_variants() {
+        // Only call in WordPress context
+        if (!function_exists('wp_upload_dir')) {
+            error_log('CoreBoost: WordPress not loaded, cannot delete variants');
+            return;
+        }
+        
         $upload_dir = wp_upload_dir();
         $variants_dir = $upload_dir['basedir'] . '/coreboost-variants';
         

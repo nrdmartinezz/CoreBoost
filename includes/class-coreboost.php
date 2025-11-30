@@ -169,7 +169,12 @@ class CoreBoost {
         $this->load_dependencies();
         $this->set_locale();
         // Get saved options and merge with defaults to ensure all keys exist
-        $saved_options = get_option('coreboost_options', array());
+        // Use conditional to support non-WordPress contexts (CLI testing)
+        if (function_exists('get_option')) {
+            $saved_options = get_option('coreboost_options', array());
+        } else {
+            $saved_options = array();
+        }
         $defaults = $this->get_default_options();
         // Merge saved options with defaults - saved options override defaults
         // Use array_replace instead of wp_parse_args to avoid WordPress dependency

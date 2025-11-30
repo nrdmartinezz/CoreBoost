@@ -58,9 +58,29 @@ class Image_Variant_Lifecycle_Manager {
         $this->options = $options;
         $this->format_optimizer = $format_optimizer ?: new Image_Format_Optimizer($options);
         
-        // Set variant storage directory
-        $upload_dir = wp_upload_dir();
-        $this->variants_dir = $upload_dir['basedir'] . '/coreboost-variants';
+        // Defer upload directory initialization (may not exist in CLI context)
+        $this->variants_dir = null;
+    }
+    
+    /**
+     * Get variants directory path (lazy initialization)
+     *
+     * Initializes upload directory on first access to support CLI contexts
+     * where WordPress may not be fully loaded during instantiation.
+     *
+     * @return string|null Path to variants directory or null if not available
+     */
+    private function get_variants_dir() {
+        // Initialize on first access
+        if ($this->variants_dir === null && function_exists('wp_upload_dir')) {
+            $upload_dir = wp_upload_dir();
+            if ($upload_dir && isset($upload_dir['basedir'])) {
+                $this->variants_dir = $upload_dir['basedir'] . '/coreboost-variants';
+            } else {
+                return null;
+            }
+        }
+        return $this->variants_dir;
     }
     
     /**
@@ -209,20 +229,21 @@ class Image_Variant_Lifecycle_Manager {
         );
         
         // Check if variants directory exists
-        if (!is_dir($this->variants_dir)) {
+        $variants_dir = $this->get_variants_dir();
+        if (!$variants_dir || !is_dir($variants_dir)) {
             return $report;
         }
         
         // Scan variant directories - CRITICAL FIX: Handle scandir() false returns
-        $scan_result = scandir($this->variants_dir);
+        $scan_result = scandir($variants_dir);
         if ($scan_result === false) {
-            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            error_log('[CoreBoost] Failed to scan variants directory: ' . $variants_dir);
             return $report;
         }
         $variant_dirs = array_diff($scan_result, array('.', '..')); 
         
         foreach ($variant_dirs as $image_hash) {
-            $image_hash_path = $this->variants_dir . '/' . $image_hash;
+            $image_hash_path = $variants_dir . '/' . $image_hash;
             
             if (!is_dir($image_hash_path)) {
                 continue;
