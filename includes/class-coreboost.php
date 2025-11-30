@@ -15,6 +15,10 @@ use CoreBoost\PublicCore\CSS_Optimizer;
 use CoreBoost\PublicCore\Font_Optimizer;
 use CoreBoost\PublicCore\Resource_Remover;
 use CoreBoost\PublicCore\Tag_Manager;
+use CoreBoost\PublicCore\Image_Optimizer;
+use CoreBoost\PublicCore\Image_Format_Optimizer;
+use CoreBoost\PublicCore\Image_Variant_Lifecycle_Manager;
+use CoreBoost\Admin\Image_Variant_Admin_Tools;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -95,6 +99,20 @@ class CoreBoost {
      * @var Tag_Manager
      */
     private $tag_manager;
+    
+    /**
+     * Image optimizer instance (Phase 1 & 2)
+     *
+     * @var Image_Optimizer
+     */
+    private $image_optimizer;
+    
+    /**
+     * Image variant admin tools instance (Phase 2.5)
+     *
+     * @var Image_Variant_Admin_Tools
+     */
+    private $image_variant_admin_tools;
     
     /**
      * Analytics engine instance
@@ -184,11 +202,22 @@ class CoreBoost {
             $this->tag_manager = new Tag_Manager($this->options);
             $this->tag_manager->register_hooks($this->loader);
             
+            // Initialize image optimizer (Phase 1 & 2)
+            $this->image_optimizer = new Image_Optimizer($this->options, $this->loader);
+            
             // Initialize video facade for click-to-play videos
             new \CoreBoost\PublicCore\Video_Facade($this->options, $this->loader);
         }
-    }
-    
+        
+        // Initialize admin tools (Phase 2.5)
+        if (is_admin() && !wp_doing_ajax()) {
+            $this->image_variant_admin_tools = new Image_Variant_Admin_Tools(
+                $this->options,
+                null  // Will be instantiated when needed
+            );
+            $this->image_variant_admin_tools->register_hooks($this->loader);
+        }
+    }    
     /**
      * Run the loader to execute all hooks
      */
