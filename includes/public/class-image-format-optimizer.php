@@ -327,21 +327,23 @@ class Image_Format_Optimizer {
         // AVIF source (primary)
         $avif_url = $this->get_variant_from_cache($original_url, 'avif');
         if ($avif_url) {
-            $srcset = $avif_url;
+            // Build srcset with proper escaping - don't escape the entire string!
+            $srcset = esc_url($avif_url) . ' 1x';
             if ($dimensions) {
-                $srcset .= ' 1x, ' . $avif_url . ' 2x';
+                $srcset .= ', ' . esc_url($avif_url) . ' 2x';
             }
-            $html .= '<source srcset="' . esc_url($srcset) . '" type="image/avif">';
+            $html .= '<source srcset="' . $srcset . '" type="image/avif">';
         }
         
         // WebP source (fallback)
         $webp_url = $this->get_variant_from_cache($original_url, 'webp');
         if ($webp_url) {
-            $srcset = $webp_url;
+            // Build srcset with proper escaping - don't escape the entire string!
+            $srcset = esc_url($webp_url) . ' 1x';
             if ($dimensions) {
-                $srcset .= ' 1x, ' . $webp_url . ' 2x';
+                $srcset .= ', ' . esc_url($webp_url) . ' 2x';
             }
-            $html .= '<source srcset="' . esc_url($srcset) . '" type="image/webp">';
+            $html .= '<source srcset="' . $srcset . '" type="image/webp">';
         }
         
         // Build img tag attributes
