@@ -130,11 +130,13 @@ class Image_Optimizer {
      *
      * Processes images and converts them to modern formats (AVIF/WebP)
      * with HTML5 <picture> tag rendering for format selection.
+     * Handles both <img> tags and CSS background-image URLs.
      *
      * @param string $html HTML content
      * @return string Modified HTML with <picture> tags
      */
     private function apply_format_optimization($html) {
+        // Process <img> tags with src attributes
         $html = preg_replace_callback(
             '/<img\s+([^>]*)>/i',
             function($matches) {
@@ -182,6 +184,74 @@ class Image_Optimizer {
                 
                 // Render picture tag with variants
                 return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes);
+            },
+            $html
+        );
+        
+        // Process CSS background-image URLs in inline styles and Elementor data attributes
+        $html = $this->optimize_background_images($html);
+        
+        return $html;
+    }
+    
+    /**
+     * Optimize CSS background images
+     *
+     * Finds and processes background-image URLs in:
+     * - Inline style attributes (background-image: url(...))
+     * - Elementor data-settings JSON (background_image URLs)
+     * - Multiple URL formats (quoted, unquoted, encoded)
+     *
+     * @param string $html HTML content
+     * @return string Modified HTML with queued background image variants
+     */
+    private function optimize_background_images($html) {
+        // Pattern 1: Find all background-image URLs in style attributes
+        // Matches: style="... background-image: url('...')" or url("...") or url(...)
+        $html = preg_replace_callback(
+            '/background-image\s*:\s*url\s*\(\s*["\']?([^"\')]+)["\']?\s*\)/i',
+            function($matches) {
+                $image_url = trim($matches[1]);
+                
+                // Skip if empty or data URI
+                if (empty($image_url) || strpos($image_url, 'data:') === 0) {
+                    return $matches[0];
+                }
+                
+                // Check if should optimize this image
+                if (!$this->format_optimizer->should_optimize_image($image_url)) {
+                    return $matches[0];
+                }
+                
+                // Queue variant generation (async, doesn't block)
+                $this->format_optimizer->queue_background_generation($image_url, array('avif', 'webp'));
+                
+                // Return original - variants will be served on next request
+                return $matches[0];
+            },
+            $html
+        );
+        
+        // Pattern 2: Find Elementor data-settings JSON with background image URLs
+        // Matches Elementor's nested JSON: "background_image":{"id":..,"url":"..."}
+        $html = preg_replace_callback(
+            '/"background_image"\s*:\s*{[^}]*"url"\s*:\s*"([^"]+)"/',
+            function($matches) {
+                $image_url = $matches[1];
+                
+                // Decode URL-encoded characters
+                $image_url = urldecode($image_url);
+                
+                // Check if should optimize this image
+                if (!$this->format_optimizer->should_optimize_image($image_url)) {
+                    return $matches[0];
+                }
+                
+                // Queue variant generation (async, doesn't block)
+                $this->format_optimizer->queue_background_generation($image_url, array('avif', 'webp'));
+                
+                // Return original data - variants will be served on next request
+                return $matches[0];
             },
             $html
         );

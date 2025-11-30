@@ -137,11 +137,16 @@ class Image_Format_Optimizer {
             return false;
         }
         
-        // Only optimize JPEG images
+        // Optimize JPEG and PNG images
         // Use wp_check_filetype for PHP 8.1+ compatibility (mime_content_type deprecated)
         $file_type = wp_check_filetype($file_path);
         $mime_type = isset($file_type['type']) ? $file_type['type'] : '';
-        if ($mime_type !== 'image/jpeg' && !preg_match('/\.jpe?g$/i', $file_path)) {
+        
+        $supported_types = array('image/jpeg', 'image/png');
+        $is_supported = in_array($mime_type, $supported_types) || 
+                       preg_match('/\.(?:jpe?g|png)$/i', $file_path);
+        
+        if (!$is_supported) {
             return false;
         }
         
@@ -151,10 +156,9 @@ class Image_Format_Optimizer {
             return false;
         }
         
-        // Skip thumbnails (less than 300px in either dimension)
-        if ($dimensions['width'] < 300 || $dimensions['height'] < 300) {
-            return false;
-        }
+        // No minimum size threshold - optimize all images
+        // Google doesn't discriminate based on pixel dimensions
+        // Even small images (thumbnails, icons) benefit from modern format conversion
         
         return true;
     }
@@ -162,10 +166,11 @@ class Image_Format_Optimizer {
     /**
      * Generate AVIF variant of image
      *
-     * Converts JPEG image to AVIF format with configured quality.
-     * Uses GD Library if available, fallback to ImageMagick.
+     * Converts JPEG or PNG image to AVIF format with configured quality.
+     * Preserves PNG alpha channel (transparency) when present.
+     * Uses GD Library if available.
      *
-     * @param string $image_path Path to source JPEG image
+     * @param string $image_path Path to source image (JPEG or PNG)
      * @return string|null Path to generated AVIF file, or null on error
      */
     public function generate_avif_variant($image_path) {
@@ -189,8 +194,8 @@ class Image_Format_Optimizer {
                 return null;
             }
             
-            // Load source image
-            $source = imagecreatefromjpeg($image_path);
+            // Load source image based on file type
+            $source = $this->load_image_resource($image_path);
             if (!$source) {
                 return null;
             }
@@ -202,10 +207,6 @@ class Image_Format_Optimizer {
                     imagedestroy($source);
                     return $output_path;
                 }
-            } else {
-                // Fallback: convert to WebP as intermediate format
-                imagedestroy($source);
-                return null;
             }
             
             imagedestroy($source);
@@ -221,10 +222,11 @@ class Image_Format_Optimizer {
     /**
      * Generate WebP variant of image
      *
-     * Converts JPEG image to WebP format with configured quality.
-     * Uses GD Library or ImageMagick.
+     * Converts JPEG or PNG image to WebP format with configured quality.
+     * Preserves PNG alpha channel (transparency) when present.
+     * Uses GD Library.
      *
-     * @param string $image_path Path to source JPEG image
+     * @param string $image_path Path to source image (JPEG or PNG)
      * @return string|null Path to generated WebP file, or null on error
      */
     public function generate_webp_variant($image_path) {
@@ -248,8 +250,8 @@ class Image_Format_Optimizer {
                 return null;
             }
             
-            // Load source image
-            $source = imagecreatefromjpeg($image_path);
+            // Load source image based on file type
+            $source = $this->load_image_resource($image_path);
             if (!$source) {
                 return null;
             }
@@ -274,6 +276,39 @@ class Image_Format_Optimizer {
             error_log('CoreBoost WebP generation error: ' . $e->getMessage());
             return null;
         }
+    }
+    
+    /**
+     * Load image resource from file
+     *
+     * Loads JPEG or PNG image from filesystem into GD image resource.
+     * Handles both formats transparently.
+     *
+     * @param string $image_path Path to image file
+     * @return resource|false GD image resource or false on error
+     */
+    private function load_image_resource($image_path) {
+        if (!file_exists($image_path)) {
+            return false;
+        }
+        
+        $file_ext = strtolower(pathinfo($image_path, PATHINFO_EXTENSION));
+        
+        if ($file_ext === 'png') {
+            // Load PNG with alpha channel support
+            $resource = imagecreatefrompng($image_path);
+            if ($resource) {
+                // Enable alpha channel preservation for PNG
+                imagealphablending($resource, false);
+                imagesavealpha($resource, true);
+            }
+            return $resource;
+        } else if ($file_ext === 'jpg' || $file_ext === 'jpeg') {
+            // Load JPEG
+            return imagecreatefromjpeg($image_path);
+        }
+        
+        return false;
     }
     
     /**
