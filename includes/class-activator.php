@@ -78,7 +78,13 @@ class Activator {
             'generate_aspect_ratio_css' => false,
             'add_decoding_async' => false,
             // YouTube blocking
-            'smart_youtube_blocking' => false
+            'smart_youtube_blocking' => false,
+            // Image Optimization Settings (Phase 2 - Format Optimization)
+            'enable_image_format_conversion' => false,
+            'avif_quality' => 85,
+            'webp_quality' => 85,
+            'image_generation_mode' => 'on-demand',
+            'cleanup_orphans_weekly' => true
         );
     }
     

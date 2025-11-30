@@ -158,6 +158,13 @@ class Settings {
         $this->add_dynamic_field('generate_aspect_ratio_css', __('Generate Aspect Ratio CSS', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         $this->add_dynamic_field('add_decoding_async', __('Add Decoding="async"', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         
+        // Image Format Optimization Fields (Phase 2)
+        $this->add_dynamic_field('enable_image_format_conversion', __('Enable Image Format Conversion', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('avif_quality', __('AVIF Quality', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('webp_quality', __('WebP Quality', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('image_generation_mode', __('Variant Generation Mode', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('cleanup_orphans_weekly', __('Weekly Orphan Cleanup', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        
         // Advanced Fields
         $this->add_dynamic_field('enable_caching', __('Enable Caching', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
         $this->add_dynamic_field('enable_unused_css_removal', __('Remove Unused CSS', 'coreboost'), 'coreboost-advanced', 'coreboost_advanced_section');
@@ -365,11 +372,14 @@ class Settings {
                               'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
                               'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui',
                               'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes',
-                              'generate_aspect_ratio_css', 'add_decoding_async'),
+                              'generate_aspect_ratio_css', 'add_decoding_async', 'enable_image_format_conversion',
+                              'cleanup_orphans_weekly'),
             'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
                                'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids'),
             'text' => array('css_defer_method'),
-            'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts')
+            'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
+            'integer' => array('avif_quality', 'webp_quality'),
+            'select' => array('image_generation_mode')
         );
         
         // Detect which tab submitted the form
@@ -380,7 +390,9 @@ class Settings {
                                 isset($input['inline_script_ids']) || isset($input['inline_style_ids']);
         $has_image_fields = isset($input['enable_image_optimization']) || isset($input['enable_lazy_loading']) || 
                            isset($input['add_width_height_attributes']) || isset($input['generate_aspect_ratio_css']) || 
-                           isset($input['add_decoding_async']);
+                           isset($input['add_decoding_async']) || isset($input['enable_image_format_conversion']) ||
+                           isset($input['avif_quality']) || isset($input['webp_quality']) || 
+                           isset($input['image_generation_mode']) || isset($input['cleanup_orphans_weekly']);
         
         foreach ($field_types['boolean'] as $field) {
             if (array_key_exists($field, $input)) {
@@ -405,7 +417,8 @@ class Settings {
                     $is_current_form = true;
                 }
                 if ($has_image_fields && in_array($field, array('enable_image_optimization', 'enable_lazy_loading', 
-                    'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async'))) {
+                    'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async',
+                    'enable_image_format_conversion', 'cleanup_orphans_weekly'))) {
                     $is_current_form = true;
                 }
                 
@@ -433,7 +446,29 @@ class Settings {
             }
         }
         
-        // Check if Custom Tags tab was submitted
+        // Sanitize integer fields with range validation
+        foreach ($field_types['integer'] as $field) {
+            if (isset($input[$field])) {
+                $value = absint($input[$field]);
+                // Clamp quality values between 75-95
+                if (in_array($field, array('avif_quality', 'webp_quality'))) {
+                    $value = max(75, min(95, $value));
+                }
+                $sanitized[$field] = $value;
+            }
+        }
+        
+        // Sanitize select fields
+        foreach ($field_types['select'] as $field) {
+            if (isset($input[$field])) {
+                $value = sanitize_text_field($input[$field]);
+                // Validate select values
+                if ($field === 'image_generation_mode' && in_array($value, array('on-demand', 'eager'))) {
+                    $sanitized[$field] = $value;
+                }
+            }
+        }
+
         $has_tag_fields = isset($input['tag_head_scripts']) || isset($input['tag_body_scripts']) || 
                          isset($input['tag_footer_scripts']) || isset($input['tag_load_strategy']);
         
