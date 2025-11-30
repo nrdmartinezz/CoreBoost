@@ -27,8 +27,25 @@ class Activator {
             add_option('coreboost_options', self::get_default_options());
         }
         
+        // Schedule WP-Cron events for Phase 2 (if needed)
+        self::schedule_cron_events();
+        
         // Flush caches
         self::flush_caches();
+    }
+    
+    /**
+     * Schedule WP-Cron events
+     */
+    private static function schedule_cron_events() {
+        // Schedule weekly orphan cleanup for image variants
+        if (!wp_next_scheduled('coreboost_cleanup_orphaned_variants')) {
+            wp_schedule_event(
+                time(),
+                'weekly',
+                'coreboost_cleanup_orphaned_variants'
+            );
+        }
     }
     
     /**
@@ -78,7 +95,13 @@ class Activator {
             'generate_aspect_ratio_css' => false,
             'add_decoding_async' => false,
             // YouTube blocking
-            'smart_youtube_blocking' => false
+            'smart_youtube_blocking' => false,
+            // Image Optimization Settings (Phase 2 - Format Optimization)
+            'enable_image_format_conversion' => false,
+            'avif_quality' => 85,
+            'webp_quality' => 85,
+            'image_generation_mode' => 'on-demand',
+            'cleanup_orphans_weekly' => true
         );
     }
     

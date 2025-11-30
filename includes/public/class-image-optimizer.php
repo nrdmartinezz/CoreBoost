@@ -41,6 +41,20 @@ class Image_Optimizer {
     private $loader;
     
     /**
+     * Image format optimizer instance
+     *
+     * @var Image_Format_Optimizer
+     */
+    private $format_optimizer;
+    
+    /**
+     * Image variant lifecycle manager instance
+     *
+     * @var Image_Variant_Lifecycle_Manager
+     */
+    private $lifecycle_manager;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -49,6 +63,15 @@ class Image_Optimizer {
     public function __construct($options, $loader) {
         $this->options = $options;
         $this->loader = $loader;
+        
+        // Initialize Phase 2 components if format conversion enabled
+        if (!empty($options['enable_image_format_conversion'])) {
+            $this->format_optimizer = new Image_Format_Optimizer($options);
+            $this->lifecycle_manager = new Image_Variant_Lifecycle_Manager($options, $this->format_optimizer);
+            
+            // Register lifecycle hooks
+            $this->lifecycle_manager->register_hooks($loader);
+        }
         
         // Only register on frontend
         if (!is_admin()) {
@@ -77,7 +100,7 @@ class Image_Optimizer {
             return $html;
         }
         
-        // Apply optimizations in order of impact
+        // Apply Phase 1 optimizations in order of impact
         if (!empty($this->options['enable_lazy_loading'])) {
             $html = $this->add_lazy_loading($html);
         }
@@ -94,20 +117,95 @@ class Image_Optimizer {
             $html = $this->add_decoding_async($html);
         }
         
+        // Apply Phase 2 format optimization if enabled
+        if (!empty($this->options['enable_image_format_conversion']) && $this->format_optimizer) {
+            $html = $this->apply_format_optimization($html);
+        }
+        
+        return $html;
+    }
+    
+    /**
+     * Apply image format optimization (Phase 2)
+     *
+     * Processes images and converts them to modern formats (AVIF/WebP)
+     * with HTML5 <picture> tag rendering for format selection.
+     *
+     * @param string $html HTML content
+     * @return string Modified HTML with <picture> tags
+     */
+    private function apply_format_optimization($html) {
+        $html = preg_replace_callback(
+            '/<img\s+([^>]*)>/i',
+            function($matches) {
+                $attrs = $matches[1];
+                
+                // Extract src URL
+                $src_match = [];
+                if (!preg_match('/\s+src=["\']?([^"\'\s>]+)["\']?/i', $attrs, $src_match)) {
+                    return $matches[0];
+                }
+                
+                $src_url = $src_match[1];
+                
+                // Check if should optimize this image
+                if (!$this->format_optimizer->should_optimize_image($src_url)) {
+                    return $matches[0];
+                }
+                
+                // Get browser format capability
+                $browser_format = $this->format_optimizer->detect_browser_format();
+                
+                // Try to get cached variant
+                $variant_url = null;
+                if ($browser_format !== 'jpeg') {
+                    $variant_url = $this->format_optimizer->get_variant_from_cache($src_url, $browser_format);
+                }
+                
+                // If no cached variant and on-demand mode, queue generation
+                if (!$variant_url && $this->options['image_generation_mode'] === 'on-demand') {
+                    $this->format_optimizer->queue_background_generation($src_url, array('avif', 'webp'));
+                    // Return original for now, will use variant on next request
+                    return $matches[0];
+                }
+                
+                // Extract alt text and classes
+                $alt_match = [];
+                $alt = preg_match('/\s+alt=["\']?([^"\']*)["\']/i', $attrs, $alt_match) 
+                    ? $alt_match[1] 
+                    : '';
+                
+                $class_match = [];
+                $classes = preg_match('/\s+class=["\']([^"\']*)["\']/', $attrs, $class_match) 
+                    ? $class_match[1] 
+                    : '';
+                
+                // Render picture tag with variants
+                return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes);
+            },
+            $html
+        );
+        
         return $html;
     }
     
     /**
      * Check if any image optimization is enabled
      *
+     * Returns true if either Phase 1 or Phase 2 optimizations are active.
+     *
      * @return bool
      */
     private function is_optimization_enabled() {
-        return !empty($this->options['enable_image_optimization'])
+        $phase1_enabled = !empty($this->options['enable_image_optimization'])
             && (!empty($this->options['enable_lazy_loading'])
                 || !empty($this->options['add_width_height_attributes'])
                 || !empty($this->options['generate_aspect_ratio_css'])
                 || !empty($this->options['add_decoding_async']));
+        
+        $phase2_enabled = !empty($this->options['enable_image_format_conversion']);
+        
+        return $phase1_enabled || $phase2_enabled;
     }
     
     /**
