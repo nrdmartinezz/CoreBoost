@@ -350,7 +350,18 @@ class CoreBoost {
             'enable_ab_testing' => false,
             'enable_recommendations' => true,
             // Smart YouTube blocking (v2.0.3)
-            'smart_youtube_blocking' => false
+            'smart_youtube_blocking' => false,
+            // Image Optimization (v2.7.0 Phase 1 & 2)
+            'enable_image_optimization' => false,
+            'enable_lazy_loading' => false,
+            'add_width_height_attributes' => false,
+            'generate_aspect_ratio_css' => false,
+            'add_decoding_async' => false,
+            'lazy_load_exclude_count' => 2,
+            'enable_image_format_conversion' => false,
+            'avif_quality' => 85,
+            'webp_quality' => 85,
+            'image_generation_mode' => 'on-demand'
         );
     }
 }

@@ -407,6 +407,31 @@ class Image_Format_Optimizer {
     }
     
     /**
+     * Background generation handler for WP-Cron
+     *
+     * Called by coreboost_generate_image_variants action when WP-Cron fires.
+     * Handles both on-demand queued generation and eager pre-generation.
+     *
+     * @param string $image_url Image URL to process
+     * @param array $formats Formats to generate ('avif', 'webp')
+     * @return void
+     */
+    public function handle_background_generation($image_url, $formats = array('avif', 'webp')) {
+        // Validate input
+        if (empty($image_url)) {
+            return;
+        }
+        
+        // Ensure formats is an array
+        if (!is_array($formats)) {
+            $formats = array('avif', 'webp');
+        }
+        
+        // Generate the variants
+        $this->generate_variants($image_url, $formats);
+    }
+    
+    /**
      * Generate variants for image (callback for queue)
      *
      * Processes variant generation for queued image.
