@@ -86,6 +86,10 @@ class Image_Format_Optimizer {
         $this->generation_mode = isset($options['image_generation_mode']) 
             ? $options['image_generation_mode'] 
             : 'on-demand';
+        
+        // Register WP-Cron action handler
+        // CRITICAL FIX: This hook handler must be registered or background generation never runs
+        add_action('coreboost_generate_image_variants', array($this, 'handle_background_generation'), 10, 2);
     }
     
     /**
@@ -134,7 +138,9 @@ class Image_Format_Optimizer {
         }
         
         // Only optimize JPEG images
-        $mime_type = mime_content_type($file_path);
+        // Use wp_check_filetype for PHP 8.1+ compatibility (mime_content_type deprecated)
+        $file_type = wp_check_filetype($file_path);
+        $mime_type = isset($file_type['type']) ? $file_type['type'] : '';
         if ($mime_type !== 'image/jpeg' && !preg_match('/\.jpe?g$/i', $file_path)) {
             return false;
         }

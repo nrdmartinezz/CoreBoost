@@ -211,9 +211,15 @@ class CoreBoost {
         
         // Initialize admin tools (Phase 2.5)
         if (is_admin() && !wp_doing_ajax()) {
+            // CRITICAL FIX: Create lifecycle manager instance before passing to admin tools
+            $this->image_variant_lifecycle_manager = new Image_Variant_Lifecycle_Manager(
+                $this->options,
+                $this->image_format_optimizer
+            );
+            
             $this->image_variant_admin_tools = new Image_Variant_Admin_Tools(
                 $this->options,
-                null  // Will be instantiated when needed
+                $this->image_variant_lifecycle_manager
             );
             $this->image_variant_admin_tools->register_hooks($this->loader);
         }

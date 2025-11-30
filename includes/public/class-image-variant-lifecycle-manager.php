@@ -213,8 +213,13 @@ class Image_Variant_Lifecycle_Manager {
             return $report;
         }
         
-        // Scan variant directories
-        $variant_dirs = array_diff(scandir($this->variants_dir), array('.', '..'));
+        // Scan variant directories - CRITICAL FIX: Handle scandir() false returns
+        $scan_result = scandir($this->variants_dir);
+        if ($scan_result === false) {
+            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            return $report;
+        }
+        $variant_dirs = array_diff($scan_result, array('.', '..')); 
         
         foreach ($variant_dirs as $image_hash) {
             $image_hash_path = $this->variants_dir . '/' . $image_hash;
@@ -260,8 +265,13 @@ class Image_Variant_Lifecycle_Manager {
             return $orphaned;
         }
         
-        // Scan variant directories
-        $variant_dirs = array_diff(scandir($this->variants_dir), array('.', '..'));
+        // Scan variant directories - CRITICAL FIX: Handle scandir() false returns
+        $scan_result = scandir($this->variants_dir);
+        if ($scan_result === false) {
+            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            return $orphaned;
+        }
+        $variant_dirs = array_diff($scan_result, array('.', '..'));
         
         foreach ($variant_dirs as $image_hash) {
             $image_hash_path = $this->variants_dir . '/' . $image_hash;
@@ -312,8 +322,13 @@ class Image_Variant_Lifecycle_Manager {
         // Get orphaned images for quick lookup
         $orphaned_hashes = array_flip($this->get_orphaned_images());
         
-        // Scan variant directories
-        $variant_dirs = array_diff(scandir($this->variants_dir), array('.', '..'));
+        // Scan variant directories - CRITICAL FIX: Handle scandir() false returns
+        $scan_result = scandir($this->variants_dir);
+        if ($scan_result === false) {
+            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            return $stats;
+        }
+        $variant_dirs = array_diff($scan_result, array('.', '..'));
         
         foreach ($variant_dirs as $image_hash) {
             $image_hash_path = $this->variants_dir . '/' . $image_hash;
@@ -326,8 +341,13 @@ class Image_Variant_Lifecycle_Manager {
             $is_orphaned = isset($orphaned_hashes[$image_hash]);
             $status_key = $is_orphaned ? 'orphaned' : 'used';
             
-            // Scan format directories
-            $formats = array_diff(scandir($image_hash_path), array('.', '..'));
+            // Scan format directories - CRITICAL FIX: Handle scandir() false returns
+            $format_scan = scandir($image_hash_path);
+            if ($format_scan === false) {
+                error_log('[CoreBoost] Failed to scan image hash directory: ' . $image_hash_path);
+                continue;
+            }
+            $formats = array_diff($format_scan, array('.', '..'));
             
             foreach ($formats as $format) {
                 $format_path = $image_hash_path . '/' . $format;
@@ -336,27 +356,33 @@ class Image_Variant_Lifecycle_Manager {
                     continue;
                 }
                 
-                // Get files in format directory
-                $files = array_diff(scandir($format_path), array('.', '..'));
+                // Get files in format directory - CRITICAL FIX: Handle scandir() false returns
+                $file_scan = scandir($format_path);
+                if ($file_scan === false) {
+                    error_log('[CoreBoost] Failed to scan format directory: ' . $format_path);
+                    continue;
+                }
+                $files = array_diff($file_scan, array('.', '..'));
                 
                 foreach ($files as $file) {
                     $file_path = $format_path . '/' . $file;
                     
                     if (is_file($file_path)) {
                         $size = filesize($file_path);
-                        
-                        $stats['total_size'] += $size;
-                        $stats['total_files']++;
-                        
-                        // Track by format
-                        if (isset($stats['by_format'][$format])) {
-                            $stats['by_format'][$format]['size'] += $size;
-                            $stats['by_format'][$format]['files']++;
+                        if ($size !== false) {
+                            $stats['total_size'] += $size;
+                            $stats['total_files']++;
+                            
+                            // Track by format
+                            if (isset($stats['by_format'][$format])) {
+                                $stats['by_format'][$format]['size'] += $size;
+                                $stats['by_format'][$format]['files']++;
+                            }
+                            
+                            // Track by status
+                            $stats['by_status'][$status_key]['size'] += $size;
+                            $stats['by_status'][$status_key]['files']++;
                         }
-                        
-                        // Track by status
-                        $stats['by_status'][$status_key]['size'] += $size;
-                        $stats['by_status'][$status_key]['files']++;
                     }
                 }
             }
@@ -491,8 +517,14 @@ class Image_Variant_Lifecycle_Manager {
             return $report;
         }
         
-        // Scan and delete all variant directories
-        $variant_dirs = array_diff(scandir($this->variants_dir), array('.', '..'));
+        // Scan and delete all variant directories - CRITICAL FIX: Handle scandir() false returns
+        $scan_result = scandir($this->variants_dir);
+        if ($scan_result === false) {
+            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            $report['errors'][] = 'Failed to read variants directory';
+            return $report;
+        }
+        $variant_dirs = array_diff($scan_result, array('.', '..'));
         
         foreach ($variant_dirs as $image_hash) {
             $image_hash_path = $this->variants_dir . '/' . $image_hash;
@@ -530,12 +562,15 @@ class Image_Variant_Lifecycle_Manager {
         $deleted_count = 0;
         $this->delete_variant_directory($image_hash_path, true);
         
-        // Count deleted files
+        // Count deleted files - CRITICAL FIX: Handle scandir() false returns
         $formats = array('avif', 'webp');
         foreach ($formats as $format) {
             $format_path = $image_hash_path . '/' . $format;
             if (is_dir($format_path)) {
-                $deleted_count += count(array_diff(scandir($format_path), array('.', '..')));
+                $format_scan = scandir($format_path);
+                if ($format_scan !== false) {
+                    $deleted_count += count(array_diff($format_scan, array('.', '..')));
+                }
             }
         }
         
@@ -559,7 +594,14 @@ class Image_Variant_Lifecycle_Manager {
             return 0;
         }
         
-        $files = array_diff(scandir($dir_path), array('.', '..'));
+        // CRITICAL FIX: Handle scandir() false return (errors return false, not array)
+        $scan_result = scandir($dir_path);
+        if ($scan_result === false) {
+            error_log('[CoreBoost] Failed to scan directory: ' . $dir_path);
+            return 0;
+        }
+        
+        $files = array_diff($scan_result, array('.', '..'));
         
         foreach ($files as $file) {
             $file_path = $dir_path . '/' . $file;
@@ -568,16 +610,24 @@ class Image_Variant_Lifecycle_Manager {
                 // Recursively delete subdirectory
                 $bytes_freed += $this->delete_variant_directory($file_path, $count_only);
             } else if (is_file($file_path)) {
-                $bytes_freed += filesize($file_path);
+                $file_size = filesize($file_path);
+                if ($file_size !== false) {
+                    $bytes_freed += $file_size;
+                }
                 if (!$count_only) {
-                    @unlink($file_path);
+                    // CRITICAL FIX: Check unlink return value for error handling
+                    if (!@unlink($file_path)) {
+                        error_log('[CoreBoost] Failed to delete file: ' . $file_path);
+                    }
                 }
             }
         }
         
         // Delete empty directory
         if (!$count_only && is_dir($dir_path)) {
-            @rmdir($dir_path);
+            if (!@rmdir($dir_path)) {
+                error_log('[CoreBoost] Failed to remove directory: ' . $dir_path);
+            }
         }
         
         return $bytes_freed;

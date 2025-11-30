@@ -203,7 +203,7 @@ class Settings {
     public function render_field_callback($args) {
         $field_name = $args['field_name'];
         $config = $args['config'];
-        $value = isset($this->options[$field_name]) ? $this->options[$field_name] : null;
+        $value = isset($this->options[$field_name]) ? $this->options[$field_name] : (isset($config['default']) ? $config['default'] : null);
         
         switch($config['type']) {
             case 'checkbox':
@@ -212,6 +212,18 @@ class Settings {
             case 'textarea':
                 $class = isset($config['class']) ? $config['class'] : 'large-text';
                 Field_Renderer::render_textarea($field_name, $value, $config['rows'], $config['description'], $class);
+                break;
+            case 'slider':
+                // CRITICAL FIX: Implement slider field rendering
+                $min = isset($config['min']) ? (int)$config['min'] : 0;
+                $max = isset($config['max']) ? (int)$config['max'] : 100;
+                $step = isset($config['step']) ? (int)$config['step'] : 1;
+                Field_Renderer::render_slider($field_name, $value, $min, $max, $step, $config['description']);
+                break;
+            case 'select':
+                // CRITICAL FIX: Implement select field rendering
+                $options = isset($config['options']) ? $config['options'] : array();
+                Field_Renderer::render_select($field_name, $value, $options, $config['description']);
                 break;
         }
     }

@@ -60,8 +60,8 @@ class Config {
             'add_decoding_async' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add decoding="async" to images to prevent render-blocking image decode operations.'),
             // Image Optimization Fields (Phase 2 - Format Optimization)
             'enable_image_format_conversion' => array('type' => 'checkbox', 'default' => false, 'description' => 'Convert JPEG images to modern formats (AVIF + WebP) for optimal compression. AVIF provides 20-30% better compression than WebP.'),
-            'avif_quality' => array('type' => 'slider', 'default' => 85, 'description' => 'AVIF compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
-            'webp_quality' => array('type' => 'slider', 'default' => 85, 'description' => 'WebP compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
+            'avif_quality' => array('type' => 'slider', 'default' => 85, 'min' => 75, 'max' => 95, 'step' => 1, 'description' => 'AVIF compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
+            'webp_quality' => array('type' => 'slider', 'default' => 85, 'min' => 75, 'max' => 95, 'step' => 1, 'description' => 'WebP compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
             'image_generation_mode' => array('type' => 'select', 'default' => 'on-demand', 'description' => 'Variant generation strategy. On-Demand: Generate on first request (first view slower). Pre-Generate: Generate immediately on upload (uploads slower).', 'options' => array('on-demand' => 'On-Demand (Recommended)', 'eager' => 'Pre-Generate on Upload')),
             'cleanup_orphans_weekly' => array('type' => 'checkbox', 'default' => true, 'description' => 'Automatically delete image variants for images no longer used on site (runs weekly via WP-Cron). Prevents storage bloat.')
         );
