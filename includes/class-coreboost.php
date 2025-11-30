@@ -108,6 +108,20 @@ class CoreBoost {
     private $image_optimizer;
     
     /**
+     * Image format optimizer instance (Phase 2)
+     *
+     * @var Image_Format_Optimizer
+     */
+    private $image_format_optimizer;
+    
+    /**
+     * Image variant lifecycle manager instance (Phase 2)
+     *
+     * @var Image_Variant_Lifecycle_Manager
+     */
+    private $image_variant_lifecycle_manager;
+    
+    /**
      * Image variant admin tools instance (Phase 2.5)
      *
      * @var Image_Variant_Admin_Tools
@@ -205,23 +219,36 @@ class CoreBoost {
             // Initialize image optimizer (Phase 1 & 2)
             $this->image_optimizer = new Image_Optimizer($this->options, $this->loader);
             
+            // Initialize format optimizer separately for admin tools access
+            if (!empty($this->options['enable_image_format_conversion'])) {
+                $this->image_format_optimizer = new Image_Format_Optimizer($this->options);
+            }
+            
             // Initialize video facade for click-to-play videos
             new \CoreBoost\PublicCore\Video_Facade($this->options, $this->loader);
         }
         
         // Initialize admin tools (Phase 2.5)
         if (is_admin() && !wp_doing_ajax()) {
-            // CRITICAL FIX: Create lifecycle manager instance before passing to admin tools
-            $this->image_variant_lifecycle_manager = new Image_Variant_Lifecycle_Manager(
-                $this->options,
-                $this->image_format_optimizer
-            );
-            
-            $this->image_variant_admin_tools = new Image_Variant_Admin_Tools(
-                $this->options,
-                $this->image_variant_lifecycle_manager
-            );
-            $this->image_variant_admin_tools->register_hooks($this->loader);
+            // Create lifecycle manager if format conversion is enabled
+            if (!empty($this->options['enable_image_format_conversion'])) {
+                // Initialize format optimizer if not already done
+                if (!$this->image_format_optimizer) {
+                    $this->image_format_optimizer = new Image_Format_Optimizer($this->options);
+                }
+                
+                // CRITICAL FIX: Create lifecycle manager instance before passing to admin tools
+                $this->image_variant_lifecycle_manager = new Image_Variant_Lifecycle_Manager(
+                    $this->options,
+                    $this->image_format_optimizer
+                );
+                
+                $this->image_variant_admin_tools = new Image_Variant_Admin_Tools(
+                    $this->options,
+                    $this->image_variant_lifecycle_manager
+                );
+                $this->image_variant_admin_tools->register_hooks($this->loader);
+            }
         }
     }    
     /**
