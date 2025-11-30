@@ -61,6 +61,7 @@ class Settings_Page {
             
             <form method="post" action="options.php">
                 <?php settings_fields('coreboost_options_group'); ?>
+                <?php wp_nonce_field('coreboost_bulk_converter', 'coreboost_nonce'); ?>
                 
                 <!-- Hidden fields to preserve all settings -->
                 <?php $this->output_hidden_fields($active_tab); ?>

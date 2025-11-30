@@ -82,6 +82,9 @@ class Bulk_Image_Converter {
         // AJAX endpoint for scanning
         $this->loader->add_action('wp_ajax_coreboost_scan_uploads', $this, 'ajax_scan_uploads');
         
+        // AJAX endpoint for stopping conversion
+        $this->loader->add_action('wp_ajax_coreboost_bulk_convert_stop', $this, 'ajax_stop_conversion');
+        
         // Hook into media upload for auto-generation
         $this->loader->add_action('wp_handle_upload', $this, 'auto_generate_on_upload', 10, 1);
     }
@@ -160,6 +163,12 @@ class Bulk_Image_Converter {
             wp_send_json_error('Unauthorized');
         }
         
+        // Check if conversion was stopped
+        if (get_transient('coreboost_bulk_conversion_stop')) {
+            delete_transient('coreboost_bulk_conversion_stop');
+            wp_send_json_error('Conversion stopped by user');
+        }
+        
         // Check if format optimizer is initialized
         if (!$this->format_optimizer) {
             wp_send_json_error('Image format optimizer not initialized.');
@@ -211,6 +220,24 @@ class Bulk_Image_Converter {
             'remaining_minutes' => max(0, $remaining_minutes),
             'is_complete' => $is_complete,
             'batch_results' => $batch_results,
+        ));
+    }
+    
+    /**
+     * AJAX: Stop bulk conversion
+     */
+    public function ajax_stop_conversion() {
+        // Verify nonce and permissions
+        check_ajax_referer('coreboost_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+        
+        // Set stop flag
+        set_transient('coreboost_bulk_conversion_stop', true, HOUR_IN_SECONDS);
+        
+        wp_send_json_success(array(
+            'message' => 'Conversion stopped. Progress saved. You can resume conversion later.',
         ));
     }
     

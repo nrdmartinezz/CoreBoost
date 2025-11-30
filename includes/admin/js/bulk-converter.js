@@ -14,7 +14,7 @@
     // Configuration
     const config = {
         pollInterval: 3000, // 3 seconds
-        nonce: document.querySelector('input[name="_wpnonce"]')?.value || '',
+        nonce: document.querySelector('input[name="coreboost_nonce"]')?.value || '',
     };
 
     // State
@@ -155,7 +155,7 @@
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                action: 'coreboost_bulk_convert_scan',
+                action: 'coreboost_scan_uploads',
                 _wpnonce: config.nonce,
             }),
         })
@@ -184,16 +184,18 @@
 
         scanImages()
             .then(result => {
-                state.imageCount = result.imageCount || 0;
-                state.totalBatches = result.totalBatches || 1;
-                state.batchSize = result.batchSize || 15;
+                state.imageCount = result.count || 0;
+                state.totalBatches = result.total_batches || 1;
+                state.batchSize = result.batch_size || 15;
                 state.currentBatch = 0;
 
                 // Update UI with scan results
                 elements.imageCountText.textContent = state.imageCount;
                 elements.batchSizeText.textContent = state.batchSize;
                 
-                const estimatedSeconds = state.totalBatches * 12; // 12 seconds per batch
+                // Use API estimated time if available, otherwise calculate
+                const estimatedMinutes = result.estimated_time_minutes || Math.ceil(state.totalBatches * 12 / 60);
+                const estimatedSeconds = estimatedMinutes * 60;
                 elements.estTimeText.textContent = formatTime(estimatedSeconds);
 
                 // Show progress container
