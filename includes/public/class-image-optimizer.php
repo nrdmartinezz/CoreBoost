@@ -130,7 +130,7 @@ class Image_Optimizer {
      *
      * Processes images and converts them to modern formats (AVIF/WebP)
      * with HTML5 <picture> tag rendering for format selection.
-     * Handles both <img> tags and CSS background-image URLs.
+     * Variants should be pre-generated via bulk conversion or auto-upload hooks.
      *
      * @param string $html HTML content
      * @return string Modified HTML with <picture> tags
@@ -158,16 +158,14 @@ class Image_Optimizer {
                 // Get browser format capability
                 $browser_format = $this->format_optimizer->detect_browser_format();
                 
-                // Try to get cached variant
+                // Try to get cached variant (should exist from bulk conversion)
                 $variant_url = null;
                 if ($browser_format !== 'jpeg') {
                     $variant_url = $this->format_optimizer->get_variant_from_cache($src_url, $browser_format);
                 }
                 
-                // If no cached variant and on-demand mode, queue generation
-                if (!$variant_url && $this->options['image_generation_mode'] === 'on-demand') {
-                    $this->format_optimizer->queue_background_generation($src_url, array('avif', 'webp'));
-                    // Return original for now, will use variant on next request
+                // If no variant found, skip picture tag enhancement (use original img)
+                if (!$variant_url) {
                     return $matches[0];
                 }
                 
@@ -187,89 +185,6 @@ class Image_Optimizer {
             },
             $html
         );
-        
-        // Process CSS background-image URLs in inline styles and Elementor data attributes
-        $html = $this->optimize_background_images($html);
-        
-        return $html;
-    }
-    
-    /**
-     * Optimize CSS background images
-     *
-     * Finds and processes background-image URLs in:
-     * - Inline style attributes (background-image: url(...))
-     * - Elementor data-settings JSON (background_image URLs)
-     * - Multiple URL formats (quoted, unquoted, encoded)
-     *
-     * @param string $html HTML content
-     * @return string Modified HTML with queued background image variants
-     */
-    private function optimize_background_images($html) {
-        try {
-            // Pattern 1: Find all background-image URLs in style attributes
-            // Matches: style="... background-image: url('...')" or url("...") or url(...)
-            // Be conservative: only match complete background-image declarations
-            $html = preg_replace_callback(
-                '/background-image\s*:\s*url\s*\(\s*["\']?([^"\')]+)["\']?\s*\)/i',
-                function($matches) {
-                    if (!isset($matches[1])) {
-                        return $matches[0];
-                    }
-                    
-                    $image_url = trim($matches[1]);
-                    
-                    // Skip if empty or data URI
-                    if (empty($image_url) || strpos($image_url, 'data:') === 0) {
-                        return $matches[0];
-                    }
-                    
-                    // Check if should optimize this image
-                    if (!$this->format_optimizer->should_optimize_image($image_url)) {
-                        return $matches[0];
-                    }
-                    
-                    // Queue variant generation (async, doesn't block)
-                    $this->format_optimizer->queue_background_generation($image_url, array('avif', 'webp'));
-                    
-                    // Return original - variants will be served on next request
-                    return $matches[0];
-                },
-                $html
-            );
-            
-            // Pattern 2: Find Elementor data-settings JSON with background image URLs
-            // Matches Elementor's nested JSON: "background_image":{"id":..,"url":"..."}
-            // Conservative: only match the specific Elementor pattern
-            $html = preg_replace_callback(
-                '/"background_image"\s*:\s*\{[^}]*"url"\s*:\s*"([^"]+)"/',
-                function($matches) {
-                    if (!isset($matches[1])) {
-                        return $matches[0];
-                    }
-                    
-                    $image_url = $matches[1];
-                    
-                    // Decode URL-encoded characters
-                    $image_url = urldecode($image_url);
-                    
-                    // Check if should optimize this image
-                    if (!$this->format_optimizer->should_optimize_image($image_url)) {
-                        return $matches[0];
-                    }
-                    
-                    // Queue variant generation (async, doesn't block)
-                    $this->format_optimizer->queue_background_generation($image_url, array('avif', 'webp'));
-                    
-                    // Return original data - variants will be served on next request
-                    return $matches[0];
-                },
-                $html
-            );
-        } catch (\Exception $e) {
-            // Log error but don't break processing - return original HTML
-            error_log('CoreBoost background image optimization error: ' . $e->getMessage());
-        }
         
         return $html;
     }

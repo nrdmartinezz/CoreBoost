@@ -19,6 +19,7 @@ use CoreBoost\PublicCore\Image_Optimizer;
 use CoreBoost\PublicCore\Image_Format_Optimizer;
 use CoreBoost\PublicCore\Image_Variant_Lifecycle_Manager;
 use CoreBoost\Admin\Image_Variant_Admin_Tools;
+use CoreBoost\Admin\Bulk_Image_Converter;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -129,6 +130,13 @@ class CoreBoost {
     private $image_variant_admin_tools;
     
     /**
+     * Bulk image converter instance
+     *
+     * @var Bulk_Image_Converter
+     */
+    private $bulk_image_converter;
+    
+    /**
      * Analytics engine instance
      *
      * @var \CoreBoost_Analytics_Engine
@@ -163,7 +171,8 @@ class CoreBoost {
         // Get saved options and merge with defaults to ensure all keys exist
         $saved_options = get_option('coreboost_options', array());
         $defaults = $this->get_default_options();
-        $this->options = wp_parse_args($saved_options, $defaults);
+        // Use global wp_parse_args function (WordPress core)
+        $this->options = \wp_parse_args($saved_options, $defaults);
         $this->define_hooks();
     }
     
@@ -251,6 +260,13 @@ class CoreBoost {
                     $this->image_variant_lifecycle_manager
                 );
                 $this->image_variant_admin_tools->register_hooks($this->loader);
+                
+                // Initialize bulk image converter for first-time setup and uploads
+                $this->bulk_image_converter = new Bulk_Image_Converter(
+                    $this->options,
+                    $this->image_format_optimizer,
+                    $this->loader
+                );
             }
         }
     }    
