@@ -32,14 +32,21 @@ jQuery(document).ready(function($) {
     
     // Auto-save draft functionality for critical CSS
     var criticalCssFields = [
-        'textarea[name="npg_so_options[critical_css_global]"]',
-        'textarea[name="npg_so_options[critical_css_home]"]',
-        'textarea[name="npg_so_options[critical_css_pages]"]',
-        'textarea[name="npg_so_options[critical_css_posts]"]'
+        'textarea[name="coreboost_options[critical_css_global]"]',
+        'textarea[name="coreboost_options[critical_css_home]"]',
+        'textarea[name="coreboost_options[critical_css_pages]"]',
+        'textarea[name="coreboost_options[critical_css_posts]"]'
     ];
     
     criticalCssFields.forEach(function(selector) {
-        $(selector).on('input', function() {
+        var $field = $(selector);
+        
+        // Skip if field doesn't exist
+        if ($field.length === 0) {
+            return;
+        }
+        
+        $field.on('input', function() {
             var $field = $(this);
             var fieldName = $field.attr('name');
             var value = $field.val();
@@ -64,6 +71,12 @@ jQuery(document).ready(function($) {
     // Restore drafts on page load
     criticalCssFields.forEach(function(selector) {
         var $field = $(selector);
+        
+        // Skip if field doesn't exist
+        if ($field.length === 0) {
+            return;
+        }
+        
         var fieldName = $field.attr('name');
         var draft = localStorage.getItem('npg_so_draft_' + fieldName);
         
@@ -115,11 +128,18 @@ jQuery(document).ready(function($) {
     // Add character count for critical CSS fields
     criticalCssFields.forEach(function(selector) {
         var $field = $(selector);
+        
+        // Skip if field doesn't exist
+        if ($field.length === 0) {
+            return;
+        }
+        
         var $counter = $('<div class="char-counter" style="text-align: right; font-size: 12px; color: #666; margin-top: 5px;"></div>');
         $field.after($counter);
         
         function updateCounter() {
-            var length = $field.val().length;
+            var value = $field.val();
+            var length = value ? value.length : 0;
             var color = length > 14000 ? '#d63638' : (length > 10000 ? '#dba617' : '#666');
             $counter.html('<span style="color: ' + color + ';">' + length + ' characters</span> (recommended: under 14KB)');
         }
