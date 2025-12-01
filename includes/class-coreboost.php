@@ -383,10 +383,9 @@ class CoreBoost {
             'generate_aspect_ratio_css' => true,
             'add_decoding_async' => true,
             'lazy_load_exclude_count' => 2,
-            'enable_image_format_conversion' => true,
+            'enable_image_format_conversion' => false,
             'avif_quality' => 85,
-            'webp_quality' => 85,
-            'image_generation_mode' => 'on-demand'
+            'webp_quality' => 85
         );
     }
 }

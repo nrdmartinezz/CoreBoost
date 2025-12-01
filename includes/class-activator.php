@@ -100,8 +100,7 @@ class Activator {
             'enable_image_format_conversion' => false,
             'avif_quality' => 85,
             'webp_quality' => 85,
-            'image_generation_mode' => 'on-demand',
-            'cleanup_orphans_weekly' => true
+            'cleanup_orphans_weekly' => true,
         );
     }
     

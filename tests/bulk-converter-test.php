@@ -65,6 +65,12 @@ if (!function_exists('current_time')) {
     }
 }
 
+if (!function_exists('esc_html')) {
+    function esc_html($text) {
+        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    }
+}
+
 // Mock constants
 if (!defined('HOUR_IN_SECONDS')) {
     define('HOUR_IN_SECONDS', 3600);
@@ -152,13 +158,15 @@ class Bulk_Converter_Test {
     public function test_nonce_parameters() {
         echo "Testing nonce parameter handling...\n";
         
-        // Simulate POST data
-        $_POST['_wpnonce'] = 'test_nonce_value';
-        $_POST['action'] = 'coreboost_scan_uploads';
+        // Simulate POST data (safe in test environment)
+        $test_nonce = 'test_nonce_value';
+        $test_action = 'coreboost_scan_uploads';
+        $_POST['_wpnonce'] = $test_nonce;
+        $_POST['action'] = $test_action;
         
         echo "  POST parameters:\n";
-        echo "    _wpnonce: " . $_POST['_wpnonce'] . " [✓]\n";
-        echo "    action: " . $_POST['action'] . " [✓]\n";
+        echo "    _wpnonce: " . esc_html($test_nonce) . " [✓]\n";
+        echo "    action: " . esc_html($test_action) . " [✓]\n";
         
         // Test check_ajax_referer
         $result = check_ajax_referer('coreboost_bulk_converter');

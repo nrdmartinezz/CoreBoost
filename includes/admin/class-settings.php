@@ -162,10 +162,9 @@ class Settings {
         $this->add_dynamic_field('add_decoding_async', __('Add Decoding="async"', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         
         // Image Format Optimization Fields (Phase 2)
-        $this->add_dynamic_field('enable_image_format_conversion', __('Enable Image Format Conversion', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        $this->add_dynamic_field('enable_image_format_conversion', __('Generate AVIF/WebP Variants', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         $this->add_dynamic_field('avif_quality', __('AVIF Quality', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         $this->add_dynamic_field('webp_quality', __('WebP Quality', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
-        $this->add_dynamic_field('image_generation_mode', __('Variant Generation Mode', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         $this->add_dynamic_field('cleanup_orphans_weekly', __('Weekly Orphan Cleanup', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         
         // Advanced Fields
@@ -257,9 +256,20 @@ class Settings {
     public function image_section_callback() {
         echo '<p>' . esc_html__('Comprehensive image optimization to improve performance and prevent layout shifts. Lazy loading reduces initial page load by deferring off-screen images. Width/height attributes and aspect ratio CSS prevent Cumulative Layout Shift (CLS). Async decoding prevents render-blocking image decode operations.', 'coreboost') . '</p>';
         
+        // Check if image format conversion is enabled
+        $format_conversion_enabled = !empty($this->options['enable_image_format_conversion']);
+        
         // Bulk Image Converter UI
         echo '<div style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 16px; margin: 20px 0; border-radius: 3px;">';
         echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Bulk Image Converter', 'coreboost') . '</h4>';
+        
+        // Warning if format conversion is disabled
+        if (!$format_conversion_enabled) {
+            echo '<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-bottom: 15px; color: #856404;">';
+            echo '<p style="margin: 0;"><strong>⚠️ ' . esc_html__('Image Format Conversion Disabled', 'coreboost') . '</strong></p>';
+            echo '<p style="margin: 8px 0 0 0; font-size: 13px;">' . esc_html__('Enable "Generate AVIF/WebP Variants" below to use the bulk converter.', 'coreboost') . '</p>';
+            echo '</div>';
+        }
         
         // Status and info
         echo '<div style="margin-bottom: 15px;">';
@@ -290,7 +300,9 @@ class Settings {
         
         // Buttons
         echo '<div style="margin-top: 15px;">';
-        echo '<button type="button" id="coreboost-start-bulk" class="button button-primary" style="background-color: #4CAF50; border-color: #4CAF50; margin-right: 10px;">' . esc_html__('Start Conversion', 'coreboost') . '</button>';
+        $button_disabled = !$format_conversion_enabled ? ' disabled' : '';
+        $button_title = !$format_conversion_enabled ? ' title="' . esc_attr__('Enable Image Format Conversion first', 'coreboost') . '"' : '';
+        echo '<button type="button" id="coreboost-start-bulk" class="button button-primary" style="background-color: #4CAF50; border-color: #4CAF50; margin-right: 10px;" data-format-enabled="' . ($format_conversion_enabled ? '1' : '0') . '"' . $button_disabled . $button_title . '>' . esc_html__('Start Conversion', 'coreboost') . '</button>';
         echo '<button type="button" id="coreboost-stop-bulk" class="button" style="display: none; background-color: #f44336; border-color: #f44336; color: white;" disabled>' . esc_html__('Stop', 'coreboost') . '</button>';
         echo '</div>';
         
@@ -430,8 +442,7 @@ class Settings {
                                'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids'),
             'text' => array('css_defer_method'),
             'css' => array('critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
-            'integer' => array('avif_quality', 'webp_quality'),
-            'select' => array('image_generation_mode')
+            'integer' => array('avif_quality', 'webp_quality')
         );
         
         // Detect which tab submitted the form
@@ -441,12 +452,10 @@ class Settings {
         $has_advanced_fields = isset($input['unused_css_list']) || isset($input['unused_js_list']) || 
                                 isset($input['inline_script_ids']) || isset($input['inline_style_ids']);
         $has_image_fields = isset($input['enable_image_optimization']) || isset($input['enable_lazy_loading']) || 
-                           isset($input['add_width_height_attributes']) || isset($input['generate_aspect_ratio_css']) || 
+                           isset($input['add_width_height_attributes']) || isset($input['generate_aspect_ratio_css']) ||
                            isset($input['add_decoding_async']) || isset($input['enable_image_format_conversion']) ||
-                           isset($input['avif_quality']) || isset($input['webp_quality']) || 
-                           isset($input['image_generation_mode']) || isset($input['cleanup_orphans_weekly']);
-        
-        foreach ($field_types['boolean'] as $field) {
+                           isset($input['avif_quality']) || isset($input['webp_quality']) ||
+                           isset($input['cleanup_orphans_weekly']);        foreach ($field_types['boolean'] as $field) {
             if (array_key_exists($field, $input)) {
                 $sanitized[$field] = !empty($input[$field]);
             } else {
@@ -511,11 +520,11 @@ class Settings {
         }
         
         // Sanitize select fields
-        foreach ($field_types['select'] as $field) {
-            if (isset($input[$field])) {
-                $value = sanitize_text_field($input[$field]);
-                // Validate select values
-                if ($field === 'image_generation_mode' && in_array($value, array('on-demand', 'eager'))) {
+        // Note: No select fields in use currently (image_generation_mode removed)
+        if (isset($field_types['select'])) {
+            foreach ($field_types['select'] as $field) {
+                if (isset($input[$field])) {
+                    $value = sanitize_text_field($input[$field]);
                     $sanitized[$field] = $value;
                 }
             }

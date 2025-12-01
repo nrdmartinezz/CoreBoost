@@ -101,7 +101,9 @@ class Bulk_Image_Converter {
         
         // Check if format optimizer is initialized
         if (!$this->format_optimizer) {
-            wp_send_json_error('Image format optimizer not initialized. Please enable image format conversion in settings.');
+            wp_send_json_error(array(
+                'message' => 'Image format optimizer not initialized. Please enable "Generate AVIF/WebP Variants" in CoreBoost Settings → Images tab, save settings, then try again.'
+            ));
         }
         
         $images = $this->scan_uploads_folder();

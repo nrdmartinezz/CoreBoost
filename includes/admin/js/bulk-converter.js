@@ -173,6 +173,13 @@
      * Start bulk conversion process
      */
     function startConversion() {
+        // Check if format conversion is enabled
+        const formatEnabled = elements.startBtn.getAttribute('data-format-enabled') === '1';
+        if (!formatEnabled) {
+            showError('Image Format Conversion is disabled. Please enable "Generate AVIF/WebP Variants" in the settings below and save before using the bulk converter.');
+            return;
+        }
+
         state.isRunning = true;
         state.startTime = Date.now();
         hideMessages();
