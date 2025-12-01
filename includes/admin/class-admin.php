@@ -142,6 +142,12 @@ class Admin {
             // Enqueue bulk converter functionality
             wp_enqueue_script('coreboost-bulk-converter', COREBOOST_PLUGIN_URL . 'includes/admin/js/bulk-converter.js', array(), COREBOOST_VERSION, true);
             wp_enqueue_style('coreboost-bulk-converter-style', COREBOOST_PLUGIN_URL . 'includes/admin/css/bulk-converter.css', array(), COREBOOST_VERSION);
+            
+            // Localize script to provide ajaxurl for bulk converter
+            wp_localize_script('coreboost-bulk-converter', 'coreBoostAdmin', array(
+                'ajaxurl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('coreboost_bulk_converter'),
+            ));
         }
     }
     

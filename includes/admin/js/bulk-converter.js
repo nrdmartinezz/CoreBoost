@@ -14,7 +14,8 @@
     // Configuration
     const config = {
         pollInterval: 3000, // 3 seconds
-        nonce: document.querySelector('input[name="coreboost_nonce"]')?.value || '',
+        ajaxurl: (typeof coreBoostAdmin !== 'undefined' ? coreBoostAdmin.ajaxurl : window.ajaxurl) || '/wp-admin/admin-ajax.php',
+        nonce: (typeof coreBoostAdmin !== 'undefined' ? coreBoostAdmin.nonce : document.querySelector('input[name="coreboost_nonce"]')?.value) || '',
     };
 
     // State
@@ -149,7 +150,7 @@
      * Scan uploads folder for images to convert
      */
     function scanImages() {
-        return fetch(ajaxurl, {
+        return fetch(config.ajaxurl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -226,7 +227,7 @@
 
         state.currentBatch++;
 
-        fetch(ajaxurl, {
+        fetch(config.ajaxurl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -295,7 +296,7 @@
         elements.stopBtn.disabled = true;
 
         // Set stop flag in backend
-        fetch(ajaxurl, {
+        fetch(config.ajaxurl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

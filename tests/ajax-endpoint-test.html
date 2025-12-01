@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoreBoost AJAX Endpoint Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f0f0f1;
+        }
+        .container {
+            background: white;
+            border: 1px solid #c3c4c7;
+            border-radius: 4px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1d2327;
+            border-bottom: 2px solid #2271b1;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2c3338;
+            margin-top: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f6f7f7;
+            border-left: 4px solid #2271b1;
+        }
+        button {
+            background: #2271b1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #135e96;
+        }
+        button:disabled {
+            background: #c3c4c7;
+            cursor: not-allowed;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input[type="text"], input[type="url"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #8c8f94;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .result.success {
+            background: #d7f5d7;
+            border: 1px solid #46b450;
+            color: #1e4620;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #d63638;
+            color: #5a1c1e;
+        }
+        .result.info {
+            background: #f0f6fc;
+            border: 1px solid #2271b1;
+            color: #1d2327;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status-badge.pending {
+            background: #f0f0f1;
+            color: #50575e;
+        }
+        .status-badge.running {
+            background: #fcf9e8;
+            color: #8a6d3b;
+        }
+        .status-badge.success {
+            background: #d7f5d7;
+            color: #1e4620;
+        }
+        .status-badge.error {
+            background: #f8d7da;
+            color: #5a1c1e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 CoreBoost AJAX Endpoint Test</h1>
+        <p>Test the bulk image converter AJAX endpoints without WordPress admin interface.</p>
+        
+        <div class="input-group">
+            <label for="siteUrl">WordPress Site URL:</label>
+            <input type="url" id="siteUrl" placeholder="https://your-site.com" value="">
+        </div>
+        
+        <div class="input-group">
+            <label for="nonceValue">Nonce Value (from form or browser console):</label>
+            <input type="text" id="nonceValue" placeholder="Enter nonce value">
+            <small style="color: #646970; display: block; margin-top: 5px;">
+                Get this from: <code>document.querySelector('input[name="coreboost_nonce"]').value</code>
+            </small>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Test Scenarios</h2>
+        
+        <div class="test-section">
+            <h3>1. Scan Uploads <span id="scan-status" class="status-badge pending">Pending</span></h3>
+            <p>Tests the image scanning endpoint that counts images and calculates batch size.</p>
+            <button onclick="testScanUploads()">Run Scan Test</button>
+            <div id="scan-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Process Batch <span id="batch-status" class="status-badge pending">Pending</span></h3>
+            <p>Tests processing a single batch (requires scan to run first).</p>
+            <button onclick="testProcessBatch()" id="batch-btn" disabled>Run Batch Test</button>
+            <div id="batch-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Stop Conversion <span id="stop-status" class="status-badge pending">Pending</span></h3>
+            <p>Tests the stop conversion endpoint.</p>
+            <button onclick="testStopConversion()">Run Stop Test</button>
+            <div id="stop-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Clear Cache <span id="cache-status" class="status-badge pending">Pending</span></h3>
+            <p>Tests the cache clearing endpoint.</p>
+            <button onclick="testClearCache()">Run Cache Clear Test</button>
+            <div id="cache-result"></div>
+        </div>
+    </div>
+
+    <script>
+        function getSiteUrl() {
+            const url = document.getElementById('siteUrl').value.trim();
+            if (!url) {
+                alert('Please enter your WordPress site URL');
+                return null;
+            }
+            return url.replace(/\/$/, ''); // Remove trailing slash
+        }
+
+        function getNonce() {
+            const nonce = document.getElementById('nonceValue').value.trim();
+            if (!nonce) {
+                alert('Please enter a nonce value');
+                return null;
+            }
+            return nonce;
+        }
+
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            const className = isError ? 'error' : 'success';
+            element.innerHTML = `<div class="result ${className}">${JSON.stringify(data, null, 2)}</div>`;
+        }
+
+        function updateStatus(statusId, status) {
+            const element = document.getElementById(statusId);
+            element.className = `status-badge ${status}`;
+            element.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        async function testScanUploads() {
+            const siteUrl = getSiteUrl();
+            const nonce = getNonce();
+            if (!siteUrl || !nonce) return;
+
+            updateStatus('scan-status', 'running');
+            
+            try {
+                const response = await fetch(`${siteUrl}/wp-admin/admin-ajax.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'coreboost_scan_uploads',
+                        _wpnonce: nonce,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('scan-result', data);
+                    updateStatus('scan-status', 'success');
+                    document.getElementById('batch-btn').disabled = false;
+                } else {
+                    showResult('scan-result', data, true);
+                    updateStatus('scan-status', 'error');
+                }
+            } catch (error) {
+                showResult('scan-result', { error: error.message }, true);
+                updateStatus('scan-status', 'error');
+            }
+        }
+
+        async function testProcessBatch() {
+            const siteUrl = getSiteUrl();
+            const nonce = getNonce();
+            if (!siteUrl || !nonce) return;
+
+            updateStatus('batch-status', 'running');
+            
+            try {
+                const response = await fetch(`${siteUrl}/wp-admin/admin-ajax.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'coreboost_bulk_convert_batch',
+                        batch: 1,
+                        _wpnonce: nonce,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('batch-result', data);
+                    updateStatus('batch-status', 'success');
+                } else {
+                    showResult('batch-result', data, true);
+                    updateStatus('batch-status', 'error');
+                }
+            } catch (error) {
+                showResult('batch-result', { error: error.message }, true);
+                updateStatus('batch-status', 'error');
+            }
+        }
+
+        async function testStopConversion() {
+            const siteUrl = getSiteUrl();
+            const nonce = getNonce();
+            if (!siteUrl || !nonce) return;
+
+            updateStatus('stop-status', 'running');
+            
+            try {
+                const response = await fetch(`${siteUrl}/wp-admin/admin-ajax.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'coreboost_bulk_convert_stop',
+                        _wpnonce: nonce,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('stop-result', data);
+                    updateStatus('stop-status', 'success');
+                } else {
+                    showResult('stop-result', data, true);
+                    updateStatus('stop-status', 'error');
+                }
+            } catch (error) {
+                showResult('stop-result', { error: error.message }, true);
+                updateStatus('stop-status', 'error');
+            }
+        }
+
+        async function testClearCache() {
+            const siteUrl = getSiteUrl();
+            const nonce = getNonce();
+            if (!siteUrl || !nonce) return;
+
+            updateStatus('cache-status', 'running');
+            
+            try {
+                const response = await fetch(`${siteUrl}/wp-admin/admin-ajax.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'coreboost_clear_cache',
+                        nonce: nonce,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('cache-result', data);
+                    updateStatus('cache-status', 'success');
+                } else {
+                    showResult('cache-result', data, true);
+                    updateStatus('cache-status', 'error');
+                }
+            } catch (error) {
+                showResult('cache-result', { error: error.message }, true);
+                updateStatus('cache-status', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
