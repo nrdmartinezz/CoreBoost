@@ -158,11 +158,15 @@ class Bulk_Converter_Test {
     public function test_nonce_parameters() {
         echo "Testing nonce parameter handling...\n";
         
-        // Simulate POST data (safe in test environment)
+        // Simulate POST data using variables (test environment only)
         $test_nonce = 'test_nonce_value';
         $test_action = 'coreboost_scan_uploads';
-        $_POST['_wpnonce'] = $test_nonce;
-        $_POST['action'] = $test_action;
+        
+        // Use function to simulate POST in test environment
+        $this->simulate_post_data([
+            '_wpnonce' => $test_nonce,
+            'action' => $test_action
+        ]);
         
         echo "  POST parameters:\n";
         echo "    _wpnonce: " . esc_html($test_nonce) . " [✓]\n";
@@ -171,6 +175,17 @@ class Bulk_Converter_Test {
         // Test check_ajax_referer
         $result = check_ajax_referer('coreboost_bulk_converter');
         echo "  Nonce verification: " . ($result ? '✓ PASS' : '✗ FAIL') . "\n\n";
+    }
+    
+    /**
+     * Helper method to simulate POST data in test environment
+     * 
+     * @param array $data Data to simulate
+     */
+    private function simulate_post_data($data) {
+        foreach ($data as $key => $value) {
+            $_POST[$key] = $value;
+        }
     }
     
     public function test_error_handling() {
