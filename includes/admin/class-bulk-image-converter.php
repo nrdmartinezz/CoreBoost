@@ -158,8 +158,12 @@ class Bulk_Image_Converter {
             HOUR_IN_SECONDS * 6
         );
         
+        // Count how many images already have variants
+        $converted_count = $this->count_converted_images($images);
+        
         wp_send_json_success(array(
             'count' => $count,
+            'converted' => $converted_count,
             'batch_size' => $batch_info['batch_size'],
             'total_batches' => $batch_info['total_batches'],
             'estimated_time_minutes' => $batch_info['estimated_time_minutes'],
@@ -480,5 +484,45 @@ class Bulk_Image_Converter {
             'estimated_time_minutes' => $estimated_minutes,
             'recommendation' => $recommendation,
         );
+    }
+    
+    /**
+     * Count how many images already have converted variants
+     *
+     * @param array $images Array of image file paths
+     * @return int Number of images with existing variants
+     */
+    private function count_converted_images($images) {
+        if (!$this->format_optimizer) {
+            return 0;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $variants_dir = $upload_dir['basedir'] . '/coreboost-variants/';
+        
+        if (!is_dir($variants_dir)) {
+            return 0;
+        }
+        
+        $converted_count = 0;
+        
+        foreach ($images as $image_path) {
+            // Get relative path from uploads folder
+            $relative_path = str_replace($upload_dir['basedir'] . '/', '', $image_path);
+            $path_info = pathinfo($relative_path);
+            
+            // Build variant path
+            $variant_base = $variants_dir . $path_info['dirname'] . '/' . $path_info['filename'];
+            
+            // Check if either AVIF or WebP variant exists
+            $avif_exists = file_exists($variant_base . '.avif');
+            $webp_exists = file_exists($variant_base . '.webp');
+            
+            if ($avif_exists || $webp_exists) {
+                $converted_count++;
+            }
+        }
+        
+        return $converted_count;
     }
 }

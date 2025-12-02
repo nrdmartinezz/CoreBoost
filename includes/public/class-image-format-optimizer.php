@@ -609,27 +609,27 @@ class Image_Format_Optimizer {
      * Get variant file path for image
      *
      * Constructs the path where variant should be stored.
-     * Format: /variants/[image-id]/[format]/[filename].ext
+     * Format: /coreboost-variants/[relative-path]/[filename].ext
+     * Matches the structure used by bulk converter.
      *
      * @param string $image_path Original image path
      * @param string $format Format: 'avif' or 'webp'
      * @return string Full path to variant file
      */
     private function get_variant_path($image_path, $format = 'avif') {
-        // Get filename and remove extension
-        $filename = basename($image_path);
-        $filename_no_ext = pathinfo($filename, PATHINFO_FILENAME);
-        
-        // Create unique image ID from path
-        $image_id = md5($image_path);
-        
-        // Build variant path: /variants/[image-id]/[format]/[filename].ext
-        $variant_filename = $filename_no_ext . '.' . $format;
-        $variants_dir = $this->get_variants_dir();
-        if (!$variants_dir) {
+        if (!function_exists('wp_upload_dir')) {
             return '';
         }
-        $variant_path = $variants_dir . '/' . $image_id . '/' . $format . '/' . $variant_filename;
+        
+        $upload_dir = wp_upload_dir();
+        $variants_dir = $upload_dir['basedir'] . '/coreboost-variants/';
+        
+        // Get relative path from uploads folder
+        $relative_path = str_replace($upload_dir['basedir'] . '/', '', $image_path);
+        $path_info = pathinfo($relative_path);
+        
+        // Build variant path: /coreboost-variants/[dirname]/[filename].ext
+        $variant_path = $variants_dir . $path_info['dirname'] . '/' . $path_info['filename'] . '.' . $format;
         
         return $variant_path;
     }
