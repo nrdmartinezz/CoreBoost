@@ -71,6 +71,7 @@ class Image_Responsive_Resizer {
      *
      * Scans HTML for img tags, compares actual vs rendered dimensions,
      * and queues images that exceed the size threshold for background processing.
+     * Works with both regular img tags and picture tags with AVIF/WebP variants.
      *
      * @param string $html HTML content to scan
      * @return int Number of images queued
@@ -102,7 +103,7 @@ class Image_Responsive_Resizer {
                 continue;
             }
             
-            // Get actual image dimensions
+            // Get actual image dimensions from original file
             $file_path = $this->url_to_path($image_url);
             if (!file_exists($file_path)) {
                 continue;
@@ -116,14 +117,16 @@ class Image_Responsive_Resizer {
             $actual_width = $actual_dims[0];
             $actual_height = $actual_dims[1];
             
-            // Check if image is oversized
+            // Check if image is oversized (needs responsive variants)
             if ($actual_width <= $rendered_width && $actual_height <= $rendered_height) {
                 continue;
             }
             
-            // Estimate file size savings
-            $actual_size = @filesize($file_path);
-            if (!$actual_size) {
+            // Get file size of the VARIANT being served (AVIF/WebP), not original
+            $variant_path = $this->get_served_variant_path($file_path);
+            $served_size = file_exists($variant_path) ? @filesize($variant_path) : @filesize($file_path);
+            
+            if (!$served_size) {
                 continue;
             }
             
@@ -133,13 +136,23 @@ class Image_Responsive_Resizer {
             $area_ratio = $rendered_area / $actual_area;
             
             // Estimate resized file size (compression isn't perfectly linear, but close enough)
-            $estimated_size = $actual_size * $area_ratio;
-            $estimated_savings = $actual_size - $estimated_size;
+            $estimated_size = $served_size * $area_ratio;
+            $estimated_savings = $served_size - $estimated_size;
             
             // Queue if savings exceed threshold (4KB)
             if ($estimated_savings >= $this->size_threshold) {
                 $this->queue_responsive_resize($image_url, $rendered_width, $rendered_height);
                 $queued_count++;
+                
+                error_log(sprintf(
+                    "CoreBoost: Queued oversized image - Actual: %dx%d (%s), Rendered: %dx%d, Estimated savings: %s",
+                    $actual_width,
+                    $actual_height,
+                    $this->format_bytes($served_size),
+                    $rendered_width,
+                    $rendered_height,
+                    $this->format_bytes($estimated_savings)
+                ));
             }
         }
         
@@ -505,5 +518,58 @@ class Image_Responsive_Resizer {
         $relative = ltrim($relative, '/');
         
         return $site_url . '/' . $relative;
+    }
+    
+    /**
+     * Get path to the variant file that's actually being served
+     *
+     * Checks for AVIF variant first (best compression), then WebP,
+     * then falls back to original. This ensures we calculate savings
+     * based on the actual file being delivered to browsers.
+     *
+     * @param string $original_path Path to original image
+     * @return string Path to variant being served
+     */
+    private function get_served_variant_path($original_path) {
+        $upload_dir = wp_upload_dir();
+        $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
+        
+        // Get relative path from uploads
+        $relative_path = str_replace($upload_dir['basedir'] . DIRECTORY_SEPARATOR, '', $original_path);
+        $path_info = pathinfo($relative_path);
+        
+        // Check for AVIF variant (primary format)
+        $avif_path = $variants_base . $path_info['dirname'] . DIRECTORY_SEPARATOR . 
+                     $path_info['filename'] . '.avif';
+        
+        if (file_exists($avif_path)) {
+            return $avif_path;
+        }
+        
+        // Check for WebP variant (fallback)
+        $webp_path = $variants_base . $path_info['dirname'] . DIRECTORY_SEPARATOR . 
+                     $path_info['filename'] . '.webp';
+        
+        if (file_exists($webp_path)) {
+            return $webp_path;
+        }
+        
+        // No variants found, return original
+        return $original_path;
+    }
+    
+    /**
+     * Format bytes into human-readable string
+     *
+     * @param int $bytes Number of bytes
+     * @return string Formatted string (e.g., "62.3 KiB")
+     */
+    private function format_bytes($bytes) {
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 1) . ' MiB';
+        } elseif ($bytes >= 1024) {
+            return number_format($bytes / 1024, 1) . ' KiB';
+        }
+        return $bytes . ' B';
     }
 }
