@@ -180,6 +180,12 @@ class Bulk_Image_Converter {
      * AJAX: Process one batch of images
      */
     public function ajax_process_batch() {
+        // Increase memory limit for image processing
+        @ini_set('memory_limit', '512M');
+        
+        // Set max execution time
+        @set_time_limit(300); // 5 minutes per batch
+        
         // Verify nonce and permissions
         check_ajax_referer('coreboost_bulk_converter');
         if (!current_user_can('manage_options')) {
@@ -467,29 +473,31 @@ class Bulk_Image_Converter {
         $avif_time = $avif_supported ? 10 : 0; // AVIF is slower
         $total_time_per_image = max(1, $webp_time + $avif_time); // Minimum 1 second
         
+        // Use smaller batch sizes to prevent memory exhaustion
+        // GD library loads images entirely into memory
         if ($image_count < 100) {
-            // Small site: use batches of 10 for visible progress
-            $batch_size = min($image_count, 10);
+            // Small site: use batches of 5 for visible progress and memory safety
+            $batch_size = min($image_count, 5);
             $estimated_minutes = ceil(($image_count * $total_time_per_image) / 60);
             $recommendation = null;
         } else if ($image_count < 500) {
-            // Small-medium: batch of 15
-            $batch_size = 15;
+            // Small-medium: batch of 5 (reduced from 15)
+            $batch_size = 5;
             $estimated_minutes = ceil(($image_count * $total_time_per_image) / 60);
             $recommendation = null;
         } else if ($image_count < 2000) {
-            // Medium: batch of 30
-            $batch_size = 30;
+            // Medium: batch of 8 (reduced from 30)
+            $batch_size = 8;
             $estimated_minutes = ceil(($image_count * $total_time_per_image) / 60);
             $recommendation = null;
         } else if ($image_count < 5000) {
-            // Large: batch of 50
-            $batch_size = 50;
+            // Large: batch of 10 (reduced from 50)
+            $batch_size = 10;
             $estimated_minutes = ceil(($image_count * $total_time_per_image) / 60);
             $recommendation = 'Consider using Cloudflare or Amazon S3 for faster processing of large image libraries.';
         } else {
-            // Very large: recommend CDN
-            $batch_size = 100;
+            // Very large: recommend CDN, use very small batches
+            $batch_size = 10;
             $estimated_minutes = ceil(($image_count * $total_time_per_image) / 60);
             $recommendation = 'Your site has ' . number_format($image_count) . ' images. We strongly recommend offloading image optimization to Cloudflare or Amazon S3 for significantly faster processing.';
         }
