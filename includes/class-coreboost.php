@@ -247,32 +247,35 @@ class CoreBoost {
         }
         
         // Initialize admin tools (Phase 2.5)
-        if (is_admin() && !wp_doing_ajax()) {
-            // Create lifecycle manager if format conversion is enabled
+        if (is_admin()) {
+            // Create lifecycle manager and tools if format conversion is enabled
             if (!empty($this->options['enable_image_format_conversion'])) {
                 // Initialize format optimizer if not already done
                 if (!$this->image_format_optimizer) {
                     $this->image_format_optimizer = new Image_Format_Optimizer($this->options);
                 }
                 
-                // CRITICAL FIX: Create lifecycle manager instance before passing to admin tools
-                $this->image_variant_lifecycle_manager = new Image_Variant_Lifecycle_Manager(
-                    $this->options,
-                    $this->image_format_optimizer
-                );
-                
-                $this->image_variant_admin_tools = new Image_Variant_Admin_Tools(
-                    $this->options,
-                    $this->image_variant_lifecycle_manager
-                );
-                $this->image_variant_admin_tools->register_hooks($this->loader);
-                
-                // Initialize bulk image converter for first-time setup and uploads
+                // Initialize bulk image converter (needed for AJAX handlers)
                 $this->bulk_image_converter = new Bulk_Image_Converter(
                     $this->options,
                     $this->image_format_optimizer,
                     $this->loader
                 );
+                
+                // Only initialize UI tools when not doing AJAX
+                if (!wp_doing_ajax()) {
+                    // CRITICAL FIX: Create lifecycle manager instance before passing to admin tools
+                    $this->image_variant_lifecycle_manager = new Image_Variant_Lifecycle_Manager(
+                        $this->options,
+                        $this->image_format_optimizer
+                    );
+                    
+                    $this->image_variant_admin_tools = new Image_Variant_Admin_Tools(
+                        $this->options,
+                        $this->image_variant_lifecycle_manager
+                    );
+                    $this->image_variant_admin_tools->register_hooks($this->loader);
+                }
             }
         }
     }    

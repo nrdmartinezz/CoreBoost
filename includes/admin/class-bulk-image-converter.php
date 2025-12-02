@@ -70,6 +70,10 @@ class Bulk_Image_Converter {
         if ($this->loader) {
             $this->define_hooks();
         }
+        
+        error_log('CoreBoost: Bulk_Image_Converter constructed');
+        error_log('CoreBoost: Loader exists: ' . ($loader ? 'yes' : 'no'));
+        error_log('CoreBoost: Format optimizer passed: ' . ($format_optimizer ? 'yes' : 'no'));
     }
     
     /**
@@ -87,8 +91,12 @@ class Bulk_Image_Converter {
         
         // Hook into media upload for auto-generation
         $this->loader->add_action('wp_handle_upload', $this, 'auto_generate_on_upload', 10, 1);
+        
+        error_log('CoreBoost: Registering bulk converter AJAX hooks');
     }
     
+
+
     /**
      * AJAX: Scan uploads folder and count images
      */
@@ -105,6 +113,10 @@ class Bulk_Image_Converter {
                 'message' => 'Image format optimizer not initialized. Please enable "Generate AVIF/WebP Variants" in CoreBoost Settings → Images tab, save settings, then try again.'
             ));
         }
+        
+        error_log('CoreBoost: ajax_scan_uploads called');
+        error_log('CoreBoost: format_optimizer: ' . ($this->format_optimizer ? 'initialized' : 'NULL'));
+        error_log('CoreBoost: options: ' . print_r($this->options, true));
         
         $images = $this->scan_uploads_folder();
         $count = count($images);
