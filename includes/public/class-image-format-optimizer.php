@@ -636,14 +636,18 @@ class Image_Format_Optimizer {
         }
         
         $upload_dir = wp_upload_dir();
-        $variants_dir = $upload_dir['basedir'] . '/coreboost-variants/';
+        $variants_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
+        
+        // Normalize path separators for consistent comparison
+        $image_path_normalized = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $image_path);
+        $uploads_base = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $upload_dir['basedir']);
         
         // Get relative path from uploads folder
-        $relative_path = str_replace($upload_dir['basedir'] . '/', '', $image_path);
+        $relative_path = str_replace($uploads_base . DIRECTORY_SEPARATOR, '', $image_path_normalized);
         $path_info = pathinfo($relative_path);
         
         // Build variant path: /coreboost-variants/[dirname]/[filename].ext
-        $variant_path = $variants_dir . $path_info['dirname'] . '/' . $path_info['filename'] . '.' . $format;
+        $variant_path = $variants_dir . $path_info['dirname'] . DIRECTORY_SEPARATOR . $path_info['filename'] . '.' . $format;
         
         return $variant_path;
     }
