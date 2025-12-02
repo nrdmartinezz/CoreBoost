@@ -331,13 +331,17 @@ class Image_Format_Optimizer {
         
         try {
             if ($file_ext === 'png') {
-                // Load PNG - GD will handle transparency
-                // Don't force alpha handling as it can cause issues
+                // Load PNG with proper transparency preservation
                 $resource = @imagecreatefrompng($image_path);
                 if ($resource === false) {
                     error_log("CoreBoost: Failed to load PNG: {$image_path}");
                     return false;
                 }
+                
+                // Preserve alpha channel for transparent PNGs
+                imagealphablending($resource, false);
+                imagesavealpha($resource, true);
+                
                 return $resource;
                 
             } else if ($file_ext === 'jpg' || $file_ext === 'jpeg') {
