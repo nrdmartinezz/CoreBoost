@@ -150,12 +150,18 @@ class Image_Format_Optimizer {
      * @return bool True if image should be optimized
      */
     public function should_optimize_image($image_url) {
-        // Convert URL to path
-        $file_path = $this->url_to_path($image_url);
-        
-        // Check if file exists locally
-        if (!file_exists($file_path)) {
-            return false;
+        // Handle both URLs and filesystem paths
+        // If it's already a filesystem path, use it directly
+        if (file_exists($image_url)) {
+            $file_path = $image_url;
+        } else {
+            // Convert URL to path
+            $file_path = $this->url_to_path($image_url);
+            
+            // Check if file exists locally
+            if (!file_exists($file_path)) {
+                return false;
+            }
         }
         
         // Optimize JPEG and PNG images
