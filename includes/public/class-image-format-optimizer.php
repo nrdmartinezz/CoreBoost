@@ -229,9 +229,8 @@ class Image_Format_Optimizer {
             
             // For PHP 8.1+, use imageavif if available
             if (function_exists('imageavif')) {
-                // Enable alpha blending for output to preserve transparency
-                imagealphablending($source, true);
-                imagesavealpha($source, true);
+                // Alpha channel already preserved by load_image_resource()
+                // DO NOT change alphablending settings - would destroy transparency
                 
                 // Save as AVIF with quality setting
                 if (imageavif($source, $output_path, $this->avif_quality)) {
@@ -293,9 +292,8 @@ class Image_Format_Optimizer {
                 return null;
             }
             
-            // Enable alpha blending for output to preserve transparency
-            imagealphablending($source, true);
-            imagesavealpha($source, true);
+            // Alpha channel already preserved by load_image_resource()
+            // DO NOT change alphablending settings - would destroy transparency
             
             // Save as WebP with quality setting
             if (imagewebp($source, $output_path, $this->webp_quality)) {
@@ -346,7 +344,14 @@ class Image_Format_Optimizer {
                     return false;
                 }
                 
+                // Convert palette-based PNG to truecolor for proper alpha handling
+                if (function_exists('imagepalettetotruecolor')) {
+                    imagepalettetotruecolor($resource);
+                }
+                
                 // Preserve alpha channel for transparent PNGs
+                // imagealphablending(false) = disable blending, copy alpha channel literally
+                // imagesavealpha(true) = save full alpha channel information
                 imagealphablending($resource, false);
                 imagesavealpha($resource, true);
                 
