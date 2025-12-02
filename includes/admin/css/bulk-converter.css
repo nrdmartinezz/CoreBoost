@@ -206,3 +206,84 @@
         margin-bottom: 8px !important;
     }
 }
+
+/* Circular Progress Indicators - Images Tab Only */
+.coreboost-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.coreboost-stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.coreboost-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.coreboost-circle-progress {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 10px;
+}
+
+.coreboost-circle-progress svg {
+    transform: rotate(-90deg);
+}
+
+.coreboost-circle-progress .circle-bg {
+    fill: none;
+    stroke: #e0e0e0;
+    stroke-width: 8;
+}
+
+.coreboost-circle-progress .circle-progress {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.coreboost-circle-progress .circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.stat-converted .circle-progress { stroke: #4CAF50; }
+.stat-converted .circle-text { color: #4CAF50; }
+
+.stat-orphaned .circle-progress { stroke: #FF9800; }
+.stat-orphaned .circle-text { color: #FF9800; }
+
+.stat-unconverted .circle-progress { stroke: #9E9E9E; }
+.stat-unconverted .circle-text { color: #9E9E9E; }
+
+.stat-total .circle-progress { stroke: #2196F3; }
+.stat-total .circle-text { color: #2196F3; }
+
+.coreboost-stat-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.coreboost-stat-number {
+    font-size: 14px;
+    color: #333;
+    margin-top: 5px;
+}

@@ -274,10 +274,70 @@ class Settings {
         // Status and info
         echo '<div style="margin-bottom: 15px;">';
         echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Status:', 'coreboost') . '</strong> <span id="coreboost-bulk-status" style="font-weight: bold; color: #666;">Not started</span></p>';
-        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Images to convert:', 'coreboost') . '</strong> <span id="coreboost-image-count">-</span></p>';
+        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Images converted:', 'coreboost') . '</strong> <span id="coreboost-images-converted" style="font-weight: bold; color: #2196F3;">0</span> / <span id="coreboost-image-count">-</span></p>';
         echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Batch size:', 'coreboost') . '</strong> <span id="coreboost-batch-size">-</span></p>';
         echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Estimated time:', 'coreboost') . '</strong> <span id="coreboost-est-time">-</span></p>';
         echo '</div>';
+        
+        // Image Conversion Statistics Dashboard (only visible when active)
+        echo '<div id="coreboost-stats-dashboard" style="display: none; margin: 20px 0;">';
+        echo '<h5 style="margin: 0 0 15px 0; color: #1976D2; font-size: 14px; font-weight: 600;">' . esc_html__('Image Conversion Statistics', 'coreboost') . '</h5>';
+        echo '<div class="coreboost-stats-grid">';
+        
+        // Converted (In Use)
+        echo '<div class="coreboost-stat-card stat-converted">';
+        echo '<div class="coreboost-circle-progress">';
+        echo '<svg width="80" height="80">';
+        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
+        echo '<circle class="circle-progress" id="circle-converted" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>';
+        echo '</svg>';
+        echo '<div class="circle-text" id="percent-converted">0%</div>';
+        echo '</div>';
+        echo '<div class="coreboost-stat-label">' . esc_html__('Converted', 'coreboost') . '</div>';
+        echo '<div class="coreboost-stat-number"><span id="count-converted">0</span> ' . esc_html__('images', 'coreboost') . '</div>';
+        echo '</div>';
+        
+        // Orphaned
+        echo '<div class="coreboost-stat-card stat-orphaned">';
+        echo '<div class="coreboost-circle-progress">';
+        echo '<svg width="80" height="80">';
+        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
+        echo '<circle class="circle-progress" id="circle-orphaned" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>';
+        echo '</svg>';
+        echo '<div class="circle-text" id="percent-orphaned">0%</div>';
+        echo '</div>';
+        echo '<div class="coreboost-stat-label">' . esc_html__('Orphaned', 'coreboost') . '</div>';
+        echo '<div class="coreboost-stat-number"><span id="count-orphaned">0</span> ' . esc_html__('variants', 'coreboost') . '</div>';
+        echo '</div>';
+        
+        // Unconverted
+        echo '<div class="coreboost-stat-card stat-unconverted">';
+        echo '<div class="coreboost-circle-progress">';
+        echo '<svg width="80" height="80">';
+        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
+        echo '<circle class="circle-progress" id="circle-unconverted" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>';
+        echo '</svg>';
+        echo '<div class="circle-text" id="percent-unconverted">100%</div>';
+        echo '</div>';
+        echo '<div class="coreboost-stat-label">' . esc_html__('Not Converted', 'coreboost') . '</div>';
+        echo '<div class="coreboost-stat-number"><span id="count-unconverted">0</span> ' . esc_html__('images', 'coreboost') . '</div>';
+        echo '</div>';
+        
+        // Total
+        echo '<div class="coreboost-stat-card stat-total">';
+        echo '<div class="coreboost-circle-progress">';
+        echo '<svg width="80" height="80">';
+        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
+        echo '<circle class="circle-progress" id="circle-total" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="0"></circle>';
+        echo '</svg>';
+        echo '<div class="circle-text" id="percent-total">100%</div>';
+        echo '</div>';
+        echo '<div class="coreboost-stat-label">' . esc_html__('Total Images', 'coreboost') . '</div>';
+        echo '<div class="coreboost-stat-number"><span id="count-total">0</span> ' . esc_html__('images', 'coreboost') . '</div>';
+        echo '</div>';
+        
+        echo '</div>'; // End stats-grid
+        echo '</div>'; // End stats-dashboard
         
         // Progress bar
         echo '<div id="coreboost-progress-container" style="display: none; margin-bottom: 15px;">';
