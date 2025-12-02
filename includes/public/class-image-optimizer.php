@@ -607,14 +607,15 @@ class Image_Optimizer {
                 continue; // Skip external or invalid URLs
             }
             
+            // Remove query strings from URL FIRST, before path conversion
+            $css_url_clean = preg_replace('/\?.*$/', '', $css_url);
+            
             // Convert URL to path
-            $css_path = str_replace(home_url(), ABSPATH, $css_url);
+            $css_path = str_replace(home_url(), ABSPATH, $css_url_clean);
             $css_path = str_replace('/', DIRECTORY_SEPARATOR, $css_path);
             
-            // Remove query strings from path
-            $css_path = preg_replace('/\?.*$/', '', $css_path);
-            
             if (!file_exists($css_path)) {
+                error_log("CoreBoost: CSS file NOT FOUND - URL: {$css_url} | Path: {$css_path}");
                 continue;
             }
             
@@ -627,7 +628,13 @@ class Image_Optimizer {
             }
             
             // Find background images that can be optimized
-            if (preg_match_all('/([^{]*)\{([^}]*background[^}]*url\([^)]+\)[^}]*)\}/is', $css_content, $matches, PREG_SET_ORDER)) {
+            $match_count = preg_match_all('/([^{]*)\{([^}]*background[^}]*url\([^)]+\)[^}]*)\}/is', $css_content, $matches, PREG_SET_ORDER);
+            
+            if ($match_count === 0) {
+                error_log("CoreBoost: No background image patterns found in CSS file: {$css_path} (" . strlen($css_content) . " bytes)");
+            }
+            
+            if ($match_count > 0) {
                 foreach ($matches as $match) {
                     $selector = trim($match[1]);
                     $declarations = $match[2];
@@ -640,7 +647,7 @@ class Image_Optimizer {
                         error_log("CoreBoost: Created override for selector: {$selector}");
                     }
                 }
-            }
+            } // End if ($match_count > 0)
         }
         
         // Inject override styles before </head>
