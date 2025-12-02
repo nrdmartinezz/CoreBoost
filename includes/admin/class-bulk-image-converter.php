@@ -131,8 +131,13 @@ class Bulk_Image_Converter {
         // Calculate batch size and estimate
         $batch_info = $this->calculate_batch_strategy($count);
         
-        // Delete existing variants first
-        $this->delete_existing_variants();
+        // Check if this is a start_conversion request (delete variants) or just a stats check (keep variants)
+        $start_conversion = isset($_POST['start_conversion']) && $_POST['start_conversion'] === 'true';
+        
+        // Only delete existing variants when starting a new conversion
+        if ($start_conversion) {
+            $this->delete_existing_variants();
+        }
         
         // Store image list in transient for batch processing
         set_transient(

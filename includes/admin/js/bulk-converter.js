@@ -344,6 +344,7 @@
             body: new URLSearchParams({
                 action: 'coreboost_scan_uploads',
                 _wpnonce: config.nonce,
+                start_conversion: 'true',
             }),
         })
         .then(response => response.json())
