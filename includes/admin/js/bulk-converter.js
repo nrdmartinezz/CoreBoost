@@ -84,8 +84,13 @@
         elements.statusText.textContent = 'Processing...';
         elements.statusText.style.color = '#F57C00';
 
-        // Update progress text
-        elements.progressText.textContent = 'Batch ' + progress.currentBatch + ' of ' + progress.totalBatches + ' (' + percentage + '%)';
+        // Update progress text with batch results if available
+        let progressText = 'Batch ' + progress.currentBatch + ' of ' + progress.totalBatches + ' (' + percentage + '%)';
+        if (progress.batchResults) {
+            const results = progress.batchResults;
+            progressText += ' - ' + results.success + ' success, ' + results.failed + ' failed, ' + results.skipped + ' skipped';
+        }
+        elements.progressText.textContent = progressText;
 
         // Update time displays
         elements.timeElapsed.textContent = 'Elapsed: ' + formatTime(elapsedSeconds);
@@ -172,7 +177,68 @@
     /**
      * Start bulk conversion process
      */
-    function startConversion() {
+    /**
+     * Save progress to localStorage
+     */
+    function saveProgress() {
+        try {
+            localStorage.setItem('coreboost_bulk_progress', JSON.stringify({
+                currentBatch: state.currentBatch,
+                totalBatches: state.totalBatches,
+                imageCount: state.imageCount,
+                startTime: state.startTime,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            console.warn('Could not save progress to localStorage:', e);
+        }
+    }
+
+    /**
+     * Load progress from localStorage
+     */
+    function loadProgress() {
+        try {
+            const saved = localStorage.getItem('coreboost_bulk_progress');
+            if (!saved) return null;
+            
+            const progress = JSON.parse(saved);
+            // Only restore if less than 1 hour old
+            if (Date.now() - progress.timestamp < 3600000) {
+                return progress;
+            }
+            localStorage.removeItem('coreboost_bulk_progress');
+        } catch (e) {
+            console.warn('Could not load progress from localStorage:', e);
+        }
+        return null;
+    }
+
+    /**
+     * Clear cache after conversion
+     */
+    async function clearCacheAfterConversion() {
+        try {
+            const response = await fetch(config.ajaxurl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    action: 'coreboost_clear_cache',
+                    nonce: config.nonce,
+                }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                console.log('Cache cleared successfully after bulk conversion');
+            }
+        } catch (error) {
+            console.warn('Could not clear cache:', error);
+        }
+    }
+
+    async function startConversion() {
         // Check if format conversion is enabled
         const formatEnabled = elements.startBtn.getAttribute('data-format-enabled') === '1';
         if (!formatEnabled) {
@@ -190,90 +256,116 @@
         elements.statusText.textContent = 'Scanning images...';
         elements.statusText.style.color = '#F57C00';
 
-        scanImages()
-            .then(result => {
-                state.imageCount = result.count || 0;
-                state.totalBatches = result.total_batches || 1;
-                state.batchSize = result.batch_size || 15;
-                state.currentBatch = 0;
+        try {
+            const result = await scanImages();
+            
+            state.imageCount = result.count || 0;
+            state.totalBatches = result.total_batches || 1;
+            state.batchSize = result.batch_size || 15;
+            state.currentBatch = 0;
 
-                // Update UI with scan results
-                elements.imageCountText.textContent = state.imageCount;
-                elements.batchSizeText.textContent = state.batchSize;
-                
-                // Use API estimated time if available, otherwise calculate
-                const estimatedMinutes = result.estimated_time_minutes || Math.ceil(state.totalBatches * 12 / 60);
-                const estimatedSeconds = estimatedMinutes * 60;
-                elements.estTimeText.textContent = formatTime(estimatedSeconds);
+            // Update UI with scan results
+            elements.imageCountText.textContent = state.imageCount;
+            elements.batchSizeText.textContent = state.batchSize;
+            
+            // Use API estimated time if available, otherwise calculate
+            const estimatedMinutes = result.estimated_time_minutes || Math.ceil(state.totalBatches * 12 / 60);
+            const estimatedSeconds = estimatedMinutes * 60;
+            elements.estTimeText.textContent = formatTime(estimatedSeconds);
 
-                // Show progress container
-                elements.progressContainer.style.display = 'block';
-                elements.progressBar.style.width = '0%';
-                elements.progressText.textContent = 'Starting conversion...';
+            // Show progress container
+            elements.progressContainer.style.display = 'block';
+            elements.progressBar.style.width = '0%';
+            elements.progressText.textContent = 'Starting conversion...';
 
-                if (state.imageCount === 0) {
-                    showSuccess('No images to convert');
-                    return;
-                }
+            if (state.imageCount === 0) {
+                showSuccess('No images to convert');
+                return;
+            }
 
-                // Begin batch processing
-                processBatch();
-            })
-            .catch(error => {
-                showError('Error scanning images: ' + error.message);
-            });
+            // Begin async batch processing
+            await processAllBatches();
+        } catch (error) {
+            showError('Error scanning images: ' + error.message);
+        }
     }
 
     /**
-     * Process a single batch
+     * Process all batches asynchronously with while loop
      */
-    function processBatch() {
+    async function processAllBatches() {
+        let totalSuccess = 0;
+        let totalFailed = 0;
+        let totalSkipped = 0;
+
+        while (state.currentBatch < state.totalBatches && state.isRunning) {
+            state.currentBatch++;
+
+            try {
+                const response = await fetch(config.ajaxurl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'coreboost_bulk_convert_batch',
+                        batch: state.currentBatch,
+                        _wpnonce: config.nonce,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    // Log error but continue with next batch
+                    console.error('Batch ' + state.currentBatch + ' failed:', data.data?.message);
+                    totalFailed += state.batchSize;
+                    continue;
+                }
+
+                // Accumulate batch results
+                if (data.data.batch_results) {
+                    totalSuccess += data.data.batch_results.success || 0;
+                    totalFailed += data.data.batch_results.failed || 0;
+                    totalSkipped += data.data.batch_results.skipped || 0;
+                }
+
+                // Update progress with batch results
+                updateProgress({
+                    currentBatch: state.currentBatch,
+                    totalBatches: state.totalBatches,
+                    batchResults: data.data.batch_results,
+                });
+
+                // Save progress to localStorage
+                saveProgress();
+
+            } catch (error) {
+                // Log error but continue processing remaining batches
+                console.error('Error processing batch ' + state.currentBatch + ':', error.message);
+                totalFailed += state.batchSize;
+            }
+        }
+
+        // Check if stopped by user
         if (!state.isRunning) {
             return;
         }
 
-        state.currentBatch++;
+        // Clear progress from localStorage
+        localStorage.removeItem('coreboost_bulk_progress');
 
-        fetch(config.ajaxurl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                action: 'coreboost_bulk_convert_batch',
-                batch: state.currentBatch,
-                _wpnonce: config.nonce,
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                throw new Error(data.data?.message || 'Batch processing failed');
-            }
+        // Clear page cache (not image cache)
+        await clearCacheAfterConversion();
 
-            // Update progress
-            updateProgress({
-                currentBatch: state.currentBatch,
-                totalBatches: state.totalBatches,
-            });
-
-            // Check if we're done
-            if (state.currentBatch >= state.totalBatches) {
-                completeBulkConversion();
-            } else {
-                // Continue with next batch
-                processBatch();
-            }
-        })
-        .catch(error => {
-            showError('Error processing batch: ' + error.message);
-        });
+        // Show completion with detailed results
+        completeBulkConversion(totalSuccess, totalFailed, totalSkipped);
     }
 
     /**
      * Complete bulk conversion
      */
-    function completeBulkConversion() {
+    function completeBulkConversion(totalSuccess, totalFailed, totalSkipped) {
         const elapsed = Date.now() - state.startTime;
         const elapsedSeconds = elapsed / 1000;
 
@@ -281,16 +373,24 @@
         elements.progressBar.textContent = '100%';
         elements.statusText.textContent = 'Complete';
         elements.statusText.style.color = '#4CAF50';
-        elements.progressText.textContent = 'Successfully converted all ' + state.imageCount + ' images';
+        
+        // Show detailed results
+        const resultsText = totalSuccess + ' converted, ' + totalFailed + ' failed, ' + totalSkipped + ' skipped';
+        elements.progressText.textContent = 'Conversion complete: ' + resultsText;
         elements.timeElapsed.textContent = 'Total time: ' + formatTime(elapsedSeconds);
         elements.timeRemaining.textContent = '';
 
-        showSuccess('Bulk conversion completed! ' + state.imageCount + ' images converted in ' + formatTime(elapsedSeconds));
+        let message = 'Bulk conversion completed in ' + formatTime(elapsedSeconds) + '! ';
+        message += resultsText + '. ';
+        if (totalFailed > 0) {
+            message += 'Check browser console for details on failed conversions.';
+        }
+        showSuccess(message);
         
         setTimeout(() => {
             resetUI();
             elements.progressContainer.style.display = 'none';
-        }, 3000);
+        }, 5000);
     }
 
     /**

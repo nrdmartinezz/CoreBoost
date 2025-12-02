@@ -91,7 +91,7 @@ class Bulk_Image_Converter {
         
         // Hook into media upload for auto-generation
         $this->loader->add_action('wp_handle_upload', $this, 'auto_generate_on_upload', 10, 1);
-        
+
         error_log('CoreBoost: Registering bulk converter AJAX hooks');
     }
     
@@ -436,14 +436,18 @@ class Bulk_Image_Converter {
      * @return array Batch strategy with size, count, time estimate, and recommendation
      */
     private function calculate_batch_strategy($image_count) {
+        // Detect which formats PHP supports
+        $avif_supported = function_exists('imageavif');
+        $webp_supported = function_exists('imagewebp');
+        
         // Average processing times (seconds per image)
-        $webp_time = 2; // WebP is fast
-        $avif_time = 10; // AVIF is slower
-        $total_time_per_image = $webp_time + $avif_time; // Both formats
+        $webp_time = $webp_supported ? 2 : 0; // WebP is fast
+        $avif_time = $avif_supported ? 10 : 0; // AVIF is slower
+        $total_time_per_image = max(1, $webp_time + $avif_time); // Minimum 1 second
         
         if ($image_count < 100) {
-            // Small site: process all at once
-            $batch_size = $image_count;
+            // Small site: use batches of 10 for visible progress
+            $batch_size = min($image_count, 10);
             $estimated_minutes = ceil(($image_count * $total_time_per_image) / 60);
             $recommendation = null;
         } else if ($image_count < 500) {

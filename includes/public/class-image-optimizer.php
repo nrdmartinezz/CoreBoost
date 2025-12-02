@@ -155,17 +155,12 @@ class Image_Optimizer {
                     return $matches[0];
                 }
                 
-                // Get browser format capability
-                $browser_format = $this->format_optimizer->detect_browser_format();
+                // Check if ANY variants exist (AVIF or WebP)
+                $avif_url = $this->format_optimizer->get_variant_from_cache($src_url, 'avif');
+                $webp_url = $this->format_optimizer->get_variant_from_cache($src_url, 'webp');
                 
-                // Try to get cached variant (should exist from bulk conversion)
-                $variant_url = null;
-                if ($browser_format !== 'jpeg') {
-                    $variant_url = $this->format_optimizer->get_variant_from_cache($src_url, $browser_format);
-                }
-                
-                // If no variant found, skip picture tag enhancement (use original img)
-                if (!$variant_url) {
+                // If no variants found at all, skip picture tag enhancement (use original img)
+                if (!$avif_url && !$webp_url) {
                     return $matches[0];
                 }
                 
