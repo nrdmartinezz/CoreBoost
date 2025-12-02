@@ -121,9 +121,6 @@
         const dashboard = document.getElementById('coreboost-stats-dashboard');
         if (!dashboard) return;
         
-        // Show dashboard
-        dashboard.style.display = 'block';
-        
         const total = stats.total || state.imageCount || 0;
         const converted = stats.converted || state.imagesConverted || 0;
         const orphaned = stats.orphaned || 0;
@@ -570,6 +567,44 @@
     }
 
     /**
+     * Load initial statistics on page load
+     */
+    async function loadInitialStats() {
+        try {
+            const response = await fetch(config.ajaxurl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    action: 'coreboost_scan_uploads',
+                    _wpnonce: config.nonce,
+                }),
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                const stats = data.data;
+                
+                // Update initial image count
+                if (elements.imageCountText && stats.count) {
+                    elements.imageCountText.textContent = stats.count;
+                }
+                
+                // Update stats dashboard with initial data
+                updateStatsDashboard({
+                    total: stats.count || 0,
+                    converted: 0, // We'll need to track this separately
+                    orphaned: 0
+                });
+            }
+        } catch (error) {
+            console.warn('Could not load initial statistics:', error);
+        }
+    }
+
+    /**
      * Initialize event listeners
      */
     function init() {
@@ -587,6 +622,9 @@
             e.preventDefault();
             stopConversion();
         });
+        
+        // Load initial statistics to show current landscape
+        loadInitialStats();
     }
 
     // Initialize when DOM is ready

@@ -279,9 +279,19 @@ class Settings {
         echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Estimated time:', 'coreboost') . '</strong> <span id="coreboost-est-time">-</span></p>';
         echo '</div>';
         
-        // Image Conversion Statistics Dashboard (only visible when active)
-        echo '<div id="coreboost-stats-dashboard" style="display: none; margin: 20px 0;">';
+        // Image Conversion Statistics Dashboard (always visible)
+        echo '<div id="coreboost-stats-dashboard" style="margin: 20px 0;">';
         echo '<h5 style="margin: 0 0 15px 0; color: #1976D2; font-size: 14px; font-weight: 600;">' . esc_html__('Image Conversion Statistics', 'coreboost') . '</h5>';
+        
+        // Storage folder path
+        $upload_dir = wp_upload_dir();
+        $variants_path = $upload_dir['basedir'] . '/coreboost-variants/';
+        $variants_url = $upload_dir['baseurl'] . '/coreboost-variants/';
+        echo '<p style="margin: 0 0 15px 0; font-size: 13px; color: #666;">';
+        echo '<strong>' . esc_html__('Storage Location:', 'coreboost') . '</strong> ';
+        echo '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px;">' . esc_html($variants_path) . '</code>';
+        echo '</p>';
+        
         echo '<div class="coreboost-stats-grid">';
         
         // Converted (In Use)
