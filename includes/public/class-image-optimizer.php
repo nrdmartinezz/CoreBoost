@@ -119,8 +119,10 @@ class Image_Optimizer {
         
         // Apply Phase 2 format optimization if enabled
         if (!empty($this->options['enable_image_format_conversion']) && $this->format_optimizer) {
+            error_log("CoreBoost: Phase 2 format optimization enabled");
             $html = $this->apply_format_optimization($html);
             $html = $this->optimize_css_background_images($html);
+            $html = $this->inject_css_overrides_inline($html);
         }
         
         return $html;
@@ -472,22 +474,29 @@ class Image_Optimizer {
     private function optimize_css_background_images($html) {
         $replacements_made = 0;
         
+        // Count style tags and attributes
+        $style_tag_count = preg_match_all('/<style[^>]*>.*?<\/style>/is', $html);
+        $style_attr_count = preg_match_all('/style=["\'][^"\']*["\']/', $html);
+        error_log("CoreBoost: Found {$style_tag_count} <style> tags and {$style_attr_count} style attributes");
+        
         // Find inline style tags
         $html = preg_replace_callback(
             '/<style[^>]*>(.*?)<\/style>/is',
             function($matches) use (&$replacements_made) {
                 $css = $matches[1];
+                error_log("CoreBoost: Processing <style> tag with " . strlen($css) . " characters");
                 $optimized_css = $this->process_css_background_images($css, $replacements_made);
                 return '<style' . (strpos($matches[0], ' ') !== false ? substr($matches[0], 6, strpos($matches[0], '>') - 6) : '') . '>' . $optimized_css . '</style>';
             },
             $html
         );
         
-        // Find inline style attributes
+        // Find inline style attributes with background or background-image
         $html = preg_replace_callback(
-            '/style=["\']([^"\']*background-image[^"\']*)["\']/',
+            '/style=["\']([^"\']*background[^"\']*)["\']/',
             function($matches) use (&$replacements_made) {
                 $style = $matches[1];
+                error_log("CoreBoost: Processing style attribute: " . substr($style, 0, 100));
                 $optimized_style = $this->process_css_background_images($style, $replacements_made);
                 return 'style="' . esc_attr($optimized_style) . '"';
             },
@@ -495,9 +504,7 @@ class Image_Optimizer {
         );
         
         // Debug logging
-        if ($replacements_made > 0) {
-            error_log("CoreBoost: Optimized {$replacements_made} CSS background image(s)");
-        }
+        error_log("CoreBoost: Total CSS background images optimized: {$replacements_made}");
         
         return $html;
     }
@@ -563,4 +570,89 @@ class Image_Optimizer {
         
         return $css;
     }
-}
+    
+    /**
+     * Intercept CSS file requests and add inline overrides
+     * Since external CSS files are served directly by the web server,
+     * we inject inline <style> overrides with optimized background images
+    /**
+     * Inject inline CSS overrides for external stylesheet background images
+     * Parses <link> tags in HTML, reads referenced CSS files, and injects optimized overrides
+     *
+     * @param string $html HTML content
+     * @return string Modified HTML with injected CSS overrides
+     */
+    private function inject_css_overrides_inline($html) {
+        $overrides = array();
+        
+        // Find all stylesheet links
+        if (!preg_match_all('/<link[^>]*rel=["\']stylesheet["\'][^>]*>/i', $html, $link_matches)) {
+            return $html;
+        }
+        
+        error_log("CoreBoost: Found " . count($link_matches[0]) . " stylesheet links");
+        
+        foreach ($link_matches[0] as $link_tag) {
+            // Extract href
+            if (!preg_match('/href=["\']([^"\']+)["\']/', $link_tag, $href_match)) {
+                continue;
+            }
+            
+            $css_url = $href_match[1];
+            
+            // Only process local CSS files
+            if (strpos($css_url, home_url()) !== 0 && strpos($css_url, '/') === 0) {
+                $css_url = home_url() . $css_url;
+            } elseif (strpos($css_url, 'http') !== 0) {
+                continue; // Skip external or invalid URLs
+            }
+            
+            // Convert URL to path
+            $css_path = str_replace(home_url(), ABSPATH, $css_url);
+            $css_path = str_replace('/', DIRECTORY_SEPARATOR, $css_path);
+            
+            // Remove query strings from path
+            $css_path = preg_replace('/\?.*$/', '', $css_path);
+            
+            if (!file_exists($css_path)) {
+                continue;
+            }
+            
+            error_log("CoreBoost: Reading CSS file: {$css_path}");
+            
+            // Read CSS file
+            $css_content = file_get_contents($css_path);
+            if ($css_content === false) {
+                continue;
+            }
+            
+            // Find background images that can be optimized
+            if (preg_match_all('/([^{]*)\{([^}]*background[^}]*url\([^)]+\)[^}]*)\}/is', $css_content, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $match) {
+                    $selector = trim($match[1]);
+                    $declarations = $match[2];
+                    
+                    $replacements_made = 0;
+                    $optimized_declarations = $this->process_css_background_images($declarations, $replacements_made);
+                    
+                    if ($replacements_made > 0) {
+                        $overrides[] = $selector . ' { ' . $optimized_declarations . ' }';
+                        error_log("CoreBoost: Created override for selector: {$selector}");
+                    }
+                }
+            }
+        }
+        
+        // Inject override styles before </head>
+        if (!empty($overrides)) {
+            $override_css = "\n<style id=\"coreboost-bg-overrides\">\n";
+            $override_css .= "/* CoreBoost: Optimized background images (" . count($overrides) . " rules) */\n";
+            $override_css .= implode("\n", $overrides);
+            $override_css .= "\n</style>\n";
+            
+            $html = str_replace('</head>', $override_css . '</head>', $html);
+            error_log("CoreBoost: Injected " . count($overrides) . " CSS background image overrides");
+        }
+        
+        return $html;
+    }
