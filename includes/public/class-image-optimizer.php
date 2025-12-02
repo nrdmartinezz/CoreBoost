@@ -470,12 +470,14 @@ class Image_Optimizer {
      * @return string Modified HTML with optimized background images
      */
     private function optimize_css_background_images($html) {
+        $replacements_made = 0;
+        
         // Find inline style tags
         $html = preg_replace_callback(
             '/<style[^>]*>(.*?)<\/style>/is',
-            function($matches) {
+            function($matches) use (&$replacements_made) {
                 $css = $matches[1];
-                $optimized_css = $this->process_css_background_images($css);
+                $optimized_css = $this->process_css_background_images($css, $replacements_made);
                 return '<style' . (strpos($matches[0], ' ') !== false ? substr($matches[0], 6, strpos($matches[0], '>') - 6) : '') . '>' . $optimized_css . '</style>';
             },
             $html
@@ -484,13 +486,18 @@ class Image_Optimizer {
         // Find inline style attributes
         $html = preg_replace_callback(
             '/style=["\']([^"\']*background-image[^"\']*)["\']/',
-            function($matches) {
+            function($matches) use (&$replacements_made) {
                 $style = $matches[1];
-                $optimized_style = $this->process_css_background_images($style);
+                $optimized_style = $this->process_css_background_images($style, $replacements_made);
                 return 'style="' . esc_attr($optimized_style) . '"';
             },
             $html
         );
+        
+        // Debug logging
+        if ($replacements_made > 0) {
+            error_log("CoreBoost: Optimized {$replacements_made} CSS background image(s)");
+        }
         
         return $html;
     }
@@ -501,15 +508,21 @@ class Image_Optimizer {
      * @param string $css CSS content
      * @return string Optimized CSS with AVIF/WebP variants
      */
-    private function process_css_background_images($css) {
-        // Match background-image: url() patterns
+    private function process_css_background_images($css, &$replacements_made = 0) {
+        // Match both background: and background-image: with url() patterns
         $css = preg_replace_callback(
-            '/background-image\s*:\s*url\(["\']?([^"\')\s]+)["\']?\)/i',
-            function($matches) {
-                $original_url = $matches[1];
+            '/\b(background(?:-image)?)\s*:\s*([^;]*?)url\(["\']?([^"\')\s]+)["\']?\)([^;]*)/i',
+            function($matches) use (&$replacements_made) {
+                $property = $matches[1]; // background or background-image
+                $before_url = trim($matches[2]); // any values before url()
+                $original_url = $matches[3]; // the image URL
+                $after_url = $matches[4]; // any values after url() (position, size, etc)
+                
+                error_log("CoreBoost: Found CSS background: {$original_url}");
                 
                 // Check if should optimize this image
                 if (!$this->format_optimizer->should_optimize_image($original_url)) {
+                    error_log("CoreBoost: Image should not be optimized");
                     return $matches[0];
                 }
                 
@@ -517,27 +530,30 @@ class Image_Optimizer {
                 $avif_url = $this->format_optimizer->get_variant_from_cache($original_url, 'avif');
                 $webp_url = $this->format_optimizer->get_variant_from_cache($original_url, 'webp');
                 
+                error_log("CoreBoost: AVIF variant: " . ($avif_url ? $avif_url : 'NOT FOUND'));
+                error_log("CoreBoost: WebP variant: " . ($webp_url ? $webp_url : 'NOT FOUND'));
+                
                 // If no variants found, return original
                 if (!$avif_url && !$webp_url) {
+                    error_log("CoreBoost: No variants found, keeping original");
                     return $matches[0];
                 }
                 
+                $replacements_made++;
+                error_log("CoreBoost: Replacing background with optimized variants");
+                
                 // Build progressive enhancement CSS
-                $output = '';
+                // Use the best available format (AVIF > WebP > original)
+                $best_url = $avif_url ? $avif_url : ($webp_url ? $webp_url : $original_url);
                 
-                // Original as fallback
-                $output .= 'background-image: url(' . esc_url($original_url) . ');';
-                
-                // WebP with @supports
-                if ($webp_url) {
-                    $output .= ' background-image: -webkit-image-set(url(' . esc_url($webp_url) . ') 1x);';
-                    $output .= ' background-image: image-set(url(' . esc_url($webp_url) . ') 1x);';
+                // Reconstruct the property with optimized URL
+                $output = $property . ': ';
+                if (!empty($before_url)) {
+                    $output .= $before_url . ' ';
                 }
-                
-                // AVIF with @supports (best compression)
-                if ($avif_url) {
-                    $output .= ' background-image: -webkit-image-set(url(' . esc_url($avif_url) . ') 1x);';
-                    $output .= ' background-image: image-set(url(' . esc_url($avif_url) . ') 1x);';
+                $output .= 'url(' . esc_url($best_url) . ')';
+                if (!empty($after_url)) {
+                    $output .= $after_url;
                 }
                 
                 return $output;
