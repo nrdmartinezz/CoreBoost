@@ -229,6 +229,10 @@ class Image_Format_Optimizer {
             
             // For PHP 8.1+, use imageavif if available
             if (function_exists('imageavif')) {
+                // Enable alpha blending for output to preserve transparency
+                imagealphablending($source, true);
+                imagesavealpha($source, true);
+                
                 // Save as AVIF with quality setting
                 if (imageavif($source, $output_path, $this->avif_quality)) {
                     imagedestroy($source);
@@ -288,6 +292,10 @@ class Image_Format_Optimizer {
                 imagedestroy($source);
                 return null;
             }
+            
+            // Enable alpha blending for output to preserve transparency
+            imagealphablending($source, true);
+            imagesavealpha($source, true);
             
             // Save as WebP with quality setting
             if (imagewebp($source, $output_path, $this->webp_quality)) {
