@@ -207,43 +207,51 @@ class Bulk_Image_Converter {
             wp_send_json_error('Images not found');
         }
         
-        // Calculate batch range
-        $start_index = $progress['processed_images'];
-        $end_index = min($start_index + $progress['batch_size'], count($images));
-        
-        // Process batch
-        $batch_images = array_slice($images, $start_index, $progress['batch_size']);
-        $batch_results = $this->process_image_batch($batch_images);
-        
-        // Update progress
-        $progress['processed_images'] = $end_index;
-        $progress['current_batch'] = floor($end_index / $progress['batch_size']) + 1;
-        
-        $is_complete = $end_index >= count($images);
-        
-        set_transient(
-            $this->progress_key,
-            $progress,
-            HOUR_IN_SECONDS * 6
-        );
-        
-        // Calculate time remaining
-        $elapsed = current_time('timestamp') - $progress['start_time'];
-        $per_image = $elapsed / $progress['processed_images'];
-        $remaining_images = count($images) - $progress['processed_images'];
-        $remaining_seconds = ceil($per_image * $remaining_images);
-        $remaining_minutes = ceil($remaining_seconds / 60);
-        
-        wp_send_json_success(array(
-            'processed' => $progress['processed_images'],
-            'total' => count($images),
-            'current_batch' => $progress['current_batch'],
-            'total_batches' => $progress['total_batches'],
-            'percentage' => round(($progress['processed_images'] / count($images)) * 100, 1),
-            'remaining_minutes' => max(0, $remaining_minutes),
-            'is_complete' => $is_complete,
-            'batch_results' => $batch_results,
-        ));
+        try {
+            // Calculate batch range
+            $start_index = $progress['processed_images'];
+            $end_index = min($start_index + $progress['batch_size'], count($images));
+            
+            // Process batch
+            $batch_images = array_slice($images, $start_index, $progress['batch_size']);
+            $batch_results = $this->process_image_batch($batch_images);
+            
+            // Update progress
+            $progress['processed_images'] = $end_index;
+            $progress['current_batch'] = floor($end_index / $progress['batch_size']) + 1;
+            
+            $is_complete = $end_index >= count($images);
+            
+            set_transient(
+                $this->progress_key,
+                $progress,
+                HOUR_IN_SECONDS * 6
+            );
+            
+            // Calculate time remaining
+            $elapsed = current_time('timestamp') - $progress['start_time'];
+            $per_image = $elapsed / max(1, $progress['processed_images']);
+            $remaining_images = count($images) - $progress['processed_images'];
+            $remaining_seconds = ceil($per_image * $remaining_images);
+            $remaining_minutes = ceil($remaining_seconds / 60);
+            
+            wp_send_json_success(array(
+                'processed' => $progress['processed_images'],
+                'total' => count($images),
+                'current_batch' => $progress['current_batch'],
+                'total_batches' => $progress['total_batches'],
+                'percentage' => round(($progress['processed_images'] / count($images)) * 100, 1),
+                'remaining_minutes' => max(0, $remaining_minutes),
+                'is_complete' => $is_complete,
+                'batch_results' => $batch_results,
+            ));
+        } catch (\Exception $e) {
+            error_log('CoreBoost: Batch processing error: ' . $e->getMessage());
+            wp_send_json_error(array(
+                'message' => 'Batch processing failed: ' . $e->getMessage(),
+                'batch' => $progress['current_batch'],
+            ));
+        }
     }
     
     /**
@@ -304,6 +312,11 @@ class Bulk_Image_Converter {
             } catch (\Exception $e) {
                 error_log('CoreBoost bulk conversion error: ' . $e->getMessage());
                 $results['failed']++;
+            }
+            
+            // Free memory after each image to prevent memory exhaustion
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
             }
         }
         

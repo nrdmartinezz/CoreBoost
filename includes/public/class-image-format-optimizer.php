@@ -319,17 +319,35 @@ class Image_Format_Optimizer {
             return false;
         }
         
+        // Check file size to prevent memory issues with very large images
+        $file_size = filesize($image_path);
+        $max_size = 50 * 1024 * 1024; // 50MB limit
+        if ($file_size > $max_size) {
+            error_log("CoreBoost: Skipping large image ({$file_size} bytes): {$image_path}");
+            return false;
+        }
+        
         $file_ext = strtolower(pathinfo($image_path, PATHINFO_EXTENSION));
         
         try {
             if ($file_ext === 'png') {
                 // Load PNG - GD will handle transparency
                 // Don't force alpha handling as it can cause issues
-                return imagecreatefrompng($image_path);
+                $resource = @imagecreatefrompng($image_path);
+                if ($resource === false) {
+                    error_log("CoreBoost: Failed to load PNG: {$image_path}");
+                    return false;
+                }
+                return $resource;
                 
             } else if ($file_ext === 'jpg' || $file_ext === 'jpeg') {
                 // Load JPEG
-                return imagecreatefromjpeg($image_path);
+                $resource = @imagecreatefromjpeg($image_path);
+                if ($resource === false) {
+                    error_log("CoreBoost: Failed to load JPEG: {$image_path}");
+                    return false;
+                }
+                return $resource;
             }
             
             return false;
