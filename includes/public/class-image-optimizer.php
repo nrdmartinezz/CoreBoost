@@ -120,6 +120,7 @@ class Image_Optimizer {
         // Apply Phase 2 format optimization if enabled
         if (!empty($this->options['enable_image_format_conversion']) && $this->format_optimizer) {
             $html = $this->apply_format_optimization($html);
+            $html = $this->optimize_css_background_images($html);
         }
         
         return $html;
@@ -457,5 +458,93 @@ class Image_Optimizer {
         );
         
         return $html;
+    }
+    
+    /**
+     * Optimize CSS background images with modern formats
+     *
+     * Replaces background-image: url() with optimized AVIF/WebP variants.
+     * Uses CSS @supports rule for progressive enhancement.
+     *
+     * @param string $html HTML content
+     * @return string Modified HTML with optimized background images
+     */
+    private function optimize_css_background_images($html) {
+        // Find inline style tags
+        $html = preg_replace_callback(
+            '/<style[^>]*>(.*?)<\/style>/is',
+            function($matches) {
+                $css = $matches[1];
+                $optimized_css = $this->process_css_background_images($css);
+                return '<style' . (strpos($matches[0], ' ') !== false ? substr($matches[0], 6, strpos($matches[0], '>') - 6) : '') . '>' . $optimized_css . '</style>';
+            },
+            $html
+        );
+        
+        // Find inline style attributes
+        $html = preg_replace_callback(
+            '/style=["\']([^"\']*background-image[^"\']*)["\']/',
+            function($matches) {
+                $style = $matches[1];
+                $optimized_style = $this->process_css_background_images($style);
+                return 'style="' . esc_attr($optimized_style) . '"';
+            },
+            $html
+        );
+        
+        return $html;
+    }
+    
+    /**
+     * Process CSS to replace background-image URLs with optimized variants
+     *
+     * @param string $css CSS content
+     * @return string Optimized CSS with AVIF/WebP variants
+     */
+    private function process_css_background_images($css) {
+        // Match background-image: url() patterns
+        $css = preg_replace_callback(
+            '/background-image\s*:\s*url\(["\']?([^"\')\s]+)["\']?\)/i',
+            function($matches) {
+                $original_url = $matches[1];
+                
+                // Check if should optimize this image
+                if (!$this->format_optimizer->should_optimize_image($original_url)) {
+                    return $matches[0];
+                }
+                
+                // Check if variants exist
+                $avif_url = $this->format_optimizer->get_variant_from_cache($original_url, 'avif');
+                $webp_url = $this->format_optimizer->get_variant_from_cache($original_url, 'webp');
+                
+                // If no variants found, return original
+                if (!$avif_url && !$webp_url) {
+                    return $matches[0];
+                }
+                
+                // Build progressive enhancement CSS
+                $output = '';
+                
+                // Original as fallback
+                $output .= 'background-image: url(' . esc_url($original_url) . ');';
+                
+                // WebP with @supports
+                if ($webp_url) {
+                    $output .= ' background-image: -webkit-image-set(url(' . esc_url($webp_url) . ') 1x);';
+                    $output .= ' background-image: image-set(url(' . esc_url($webp_url) . ') 1x);';
+                }
+                
+                // AVIF with @supports (best compression)
+                if ($avif_url) {
+                    $output .= ' background-image: -webkit-image-set(url(' . esc_url($avif_url) . ') 1x);';
+                    $output .= ' background-image: image-set(url(' . esc_url($avif_url) . ') 1x);';
+                }
+                
+                return $output;
+            },
+            $css
+        );
+        
+        return $css;
     }
 }
