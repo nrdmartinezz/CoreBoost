@@ -572,17 +572,21 @@ class Image_Format_Optimizer {
             if (strpos($url, $site_url) === 0) {
                 // It's a local image - convert to path
                 $path = str_replace($site_url, '', $url);
-                return ABSPATH . ltrim($path, '/');
+                $result = ABSPATH . ltrim($path, '/');
+                // Normalize path separators for Windows
+                return str_replace('/', DIRECTORY_SEPARATOR, $result);
             }
         }
         
         // Handle relative paths
         if (strpos($url, '/') === 0) {
-            return ABSPATH . ltrim($url, '/');
+            $result = ABSPATH . ltrim($url, '/');
+            // Normalize path separators for Windows
+            return str_replace('/', DIRECTORY_SEPARATOR, $result);
         }
         
-        // Already a path
-        return $url;
+        // Already a path - normalize separators
+        return str_replace('/', DIRECTORY_SEPARATOR, $url);
     }
     
     /**
@@ -596,6 +600,10 @@ class Image_Format_Optimizer {
     private function path_to_url($path) {
         $site_url = home_url();
         $abspath = ABSPATH;
+        
+        // Normalize path separators (Windows compatibility)
+        $path = str_replace('\\', '/', $path);
+        $abspath = str_replace('\\', '/', $abspath);
         
         // Remove absolute path and make relative
         $relative = str_replace($abspath, '', $path);

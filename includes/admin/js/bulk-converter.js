@@ -595,7 +595,7 @@
                 // Update stats dashboard with initial data
                 updateStatsDashboard({
                     total: stats.count || 0,
-                    converted: 0, // We'll need to track this separately
+                    converted: stats.converted || 0,
                     orphaned: 0
                 });
             }
