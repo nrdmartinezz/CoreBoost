@@ -58,6 +58,8 @@ class Config {
             'add_width_height_attributes' => array('type' => 'checkbox', 'default' => false, 'description' => 'Automatically add width and height attributes to images to prevent Cumulative Layout Shift (CLS).'),
             'generate_aspect_ratio_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Generate CSS aspect-ratio rules for images to provide double protection against CLS during load.'),
             'add_decoding_async' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add decoding="async" to images to prevent render-blocking image decode operations.'),
+            // Image Optimization Fields (Phase 1.5 - Responsive Sizing)
+            'enable_responsive_image_resizing' => array('type' => 'checkbox', 'default' => false, 'description' => 'Generate appropriately-sized image variants to satisfy PageSpeed Insights "Properly size images" requirement. Images are resized on-demand in the background (no server performance impact). Requires "Generate AVIF/WebP Variants" to be enabled.'),
             // Image Optimization Fields (Phase 2 - Format Optimization)
             'enable_image_format_conversion' => array('type' => 'checkbox', 'default' => false, 'description' => 'Generate AVIF and WebP variants for optimal compression. Variants are created automatically on upload and can be bulk-generated for existing images using the Bulk Converter above. AVIF provides 20-30% better compression than WebP.'),
             'avif_quality' => array('type' => 'slider', 'default' => 85, 'min' => 75, 'max' => 95, 'step' => 1, 'description' => 'AVIF compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),

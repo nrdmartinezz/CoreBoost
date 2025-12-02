@@ -161,6 +161,9 @@ class Settings {
         $this->add_dynamic_field('generate_aspect_ratio_css', __('Generate Aspect Ratio CSS', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         $this->add_dynamic_field('add_decoding_async', __('Add Decoding="async"', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         
+        // Image Responsive Resizing (Phase 3 - PSI Compliance)
+        $this->add_dynamic_field('enable_responsive_image_resizing', __('Generate Responsive Sizes (PSI Compliance)', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
+        
         // Image Format Optimization Fields (Phase 2)
         $this->add_dynamic_field('enable_image_format_conversion', __('Generate AVIF/WebP Variants', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
         $this->add_dynamic_field('avif_quality', __('AVIF Quality', 'coreboost'), 'coreboost-images', 'coreboost_image_section');
@@ -506,8 +509,8 @@ class Settings {
                               'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
                               'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui',
                               'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes',
-                              'generate_aspect_ratio_css', 'add_decoding_async', 'enable_image_format_conversion',
-                              'cleanup_orphans_weekly'),
+                              'generate_aspect_ratio_css', 'add_decoding_async', 'enable_responsive_image_resizing',
+                              'enable_image_format_conversion', 'cleanup_orphans_weekly'),
             'textarea' => array('scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
                                'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids'),
             'text' => array('css_defer_method'),
@@ -549,7 +552,7 @@ class Settings {
                 }
                 if ($has_image_fields && in_array($field, array('enable_image_optimization', 'enable_lazy_loading', 
                     'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async',
-                    'enable_image_format_conversion', 'cleanup_orphans_weekly'))) {
+                    'enable_responsive_image_resizing', 'enable_image_format_conversion', 'cleanup_orphans_weekly'))) {
                     $is_current_form = true;
                 }
                 

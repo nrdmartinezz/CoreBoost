@@ -470,6 +470,125 @@ class Image_Format_Optimizer {
     }
     
     /**
+     * Render responsive picture tag with width descriptors
+     *
+     * Creates a <picture> element with responsive srcset using width descriptors
+     * for different screen sizes and pixel densities. Generates separate sources
+     * for AVIF and WebP formats with proper fallbacks.
+     *
+     * @param string $original_url Original image URL
+     * @param string $alt Alt text for image
+     * @param string $classes CSS classes for img tag
+     * @param array $attrs Additional attributes for img tag
+     * @param array $responsive_variants Responsive variants data from resizer
+     * @param int $rendered_width Rendered width for sizes attribute
+     * @return string HTML5 picture tag with responsive srcset
+     */
+    public function render_responsive_picture_tag($original_url, $alt = '', $classes = '', $attrs = array(), $responsive_variants = array(), $rendered_width = null) {
+        $html = '<picture>';
+        
+        // Get dimensions for fallback
+        $file_path = $this->url_to_path($original_url);
+        $dimensions = $this->get_image_dimensions($file_path);
+        
+        if (!empty($responsive_variants)) {
+            // Build AVIF srcset with width descriptors
+            $avif_srcset = array();
+            foreach ($responsive_variants as $variant) {
+                if (isset($variant['avif'])) {
+                    $avif_srcset[] = esc_url($variant['avif']) . ' ' . $variant['width'] . 'w';
+                }
+            }
+            
+            if (!empty($avif_srcset)) {
+                $srcset_string = implode(', ', $avif_srcset);
+                $sizes = $this->generate_sizes_attribute($rendered_width);
+                $html .= '<source srcset="' . $srcset_string . '" sizes="' . esc_attr($sizes) . '" type="image/avif">';
+            }
+            
+            // Build WebP srcset with width descriptors
+            $webp_srcset = array();
+            foreach ($responsive_variants as $variant) {
+                if (isset($variant['webp'])) {
+                    $webp_srcset[] = esc_url($variant['webp']) . ' ' . $variant['width'] . 'w';
+                }
+            }
+            
+            if (!empty($webp_srcset)) {
+                $srcset_string = implode(', ', $webp_srcset);
+                $sizes = $this->generate_sizes_attribute($rendered_width);
+                $html .= '<source srcset="' . $srcset_string . '" sizes="' . esc_attr($sizes) . '" type="image/webp">';
+            }
+        } else {
+            // Fallback to simple srcset (no responsive variants yet)
+            $avif_url = $this->get_variant_from_cache($original_url, 'avif');
+            if ($avif_url) {
+                $srcset = esc_url($avif_url) . ' 1x';
+                if ($dimensions) {
+                    $srcset .= ', ' . esc_url($avif_url) . ' 2x';
+                }
+                $html .= '<source srcset="' . $srcset . '" type="image/avif">';
+            }
+            
+            $webp_url = $this->get_variant_from_cache($original_url, 'webp');
+            if ($webp_url) {
+                $srcset = esc_url($webp_url) . ' 1x';
+                if ($dimensions) {
+                    $srcset .= ', ' . esc_url($webp_url) . ' 2x';
+                }
+                $html .= '<source srcset="' . $srcset . '" type="image/webp">';
+            }
+        }
+        
+        // Build img tag attributes
+        $img_attrs = 'src="' . esc_url($original_url) . '"';
+        $img_attrs .= ' alt="' . esc_attr($alt) . '"';
+        
+        if (!empty($classes)) {
+            $img_attrs .= ' class="' . esc_attr($classes) . '"';
+        }
+        
+        if ($dimensions) {
+            $img_attrs .= ' width="' . (int)$dimensions['width'] . '"';
+            $img_attrs .= ' height="' . (int)$dimensions['height'] . '"';
+        }
+        
+        // Add any additional attributes
+        foreach ($attrs as $key => $value) {
+            $img_attrs .= ' ' . esc_attr($key) . '="' . esc_attr($value) . '"';
+        }
+        
+        $html .= '<img ' . $img_attrs . '>';
+        $html .= '</picture>';
+        
+        return $html;
+    }
+    
+    /**
+     * Generate sizes attribute for responsive images
+     *
+     * Creates appropriate sizes attribute based on rendered width.
+     * Uses mobile-first approach with common breakpoints.
+     *
+     * @param int $rendered_width Rendered width in pixels
+     * @return string Sizes attribute value
+     */
+    private function generate_sizes_attribute($rendered_width) {
+        if (!$rendered_width) {
+            return '100vw';
+        }
+        
+        // Mobile-first approach
+        // Small screens: full width
+        // Medium screens (768px+): rendered width or full width if smaller
+        // Large screens: exact rendered width
+        return sprintf(
+            '(max-width: 768px) 100vw, %dpx',
+            (int)$rendered_width
+        );
+    }
+    
+    /**
      * Queue background variant generation
      *
      * Adds image to processing queue for non-blocking variant generation.

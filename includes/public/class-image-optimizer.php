@@ -55,6 +55,13 @@ class Image_Optimizer {
     private $lifecycle_manager;
     
     /**
+     * Image responsive resizer instance
+     *
+     * @var Image_Responsive_Resizer
+     */
+    private $responsive_resizer;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -68,6 +75,11 @@ class Image_Optimizer {
         if (!empty($options['enable_image_format_conversion'])) {
             $this->format_optimizer = new Image_Format_Optimizer($options);
             $this->lifecycle_manager = new Image_Variant_Lifecycle_Manager($options, $this->format_optimizer);
+            
+            // Initialize responsive resizer if enabled
+            if (!empty($options['enable_responsive_image_resizing'])) {
+                $this->responsive_resizer = new Image_Responsive_Resizer($options, $this->format_optimizer);
+            }
             
             // Register lifecycle hooks
             $this->lifecycle_manager->register_hooks($loader);
@@ -121,6 +133,12 @@ class Image_Optimizer {
         if (!empty($this->options['enable_image_format_conversion']) && $this->format_optimizer) {
             error_log("CoreBoost: Phase 2 format optimization enabled");
             $html = $this->apply_format_optimization($html);
+            
+            // Detect and queue oversized images for responsive resizing
+            if ($this->responsive_resizer) {
+                $this->responsive_resizer->detect_and_queue_oversized_images($html);
+            }
+            
             $html = $this->optimize_css_background_images($html);
             $html = $this->inject_css_overrides_inline($html);
         }
@@ -178,8 +196,24 @@ class Image_Optimizer {
                     ? $class_match[1] 
                     : '';
                 
-                // Render picture tag with variants
-                return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes);
+                // Extract width attribute for responsive sizing
+                $width_match = [];
+                $rendered_width = preg_match('/\s+width=["\']?([0-9]+)["\']?/i', $attrs, $width_match)
+                    ? (int)$width_match[1]
+                    : null;
+                
+                // Check for responsive variants
+                $responsive_variants = array();
+                if ($this->responsive_resizer) {
+                    $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
+                }
+                
+                // Render picture tag with variants (responsive if available)
+                if (!empty($responsive_variants)) {
+                    return $this->format_optimizer->render_responsive_picture_tag($src_url, $alt, $classes, array(), $responsive_variants, $rendered_width);
+                } else {
+                    return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes);
+                }
             },
             $html
         );
