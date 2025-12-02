@@ -656,3 +656,4 @@ class Image_Optimizer {
         
         return $html;
     }
+}
