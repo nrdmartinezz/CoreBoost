@@ -482,7 +482,6 @@
             
             // Add a small delay between batches to give server time to recover memory
             await new Promise(resolve => setTimeout(resolve, 1000));
-            }
         }
 
         // Check if stopped by user
