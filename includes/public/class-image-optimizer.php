@@ -627,27 +627,20 @@ class Image_Optimizer {
                 continue;
             }
             
-            // Find background images that can be optimized
-            $match_count = preg_match_all('/([^{]*)\{([^}]*background[^}]*url\([^)]+\)[^}]*)\}/is', $css_content, $matches, PREG_SET_ORDER);
+            // Process CSS to find and optimize background images
+            // Instead of trying to extract selectors from complex/minified CSS,
+            // we'll just replace URLs directly and inject the full CSS as override
+            $replacements_made = 0;
+            $optimized_css = $this->process_css_background_images($css_content, $replacements_made);
             
-            if ($match_count === 0) {
-                error_log("CoreBoost: No background image patterns found in CSS file: {$css_path} (" . strlen($css_content) . " bytes)");
+            if ($replacements_made > 0) {
+                // Wrap in a comment to identify the source file
+                $override_block = "/* CoreBoost optimized backgrounds from: " . basename($css_path) . " */\n" . $optimized_css;
+                $overrides[] = $override_block;
+                error_log("CoreBoost: Optimized {$replacements_made} background images in: " . basename($css_path));
+            } else {
+                error_log("CoreBoost: No optimizable background images found in: " . basename($css_path));
             }
-            
-            if ($match_count > 0) {
-                foreach ($matches as $match) {
-                    $selector = trim($match[1]);
-                    $declarations = $match[2];
-                    
-                    $replacements_made = 0;
-                    $optimized_declarations = $this->process_css_background_images($declarations, $replacements_made);
-                    
-                    if ($replacements_made > 0) {
-                        $overrides[] = $selector . ' { ' . $optimized_declarations . ' }';
-                        error_log("CoreBoost: Created override for selector: {$selector}");
-                    }
-                }
-            } // End if ($match_count > 0)
         }
         
         // Inject override styles before </head>
