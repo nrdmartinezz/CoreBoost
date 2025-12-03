@@ -23,6 +23,12 @@ if (!defined('ABSPATH')) {
 class GTM_Settings {
     
     /**
+     * Pre-compiled GTM Container ID validation pattern
+     * Format: GTM-XXXXXXX where X is alphanumeric
+     */
+    const PATTERN_GTM_ID = '/^GTM-[A-Z0-9]+$/';
+    
+    /**
      * Plugin options
      *
      * @var array
@@ -164,7 +170,7 @@ class GTM_Settings {
         echo '<p class="description">' . __('Enter your Google Tag Manager container ID (format: GTM-XXXXXXX).', 'coreboost') . '</p>';
         
         if (!empty($value)) {
-            $valid = preg_match('/^GTM-[A-Z0-9]+$/', $value);
+            $valid = preg_match(self::PATTERN_GTM_ID, $value);
             if ($valid) {
                 echo '<p class="description" style="color: #46b450;">Ã¢Å“â€œ ' . __('Valid container ID format', 'coreboost') . '</p>';
             } else {
@@ -255,7 +261,7 @@ class GTM_Settings {
             
             if (!empty($container_id)) {
                 // Field has content - validate format
-                if (preg_match('/^GTM-[A-Z0-9]+$/', $container_id)) {
+                if (preg_match(self::PATTERN_GTM_ID, $container_id)) {
                     $sanitized['gtm_container_id'] = $container_id;
                 } else {
                     // Invalid format - only show error if GTM is enabled

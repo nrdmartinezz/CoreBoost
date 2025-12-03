@@ -15,6 +15,8 @@
 
 namespace CoreBoost\PublicCore;
 
+use CoreBoost\Core\Path_Helper;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -387,15 +389,15 @@ class Image_Format_Optimizer {
      */
     public function get_variant_from_cache($image_url, $format = 'avif') {
         // Convert URL to path
-        $file_path = $this->url_to_path($image_url);
+        $file_path = Path_Helper::url_to_path($image_url);
         
         // Get variant path
-        $variant_path = $this->get_variant_path($file_path, $format);
+        $variant_path = Path_Helper::get_variant_path($file_path, $format);
         
         // Check if variant exists
         if (file_exists($variant_path)) {
             // Convert back to URL
-            return $this->path_to_url($variant_path);
+            return Path_Helper::path_to_url($variant_path);
         }
         
         return null;
@@ -420,8 +422,8 @@ class Image_Format_Optimizer {
         $html = '<picture>';
         
         // Get dimensions for srcset
-        $file_path = $this->url_to_path($original_url);
-        $dimensions = $this->get_image_dimensions($file_path);
+        $file_path = Path_Helper::url_to_path($original_url);
+        $dimensions = Path_Helper::get_image_dimensions($file_path);
         
         // AVIF source (primary)
         $avif_url = $this->get_variant_from_cache($original_url, 'avif');
@@ -488,8 +490,8 @@ class Image_Format_Optimizer {
         $html = '<picture>';
         
         // Get dimensions for fallback
-        $file_path = $this->url_to_path($original_url);
-        $dimensions = $this->get_image_dimensions($file_path);
+        $file_path = Path_Helper::url_to_path($original_url);
+        $dimensions = Path_Helper::get_image_dimensions($file_path);
         
         if (!empty($responsive_variants)) {
             // Build AVIF srcset with width descriptors
@@ -663,7 +665,7 @@ class Image_Format_Optimizer {
      */
     public function generate_variants($image_url, $formats = array('avif', 'webp')) {
         // Convert URL to path
-        $file_path = $this->url_to_path($image_url);
+        $file_path = Path_Helper::url_to_path($image_url);
         
         // Validate file exists
         if (!file_exists($file_path)) {
@@ -693,121 +695,7 @@ class Image_Format_Optimizer {
     }
     
     /**
-     * Get image dimensions from file
-     *
-     * Extracts width and height from image file.
-     * Uses WordPress getimagesize or GD functions.
-     *
-     * @param string $file_path Local file path
-     * @return array|false Array with 'width' and 'height' keys, or false
-     */
-    private function get_image_dimensions($file_path) {
-        if (!file_exists($file_path)) {
-            return false;
-        }
-        
-        $size = getimagesize($file_path);
-        if ($size && isset($size[0]) && isset($size[1])) {
-            return array(
-                'width' => (int)$size[0],
-                'height' => (int)$size[1]
-            );
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Convert image URL to local file path
-     *
-     * Handles absolute URLs, relative paths, and WordPress URLs.
-     *
-     * @param string $url Image URL or path
-     * @return string Local file path
-     */
-    private function url_to_path($url) {
-        // Handle absolute URLs
-        if (strpos($url, 'http') === 0) {
-            $site_url = home_url();
-            if (strpos($url, $site_url) === 0) {
-                // It's a local image - convert to path
-                $path = str_replace($site_url, '', $url);
-                $result = ABSPATH . ltrim($path, '/');
-                // Normalize path separators for Windows
-                return str_replace('/', DIRECTORY_SEPARATOR, $result);
-            }
-        }
-        
-        // Handle relative paths
-        if (strpos($url, '/') === 0) {
-            $result = ABSPATH . ltrim($url, '/');
-            // Normalize path separators for Windows
-            return str_replace('/', DIRECTORY_SEPARATOR, $result);
-        }
-        
-        // Already a path - normalize separators
-        return str_replace('/', DIRECTORY_SEPARATOR, $url);
-    }
-    
-    /**
-     * Convert local file path to URL
-     *
-     * Converts filesystem path back to URL for use in HTML.
-     *
-     * @param string $path Local file path
-     * @return string Image URL
-     */
-    private function path_to_url($path) {
-        $site_url = home_url();
-        $abspath = ABSPATH;
-        
-        // Normalize path separators (Windows compatibility)
-        $path = str_replace('\\', '/', $path);
-        $abspath = str_replace('\\', '/', $abspath);
-        
-        // Remove absolute path and make relative
-        $relative = str_replace($abspath, '', $path);
-        $relative = ltrim($relative, '/');
-        
-        // Combine with site URL
-        return $site_url . '/' . $relative;
-    }
-    
-    /**
-     * Get variant file path for image
-     *
-     * Constructs the path where variant should be stored.
-     * Format: /coreboost-variants/[relative-path]/[filename].ext
-     * Matches the structure used by bulk converter.
-     *
-     * @param string $image_path Original image path
-     * @param string $format Format: 'avif' or 'webp'
-     * @return string Full path to variant file
-     */
-    private function get_variant_path($image_path, $format = 'avif') {
-        if (!function_exists('wp_upload_dir')) {
-            return '';
-        }
-        
-        $upload_dir = wp_upload_dir();
-        $variants_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
-        
-        // Normalize path separators for consistent comparison
-        $image_path_normalized = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $image_path);
-        $uploads_base = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $upload_dir['basedir']);
-        
-        // Get relative path from uploads folder
-        $relative_path = str_replace($uploads_base . DIRECTORY_SEPARATOR, '', $image_path_normalized);
-        $path_info = pathinfo($relative_path);
-        
-        // Build variant path: /coreboost-variants/[dirname]/[filename].ext
-        $variant_path = $variants_dir . $path_info['dirname'] . DIRECTORY_SEPARATOR . $path_info['filename'] . '.' . $format;
-        
-        return $variant_path;
-    }
-    
-    /**
-     * Estimate size savings from format conversion
+     * Convert image URL to local file pathnversion
      *
      * Calculates compression savings by comparing file sizes.
      * Useful for reporting optimization results.

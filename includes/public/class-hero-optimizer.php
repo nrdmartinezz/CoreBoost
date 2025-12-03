@@ -35,6 +35,17 @@ class Hero_Optimizer {
     private $loader;
     
     /**
+     * Pre-compiled regex patterns for video URL parsing
+     * Compiled once in constructor for performance
+     */
+    private $pattern_youtube_short;
+    private $pattern_youtube_watch;
+    private $pattern_youtube_embed;
+    private $pattern_youtube_fallback;
+    private $pattern_vimeo;
+    private $pattern_video_file;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -43,6 +54,15 @@ class Hero_Optimizer {
     public function __construct($options, $loader) {
         $this->options = $options;
         $this->loader = $loader;
+        
+        // Pre-compile regex patterns for video URL parsing (eliminates runtime compilation)
+        $this->pattern_youtube_short = '/youtu\.be\/([a-zA-Z0-9_-]{11})/';
+        $this->pattern_youtube_watch = '/youtube\.com.*[?&]v=([a-zA-Z0-9_-]{11})/';
+        $this->pattern_youtube_embed = '/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/';
+        $this->pattern_youtube_fallback = '/\/(?:v|e(?:mbed)?)\/([a-zA-Z0-9_-]{11})/';
+        $this->pattern_vimeo = '/vimeo\.com\/([0-9]+)/';
+        $this->pattern_video_file = '/\.(mp4|webm|ogg)$/i';
+        
         // Only register on frontend
         if (!is_admin()) {
             $this->define_hooks();
@@ -62,8 +82,7 @@ class Hero_Optimizer {
      */
     public function preload_hero_images() {
         // Safety check: don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview) || $this->options['preload_method'] === 'disabled') {
+        if (Context_Helper::should_skip_optimization() || $this->options['preload_method'] === 'disabled') {
             return;
         }
         
@@ -348,19 +367,19 @@ class Hero_Optimizer {
         
         // Try multiple YouTube URL regex patterns
         // Pattern 1: youtu.be/VIDEO_ID
-        if (preg_match('/youtu\.be\/([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+        if (preg_match($this->pattern_youtube_short, $url, $matches)) {
             $video_id = $matches[1];
         }
         // Pattern 2: youtube.com/watch?v=VIDEO_ID
-        elseif (preg_match('/youtube\.com.*[?&]v=([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+        elseif (preg_match($this->pattern_youtube_watch, $url, $matches)) {
             $video_id = $matches[1];
         }
         // Pattern 3: youtube.com/embed/VIDEO_ID
-        elseif (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+        elseif (preg_match($this->pattern_youtube_embed, $url, $matches)) {
             $video_id = $matches[1];
         }
         // Pattern 4: General fallback for /v/ or other YouTube URL formats
-        elseif (preg_match('/\/(?:v|e(?:mbed)?)\/([a-zA-Z0-9_-]{11})/', $url, $matches)) {
+        elseif (preg_match($this->pattern_youtube_fallback, $url, $matches)) {
             $video_id = $matches[1];
         }
         
@@ -381,7 +400,7 @@ class Hero_Optimizer {
      */
     private function extract_vimeo_thumbnail_url($url) {
         // Extract Vimeo video ID
-        if (preg_match('/vimeo\.com\/([0-9]+)/', $url, $matches)) {
+        if (preg_match($this->pattern_vimeo, $url, $matches)) {
             $video_id = $matches[1];
             
             // Vimeo requires API call to get thumbnail - would need to cache or async fetch
@@ -678,7 +697,7 @@ class Hero_Optimizer {
             return 'youtube';
         } elseif (strpos($url, 'vimeo.com') !== false) {
             return 'vimeo';
-        } elseif (preg_match('/\.(mp4|webm|ogg)$/i', $url)) {
+        } elseif (preg_match($this->pattern_video_file, $url)) {
             return 'hosted';
         }
         return 'unknown';

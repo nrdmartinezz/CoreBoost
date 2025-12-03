@@ -16,6 +16,8 @@
 
 namespace CoreBoost\PublicCore;
 
+use CoreBoost\Core\Path_Helper;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -91,7 +93,7 @@ class Image_Responsive_Resizer {
             $image_url = $match[1];
             
             // Skip if not a local image
-            if (!$this->is_local_image($image_url)) {
+            if (!Path_Helper::is_local_url($image_url)) {
                 continue;
             }
             
@@ -104,7 +106,7 @@ class Image_Responsive_Resizer {
             }
             
             // Get actual image dimensions from original file
-            $file_path = $this->url_to_path($image_url);
+            $file_path = Path_Helper::url_to_path($image_url);
             if (!file_exists($file_path)) {
                 continue;
             }
@@ -148,10 +150,10 @@ class Image_Responsive_Resizer {
                     "CoreBoost: Queued oversized image - Actual: %dx%d (%s), Rendered: %dx%d, Estimated savings: %s",
                     $actual_width,
                     $actual_height,
-                    $this->format_bytes($served_size),
+                    Path_Helper::format_bytes($served_size),
                     $rendered_width,
                     $rendered_height,
-                    $this->format_bytes($estimated_savings)
+                    Path_Helper::format_bytes($estimated_savings)
                 ));
             }
         }
@@ -224,7 +226,7 @@ class Image_Responsive_Resizer {
      * @return bool True if at least one variant generated
      */
     public function handle_background_resize($image_url, $rendered_width, $rendered_height) {
-        $file_path = $this->url_to_path($image_url);
+        $file_path = Path_Helper::url_to_path($image_url);
         
         if (!file_exists($file_path)) {
             error_log("CoreBoost: Resize failed - file not found: {$file_path}");
@@ -347,7 +349,7 @@ class Image_Responsive_Resizer {
         }
         
         // Generate output path with width descriptor
-        $resized_path = $this->get_responsive_variant_path($file_path, $width);
+        $resized_path = Path_Helper::get_variant_path($file_path, pathinfo($file_path, PATHINFO_EXTENSION), $width);
         
         // Create directory if needed
         $output_dir = dirname($resized_path);
@@ -382,7 +384,7 @@ class Image_Responsive_Resizer {
      * @return array Array of variants: ['width' => int, 'avif' => url, 'webp' => url]
      */
     public function get_available_responsive_variants($image_url) {
-        $file_path = $this->url_to_path($image_url);
+        $file_path = Path_Helper::url_to_path($image_url);
         $upload_dir = wp_upload_dir();
         $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
         
@@ -419,7 +421,7 @@ class Image_Responsive_Resizer {
                 }
                 
                 // Convert path to URL
-                $variants[$width][$format] = $this->path_to_url($file);
+                $variants[$width][$format] = Path_Helper::path_to_url($file);
             }
         }
         
@@ -430,40 +432,7 @@ class Image_Responsive_Resizer {
     }
     
     /**
-     * Get responsive variant path with width descriptor
-     *
-     * @param string $file_path Original image path
-     * @param int $width Width of variant
-     * @return string Path to variant file
-     */
-    private function get_responsive_variant_path($file_path, $width) {
-        $upload_dir = wp_upload_dir();
-        $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
-        
-        // Get relative path from uploads
-        $relative_path = str_replace($upload_dir['basedir'] . DIRECTORY_SEPARATOR, '', $file_path);
-        $path_info = pathinfo($relative_path);
-        
-        // Build path: /coreboost-variants/{year}/{month}/{filename}-{width}w.{ext}
-        $variant_path = $variants_base . $path_info['dirname'] . DIRECTORY_SEPARATOR . 
-                       $path_info['filename'] . '-' . $width . 'w.' . $path_info['extension'];
-        
-        return $variant_path;
-    }
-    
-    /**
      * Check if image is local (not external CDN)
-     *
-     * @param string $image_url Image URL
-     * @return bool True if local image
-     */
-    private function is_local_image($image_url) {
-        $site_url = home_url();
-        return strpos($image_url, $site_url) === 0;
-    }
-    
-    /**
-     * Extract attribute value from HTML tag
      *
      * @param string $tag HTML tag
      * @param string $attribute Attribute name
@@ -480,48 +449,7 @@ class Image_Responsive_Resizer {
     }
     
     /**
-     * Convert image URL to local file path
-     *
-     * @param string $url Image URL
-     * @return string Local file path
-     */
-    private function url_to_path($url) {
-        $site_url = home_url();
-        
-        if (strpos($url, $site_url) === 0) {
-            $path = str_replace($site_url, '', $url);
-            $result = ABSPATH . ltrim($path, '/');
-            return str_replace('/', DIRECTORY_SEPARATOR, $result);
-        }
-        
-        // Handle relative paths
-        if (strpos($url, '/') === 0) {
-            $result = ABSPATH . ltrim($url, '/');
-            return str_replace('/', DIRECTORY_SEPARATOR, $result);
-        }
-        
-        return str_replace('/', DIRECTORY_SEPARATOR, $url);
-    }
-    
-    /**
-     * Convert local file path to URL
-     *
-     * @param string $path Local file path
-     * @return string Image URL
-     */
-    private function path_to_url($path) {
-        $site_url = home_url();
-        $abspath = str_replace('\\', '/', ABSPATH);
-        $path = str_replace('\\', '/', $path);
-        
-        $relative = str_replace($abspath, '', $path);
-        $relative = ltrim($relative, '/');
-        
-        return $site_url . '/' . $relative;
-    }
-    
-    /**
-     * Get path to the variant file that's actually being served
+     * Convert local file path to URLhat's actually being served
      *
      * Checks for AVIF variant first (best compression), then WebP,
      * then falls back to original. This ensures we calculate savings
@@ -558,18 +486,4 @@ class Image_Responsive_Resizer {
         return $original_path;
     }
     
-    /**
-     * Format bytes into human-readable string
-     *
-     * @param int $bytes Number of bytes
-     * @return string Formatted string (e.g., "62.3 KiB")
-     */
-    private function format_bytes($bytes) {
-        if ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 1) . ' MiB';
-        } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 1) . ' KiB';
-        }
-        return $bytes . ' B';
-    }
 }

@@ -100,8 +100,7 @@ class Font_Optimizer {
      */
     public function add_font_preconnects() {
         // Don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
         

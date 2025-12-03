@@ -8,8 +8,8 @@
 
 namespace CoreBoost\PublicCore;
 
-
 use CoreBoost\Core\GTM_Detector;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -178,7 +178,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      */
     public function output_delay_script() {
         // CRITICAL: Don't output in Elementor preview/AJAX
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
+        if (Context_Helper::is_elementor_preview()) {
             return;
         }
         
