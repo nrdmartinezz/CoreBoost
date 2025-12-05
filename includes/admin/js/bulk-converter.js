@@ -679,8 +679,13 @@
 
             const data = await response.json();
             
+            console.log('CoreBoost: loadInitialStats received data:', data);
+            
             if (data.success && data.data) {
                 const stats = data.data;
+                
+                console.log('CoreBoost: Stats from server:', stats);
+                console.log('CoreBoost: Converted count:', stats.converted);
                 
                 // Update initial image count
                 if (elements.imageCountText && stats.count) {
@@ -689,6 +694,7 @@
                 
                 // Update the images converted counter with actual count from scan
                 if (elements.imagesConvertedText && stats.converted !== undefined) {
+                    console.log('CoreBoost: Setting imagesConvertedText to:', stats.converted);
                     elements.imagesConvertedText.textContent = stats.converted;
                     state.imagesConverted = stats.converted;
                 }

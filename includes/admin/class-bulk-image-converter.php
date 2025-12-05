@@ -116,10 +116,11 @@ class Bulk_Image_Converter {
         
         error_log('CoreBoost: ajax_scan_uploads called');
         error_log('CoreBoost: format_optimizer: ' . ($this->format_optimizer ? 'initialized' : 'NULL'));
-        error_log('CoreBoost: options: ' . print_r($this->options, true));
         
         $images = $this->scan_uploads_folder();
         $count = count($images);
+        
+        error_log('CoreBoost: Scanned ' . $count . ' images');
         
         if ($count === 0) {
             wp_send_json_success(array(
@@ -136,8 +137,11 @@ class Bulk_Image_Converter {
         $start_conversion = filter_input(INPUT_POST, 'start_conversion', FILTER_SANITIZE_FULL_SPECIAL_CHARS) === 'true';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         
+        error_log('CoreBoost: start_conversion flag: ' . ($start_conversion ? 'true' : 'false'));
+        
         // Only delete existing variants when starting a new conversion
         if ($start_conversion) {
+            error_log('CoreBoost: Deleting existing variants before conversion');
             $this->delete_existing_variants();
         }
         
@@ -167,6 +171,8 @@ class Bulk_Image_Converter {
         
         // Count how many images already have variants
         $converted_count = $this->count_converted_images($images);
+        
+        error_log('CoreBoost: Sending response - Total: ' . $count . ', Converted: ' . $converted_count);
         
         wp_send_json_success(array(
             'count' => $count,
@@ -428,6 +434,8 @@ class Bulk_Image_Converter {
         $uploads_path = $upload_dir['basedir'];
         $images = array();
         
+        error_log('CoreBoost: Scanning uploads directory: ' . $uploads_path);
+        
         try {
             // Recursive directory scan
             $iterator = new \RecursiveIteratorIterator(
@@ -447,6 +455,8 @@ class Bulk_Image_Converter {
         } catch (\Exception $e) {
             error_log('CoreBoost: Error scanning uploads folder: ' . $e->getMessage());
         }
+        
+        error_log('CoreBoost: Found ' . count($images) . ' images to process');
         
         return $images;
     }
@@ -539,25 +549,34 @@ class Bulk_Image_Converter {
      */
     private function count_converted_images($images) {
         if (!$this->format_optimizer) {
+            error_log('CoreBoost: count_converted_images - format_optimizer is null');
             return 0;
         }
         
         $upload_dir = wp_upload_dir();
         $variants_dir = $upload_dir['basedir'] . '/coreboost-variants/';
         
+        error_log('CoreBoost: Checking variants directory: ' . $variants_dir);
+        
         if (!is_dir($variants_dir)) {
+            error_log('CoreBoost: Variants directory does not exist');
             return 0;
         }
         
         $converted_count = 0;
         
         foreach ($images as $image_path) {
+            // Normalize path separators for Windows/Unix compatibility
+            $image_path = str_replace('\\', '/', $image_path);
+            $upload_basedir = str_replace('\\', '/', $upload_dir['basedir']);
+            
             // Get relative path from uploads folder
-            $relative_path = str_replace($upload_dir['basedir'] . '/', '', $image_path);
+            $relative_path = str_replace($upload_basedir . '/', '', $image_path);
             $path_info = pathinfo($relative_path);
             
-            // Build variant path
-            $variant_base = $variants_dir . $path_info['dirname'] . '/' . $path_info['filename'];
+            // Build variant path - ensure no double slashes
+            $variant_dir = $variants_dir . $path_info['dirname'];
+            $variant_base = $variant_dir . '/' . $path_info['filename'];
             
             // Check if either AVIF or WebP variant exists
             $avif_exists = file_exists($variant_base . '.avif');
@@ -565,8 +584,11 @@ class Bulk_Image_Converter {
             
             if ($avif_exists || $webp_exists) {
                 $converted_count++;
+                error_log('CoreBoost: Found variant for: ' . $path_info['basename'] . ' (AVIF: ' . ($avif_exists ? 'yes' : 'no') . ', WebP: ' . ($webp_exists ? 'yes' : 'no') . ')');
             }
         }
+        
+        error_log('CoreBoost: Total converted images found: ' . $converted_count . ' out of ' . count($images));
         
         return $converted_count;
     }
