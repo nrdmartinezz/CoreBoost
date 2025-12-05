@@ -56,10 +56,12 @@ class Context_Helper {
         }
         
         // Check GET parameter (fallback)
-        if (isset($_GET['elementor-preview']) && !empty($_GET['elementor-preview'])) {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
+        if (filter_input(INPUT_GET, 'elementor-preview', FILTER_SANITIZE_STRING)) {
             self::$is_elementor_preview = true;
             return true;
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         
         // Check Elementor's own constants/methods
         if (defined('ELEMENTOR_VERSION')) {

@@ -183,9 +183,11 @@ class Bulk_Converter_Test {
      * @param array $data Data to simulate
      */
     private function simulate_post_data($data) {
+        // phpcs:disable WordPress.Security.ValidatedSanitizedInput
         foreach ($data as $key => $value) {
             $_POST[$key] = $value;
         }
+        // phpcs:enable WordPress.Security.ValidatedSanitizedInput
     }
     
     public function test_error_handling() {

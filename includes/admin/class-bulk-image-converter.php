@@ -132,7 +132,9 @@ class Bulk_Image_Converter {
         $batch_info = $this->calculate_batch_strategy($count);
         
         // Check if this is a start_conversion request (delete variants) or just a stats check (keep variants)
-        $start_conversion = isset($_POST['start_conversion']) && $_POST['start_conversion'] === 'true';
+        // phpcs:disable WordPress.Security.NonceVerification.Missing
+        $start_conversion = filter_input(INPUT_POST, 'start_conversion', FILTER_SANITIZE_STRING) === 'true';
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         
         // Only delete existing variants when starting a new conversion
         if ($start_conversion) {
