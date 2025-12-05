@@ -687,6 +687,12 @@
                     elements.imageCountText.textContent = stats.count;
                 }
                 
+                // Update the images converted counter with actual count from scan
+                if (elements.imagesConvertedText && stats.converted !== undefined) {
+                    elements.imagesConvertedText.textContent = stats.converted;
+                    state.imagesConverted = stats.converted;
+                }
+                
                 // Update stats dashboard with initial data
                 updateStatsDashboard({
                     total: stats.count || 0,

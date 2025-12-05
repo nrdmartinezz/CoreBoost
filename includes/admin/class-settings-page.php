@@ -76,6 +76,8 @@ class Settings_Page {
                     <?php do_settings_sections('coreboost-images'); ?>
                 <?php elseif ($active_tab == 'tags'): ?>
                     <?php do_settings_sections('coreboost-tags'); ?>
+                <?php elseif ($active_tab == 'gtm'): ?>
+                    <?php do_settings_sections('coreboost-gtm'); ?>
                 <?php elseif ($active_tab == 'advanced'): ?>
                     <?php do_settings_sections('coreboost-advanced'); ?>
                 <?php endif; ?>
@@ -110,6 +112,9 @@ class Settings_Page {
             </a>
             <a href="?page=coreboost&tab=tags" class="nav-tab <?php echo $active_tab == 'tags' ? 'nav-tab-active' : ''; ?>">
                 <?php _e('Custom Tags', 'coreboost'); ?>
+            </a>
+            <a href="?page=coreboost&tab=gtm" class="nav-tab <?php echo $active_tab == 'gtm' ? 'nav-tab-active' : ''; ?>">
+                <?php _e('Google Tag Manager', 'coreboost'); ?>
             </a>
             <a href="?page=coreboost&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>">
                 <?php _e('Advanced Settings', 'coreboost'); ?>
@@ -173,6 +178,24 @@ class Settings_Page {
                 </ul>
                 <h4><?php _e('Important Notes', 'coreboost'); ?></h4>
                 <p><?php _e('The load strategy applies to all tags. Always test your tracking after changes.', 'coreboost'); ?></p>
+            <?php elseif ($active_tab == 'gtm'): ?>
+                <h3><?php _e('Google Tag Manager Guide', 'coreboost'); ?></h3>
+                <ul>
+                    <li><strong><?php _e('Enable GTM Management:', 'coreboost'); ?></strong> <?php _e('Let CoreBoost manage your GTM container', 'coreboost'); ?></li>
+                    <li><strong><?php _e('Container ID:', 'coreboost'); ?></strong> <?php _e('Format: GTM-XXXXXXX (find in GTM dashboard)', 'coreboost'); ?></li>
+                    <li><strong><?php _e('Load Strategy:', 'coreboost'); ?></strong>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li><strong>Immediate:</strong> <?php _e('Standard loading (no delay)', 'coreboost'); ?></li>
+                            <li><strong>Balanced:</strong> <?php _e('3 second delay (recommended)', 'coreboost'); ?></li>
+                            <li><strong>Aggressive:</strong> <?php _e('5 second delay (maximum performance)', 'coreboost'); ?></li>
+                            <li><strong>On Interaction:</strong> <?php _e('Loads when user interacts (click, scroll)', 'coreboost'); ?></li>
+                            <li><strong>On Idle:</strong> <?php _e('Loads when browser is idle', 'coreboost'); ?></li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="notice notice-warning inline">
+                    <p><strong><?php _e('⚠️ Important:', 'coreboost'); ?></strong> <?php _e('If you enable GTM here, remove any GTM code from the Custom Tags tab to avoid duplicate loading.', 'coreboost'); ?></p>
+                </div>
             <?php elseif ($active_tab == 'advanced'): ?>
                 <h3><?php _e('Cache Management', 'coreboost'); ?></h3>
                 <p>
@@ -204,6 +227,7 @@ class Settings_Page {
                           'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'),
             'images' => array('enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async'),
             'tags' => array('tag_head_scripts', 'tag_body_scripts', 'tag_footer_scripts', 'tag_load_strategy', 'tag_custom_delay'),
+            'gtm' => array('gtm_enabled', 'gtm_container_id', 'gtm_load_strategy', 'gtm_custom_delay'),
             'advanced' => array('enable_caching', 'enable_unused_css_removal', 'unused_css_list', 'enable_unused_js_removal', 
                                'unused_js_list', 'enable_inline_script_removal', 'inline_script_ids', 
                                'enable_inline_style_removal', 'inline_style_ids', 'smart_youtube_blocking',

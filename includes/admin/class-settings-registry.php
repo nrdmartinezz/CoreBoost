@@ -51,6 +51,13 @@ class Settings_Registry {
     private $tag_settings;
     
     /**
+     * GTM Settings instance
+     *
+     * @var GTM_Settings
+     */
+    private $gtm_settings;
+    
+    /**
      * Script Settings instance
      *
      * @var Script_Settings
@@ -74,6 +81,7 @@ class Settings_Registry {
         $this->options = $options;
         $this->renderer = $renderer;
         $this->tag_settings = new Tag_Settings($options);
+        $this->gtm_settings = new GTM_Settings($options);
         $this->script_settings = new Script_Settings($options);
         $this->advanced_settings = new Advanced_Optimization_Settings($options);
     }
@@ -86,6 +94,7 @@ class Settings_Registry {
         
         // Register delegated settings
         $this->tag_settings->register_settings();
+        $this->gtm_settings->register_settings();
         $this->script_settings->register_settings();
         $this->advanced_settings->register_settings();
         
