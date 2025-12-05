@@ -8,7 +8,7 @@
 
 namespace CoreBoost\PublicCore;
 
-
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {

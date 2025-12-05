@@ -235,19 +235,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var events = ['mousedown', 'mousemove', 'touchstart', 'scroll', 'keydown'];
     var loaded = false;
     
-    function onInteraction() {
+    function onInteraction(e) {
         if (!loaded) {
             loaded = true;
-            loadGTM();
+            // Use setTimeout to ensure we don't block the event
+            setTimeout(function() {
+                loadGTM();
+            }, 0);
             // Remove listeners
             events.forEach(function(event) {
                 window.removeEventListener(event, onInteraction);
             });
         }
+        // Explicitly return undefined to avoid async listener issues
+        return;
     }
     
     events.forEach(function(event) {
-        window.addEventListener(event, onInteraction, { passive: true });
+        window.addEventListener(event, onInteraction, { passive: true, once: false });
     });
     
     // Fallback timeout

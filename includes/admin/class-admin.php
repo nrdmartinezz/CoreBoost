@@ -10,6 +10,7 @@ namespace CoreBoost\Admin;
 
 use CoreBoost\Core\Config;
 use CoreBoost\Core\Cache_Manager;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -99,6 +100,9 @@ class Admin {
         $this->loader->add_action('wp_ajax_coreboost_clear_cache', $this, 'ajax_clear_cache');
         $this->loader->add_action('wp_ajax_coreboost_clear_hero_preload_cache', $this, 'ajax_clear_hero_preload_cache');
         
+        // AJAX error logging
+        $this->loader->add_action('wp_ajax_coreboost_log_error', $this, 'ajax_log_error');
+        
         // Frontend cache clearing handler
         $this->loader->add_action('init', $this, 'handle_frontend_cache_clear');
     }
@@ -136,6 +140,13 @@ class Admin {
         
         // Enqueue on settings page for enhanced functionality
         if ($hook === 'settings_page_coreboost') {
+            // Enqueue error logger first (other scripts may depend on it)
+            wp_enqueue_script('coreboost-error-logger', COREBOOST_PLUGIN_URL . 'assets/error-logger.js', array(), COREBOOST_VERSION, true);
+            
+            // Enable debug mode if WP_DEBUG is on or plugin debug mode is enabled
+            $debug_mode = (defined('WP_DEBUG') && WP_DEBUG) || !empty($this->options['debug_mode']);
+            wp_add_inline_script('coreboost-error-logger', 'window.coreBoostDebug = ' . ($debug_mode ? 'true' : 'false') . ';', 'before');
+            
             wp_enqueue_script('coreboost-settings', COREBOOST_PLUGIN_URL . 'assets/settings.js', array('jquery'), COREBOOST_VERSION, true);
             wp_enqueue_style('coreboost-admin-style', COREBOOST_PLUGIN_URL . 'assets/admin.css', array(), COREBOOST_VERSION);
             
@@ -144,7 +155,7 @@ class Admin {
             
             // Enqueue bulk converter assets ONLY on images tab
             if ($current_tab === 'images') {
-                wp_enqueue_script('coreboost-bulk-converter', COREBOOST_PLUGIN_URL . 'includes/admin/js/bulk-converter.js', array(), COREBOOST_VERSION, true);
+                wp_enqueue_script('coreboost-bulk-converter', COREBOOST_PLUGIN_URL . 'includes/admin/js/bulk-converter.js', array('coreboost-error-logger'), COREBOOST_VERSION, true);
                 wp_enqueue_style('coreboost-bulk-converter-style', COREBOOST_PLUGIN_URL . 'includes/admin/css/bulk-converter.css', array(), COREBOOST_VERSION);
                 
                 // Localize script to provide ajaxurl for bulk converter
@@ -302,5 +313,74 @@ class Admin {
         wp_send_json_success(array(
             'message' => __('Hero preload cache cleared successfully!', 'coreboost')
         ));
+    }
+
+    /**
+     * AJAX handler for logging client-side errors
+     */
+    public function ajax_log_error() {
+        // Verify nonce
+        $nonce = filter_input(INPUT_POST, 'nonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        if (!$nonce || !wp_verify_nonce($nonce, 'coreboost_bulk_converter') && !wp_verify_nonce($nonce, 'coreboost_clear_cache_nonce')) {
+            wp_send_json_error(__('Security check failed', 'coreboost'));
+            return;
+        }
+        
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Insufficient permissions', 'coreboost'));
+            return;
+        }
+        
+        // Get error data
+        $error_data = filter_input(INPUT_POST, 'error_data', FILTER_UNSAFE_RAW);
+        if (!$error_data) {
+            wp_send_json_error(__('No error data provided', 'coreboost'));
+            return;
+        }
+        
+        // Decode JSON
+        $error = json_decode($error_data, true);
+        if (!$error) {
+            wp_send_json_error(__('Invalid error data', 'coreboost'));
+            return;
+        }
+        
+        // Log to PHP error log if debug mode is enabled
+        if (defined('WP_DEBUG') && WP_DEBUG && defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
+            error_log(sprintf(
+                'CoreBoost Client Error [%s]: %s - %s | Context: %s | URL: %s',
+                $error['category'] ?? 'unknown',
+                $error['operation'] ?? 'unknown',
+                $error['message'] ?? 'no message',
+                json_encode($error['context'] ?? []),
+                $error['url'] ?? 'unknown'
+            ));
+        }
+        
+        // Store critical errors in database for later review
+        if (!empty($error['errorName']) && in_array($error['errorName'], ['AbortError', 'NetworkError', 'TimeoutError'])) {
+            $option_name = 'coreboost_critical_errors';
+            $errors = get_option($option_name, []);
+            
+            // Keep only last 50 errors
+            if (count($errors) >= 50) {
+                array_shift($errors);
+            }
+            
+            $errors[] = [
+                'timestamp' => current_time('mysql'),
+                'category' => $error['category'] ?? 'unknown',
+                'operation' => $error['operation'] ?? 'unknown',
+                'message' => $error['message'] ?? 'no message',
+                'error_name' => $error['errorName'] ?? 'Error',
+                'url' => $error['url'] ?? 'unknown',
+                'context' => $error['context'] ?? []
+            ];
+            
+            update_option($option_name, $errors, false);
+        }
+        
+        wp_send_json_success(['logged' => true]);
     }
 }

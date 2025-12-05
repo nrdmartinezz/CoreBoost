@@ -199,6 +199,9 @@
      */
     async function clearCacheAfterConversion() {
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
             const response = await fetch(config.ajaxurl, {
                 method: 'POST',
                 headers: {
@@ -208,13 +211,31 @@
                     action: 'coreboost_clear_cache',
                     nonce: config.nonce,
                 }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+
             const data = await response.json();
             if (data.success) {
                 console.log('Cache cleared successfully after bulk conversion');
             }
         } catch (error) {
-            console.warn('Could not clear cache:', error);
+            if (error.name === 'AbortError') {
+                console.warn('Cache clear timed out after 30 seconds');
+                if (window.CoreBoostErrorLogger) {
+                    window.CoreBoostErrorLogger.logError('cache', 'clearCacheAfterConversion', error, { timeout: 30000 });
+                }
+            } else {
+                console.warn('Could not clear cache:', error);
+                if (window.CoreBoostErrorLogger) {
+                    window.CoreBoostErrorLogger.logError('cache', 'clearCacheAfterConversion', error);
+                }
+            }
         }
     }
 
@@ -336,6 +357,9 @@
      * Scan uploads folder for images to convert
      */
     function scanImages() {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 1 minute timeout
+
         return fetch(config.ajaxurl, {
             method: 'POST',
             headers: {
@@ -346,13 +370,34 @@
                 _wpnonce: config.nonce,
                 start_conversion: 'true',
             }),
+            signal: controller.signal
         })
-        .then(response => response.json())
+        .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
             if (!data.success) {
                 throw new Error(data.data?.message || 'Failed to scan images');
             }
             return data.data;
+        })
+        .catch(error => {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                const timeoutError = new Error('Scan timed out after 1 minute');
+                if (window.CoreBoostErrorLogger) {
+                    window.CoreBoostErrorLogger.logError('conversion', 'scanImages', timeoutError, { timeout: 60000 });
+                }
+                throw timeoutError;
+            }
+            if (window.CoreBoostErrorLogger) {
+                window.CoreBoostErrorLogger.logError('conversion', 'scanImages', error, { operation: 'fetch' });
+            }
+            throw error;
         });
     }
 
@@ -420,6 +465,11 @@
             // Begin async batch processing
             await processAllBatches();
         } catch (error) {
+            if (window.CoreBoostErrorLogger) {
+                window.CoreBoostErrorLogger.logError('conversion', 'startConversion', error, {
+                    operation: 'initial scan'
+                });
+            }
             showError('Error scanning images: ' + error.message);
         }
     }
@@ -436,6 +486,10 @@
             state.currentBatch++;
 
             try {
+                // Create AbortController with timeout to prevent hanging requests
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
                 const response = await fetch(config.ajaxurl, {
                     method: 'POST',
                     headers: {
@@ -446,7 +500,14 @@
                         batch: state.currentBatch,
                         _wpnonce: config.nonce,
                     }),
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
 
                 const data = await response.json();
 
@@ -476,8 +537,28 @@
 
             } catch (error) {
                 // Log error but continue processing remaining batches
-                console.error('Error processing batch ' + state.currentBatch + ':', error.message);
+                if (error.name === 'AbortError') {
+                    console.error('Batch ' + state.currentBatch + ' timed out after 2 minutes');
+                    if (window.CoreBoostErrorLogger) {
+                        window.CoreBoostErrorLogger.logError('conversion', 'processBatch', error, {
+                            batch: state.currentBatch,
+                            totalBatches: state.totalBatches,
+                            timeout: 120000
+                        });
+                    }
+                } else {
+                    console.error('Error processing batch ' + state.currentBatch + ':', error.message);
+                    if (window.CoreBoostErrorLogger) {
+                        window.CoreBoostErrorLogger.logError('conversion', 'processBatch', error, {
+                            batch: state.currentBatch,
+                            totalBatches: state.totalBatches
+                        });
+                    }
+                }
                 totalFailed += state.batchSize;
+                
+                // Add delay after error to prevent rapid-fire failures
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
             
             // Add a small delay between batches to give server time to recover memory
@@ -575,6 +656,9 @@
      */
     async function loadInitialStats() {
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
             const response = await fetch(config.ajaxurl, {
                 method: 'POST',
                 headers: {
@@ -584,8 +668,15 @@
                     action: 'coreboost_scan_uploads',
                     _wpnonce: config.nonce,
                 }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
             
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+
             const data = await response.json();
             
             if (data.success && data.data) {
@@ -604,7 +695,17 @@
                 });
             }
         } catch (error) {
-            console.warn('Could not load initial statistics:', error);
+            if (error.name === 'AbortError') {
+                console.warn('Loading initial statistics timed out after 30 seconds');
+                if (window.CoreBoostErrorLogger) {
+                    window.CoreBoostErrorLogger.logError('stats', 'loadInitialStats', error, { timeout: 30000 });
+                }
+            } else {
+                console.warn('Could not load initial statistics:', error);
+                if (window.CoreBoostErrorLogger) {
+                    window.CoreBoostErrorLogger.logError('stats', 'loadInitialStats', error);
+                }
+            }
         }
     }
 

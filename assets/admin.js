@@ -9,16 +9,17 @@ jQuery(document).ready(function($) {
         // Update link text to show clearing status
         $link.text(coreboost_ajax.clearing_text);
         
-        // Perform AJAX request
+        // Perform AJAX request with timeout
         $.ajax({
             url: coreboost_ajax.ajax_url,
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'coreboost_clear_cache',
                 nonce: coreboost_ajax.nonce
             },
             success: function(response) {
-                if (response.success) {
+                if (response && response.success) {
                     $link.text(coreboost_ajax.cleared_text);
                     
                     // Show success message if we're on the admin page
@@ -37,7 +38,24 @@ jQuery(document).ready(function($) {
                     }, 2000);
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                if (status === 'timeout') {
+                    console.warn('CoreBoost: Cache clear request timed out after 30 seconds');
+                    if (window.CoreBoostErrorLogger) {
+                        window.CoreBoostErrorLogger.logError('ajax', 'clearCache', new Error('Request timeout'), {
+                            timeout: 30000,
+                            status: status
+                        });
+                    }
+                } else {
+                    console.warn('CoreBoost: Cache clear failed:', error);
+                    if (window.CoreBoostErrorLogger) {
+                        window.CoreBoostErrorLogger.logError('ajax', 'clearCache', error, {
+                            status: status,
+                            statusCode: xhr.status
+                        });
+                    }
+                }
                 $link.text(coreboost_ajax.error_text);
                 setTimeout(function() {
                     $link.text(originalText);

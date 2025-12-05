@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    cacheResultFile="tests/.phpunit.cache/test-results"
+    executionOrder="depends,defects"
+    forceCoversAnnotation="false"
+    beStrictAboutOutputDuringTests="false"
+    beStrictAboutTodoAnnotatedTests="true"
+    failOnRisky="false"
+    failOnWarning="false"
+    verbose="true">
+    <testsuites>
+        <testsuite name="CoreBoost Test Suite">
+            <directory>tests/unit</directory>
+        </testsuite>
+    </testsuites>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">includes</directory>
+        </include>
+        <exclude>
+            <directory>includes/admin/js</directory>
+            <directory>includes/admin/css</directory>
+        </exclude>
+        <report>
+            <clover outputFile="tests/coverage/clover.xml"/>
+            <html outputDirectory="tests/coverage/html"/>
+        </report>
+    </coverage>
+    <php>
+        <const name="PHPUNIT_RUNNING" value="true"/>
+        <ini name="display_errors" value="1"/>
+        <ini name="error_reporting" value="E_ALL"/>
+    </php>
+</phpunit>
