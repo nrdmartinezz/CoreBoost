@@ -9,6 +9,7 @@
 namespace CoreBoost;
 
 use CoreBoost\Admin\Admin;
+use CoreBoost\Core\Context_Helper;
 use CoreBoost\PublicCore\Hero_Optimizer;
 use CoreBoost\PublicCore\Script_Optimizer;
 use CoreBoost\PublicCore\CSS_Optimizer;
