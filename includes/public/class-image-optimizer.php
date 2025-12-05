@@ -90,7 +90,7 @@ class Image_Optimizer {
         $this->pattern_img_loading = '/\s+loading=/i';
         $this->pattern_img_class = '/class=["\']([^"\']*)["\']/';
         $this->pattern_img_decoding = '/\s+decoding=/i';
-        $this->pattern_img_alt = '/\s+alt=["\']?([^"\']*)["\'/i';
+        $this->pattern_img_alt = '/\s+alt=["\']?([^"\']*)["\']?/i';
         
         // Initialize Phase 2 components if format conversion enabled
         if (!empty($options['enable_image_format_conversion'])) {
