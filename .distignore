@@ -38,6 +38,10 @@ coreboost.php.backup
 /.phpunit.result.cache
 /composer.json
 /composer.lock
+/IMAGE_CONVERSION_FIX.md
+/IMPLEMENTATION_SUMMARY.md
+/TESTING_CHECKLIST.md
+.phpunit.cache
 
 # Build files
 /build
