@@ -28,7 +28,7 @@ class ImageFormatOptimizerTest extends TestCase {
         
         // Create temporary directory for test images
         $this->temp_dir = sys_get_temp_dir() . '/coreboost-test-' . uniqid();
-        wp_mkdir_p($this->temp_dir);
+        \wp_mkdir_p($this->temp_dir);
         
         // Initialize optimizer with default options
         $this->optimizer = new Image_Format_Optimizer([
@@ -52,7 +52,7 @@ class ImageFormatOptimizerTest extends TestCase {
         $this->removeDirRecursive($this->temp_dir);
         
         // Clean up variants directory
-        $variants_dir = wp_upload_dir()['basedir'] . '/coreboost-variants';
+        $variants_dir = \wp_upload_dir()['basedir'] . '/coreboost-variants';
         if (is_dir($variants_dir)) {
             $this->removeDirRecursive($variants_dir);
         }
@@ -396,7 +396,7 @@ class ImageFormatOptimizerTest extends TestCase {
         $dir = dirname($filepath);
         
         if (!is_dir($dir)) {
-            wp_mkdir_p($dir);
+            \wp_mkdir_p($dir);
         }
         
         $image = imagecreatetruecolor($width, $height);

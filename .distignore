@@ -41,6 +41,7 @@ coreboost.php.backup
 /IMAGE_CONVERSION_FIX.md
 /IMPLEMENTATION_SUMMARY.md
 /TESTING_CHECKLIST.md
+/TEST_RESULTS.md
 .phpunit.cache
 
 # Build files

@@ -133,7 +133,7 @@ class Bulk_Image_Converter {
         
         // Check if this is a start_conversion request (delete variants) or just a stats check (keep variants)
         // phpcs:disable WordPress.Security.NonceVerification.Missing
-        $start_conversion = filter_input(INPUT_POST, 'start_conversion', FILTER_SANITIZE_STRING) === 'true';
+        $start_conversion = filter_input(INPUT_POST, 'start_conversion', FILTER_SANITIZE_FULL_SPECIAL_CHARS) === 'true';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         
         // Only delete existing variants when starting a new conversion
@@ -222,6 +222,10 @@ class Bulk_Image_Converter {
             
             // Process batch
             $batch_images = array_slice($images, $start_index, $progress['batch_size']);
+            
+            // Debug: Log what we're processing
+            error_log("CoreBoost: Processing batch of " . count($batch_images) . " images starting at index $start_index");
+            
             $batch_results = $this->process_image_batch($batch_images);
             
             // Update progress
@@ -300,25 +304,38 @@ class Bulk_Image_Converter {
         }
         
         foreach ($image_paths as $image_path) {
-            if (!$this->format_optimizer->should_optimize_image($image_path)) {
-                $results['skipped']++;
-                continue;
-            }
-            
             try {
+                // Log current image being processed
+                error_log("CoreBoost: Processing image: $image_path");
+                
+                if (!$this->format_optimizer->should_optimize_image($image_path)) {
+                    $results['skipped']++;
+                    error_log("CoreBoost: Skipped image: $image_path (should_optimize_image returned false)");
+                    continue;
+                }
+                
                 // Generate AVIF variant
+                error_log("CoreBoost: Generating AVIF for: $image_path");
                 $avif = $this->format_optimizer->generate_avif_variant($image_path);
                 
                 // Generate WebP variant
+                error_log("CoreBoost: Generating WebP for: $image_path");
                 $webp = $this->format_optimizer->generate_webp_variant($image_path);
                 
                 if ($avif || $webp) {
                     $results['success']++;
+                    error_log("CoreBoost: Success for $image_path - AVIF: " . ($avif ? 'YES' : 'NO') . ", WebP: " . ($webp ? 'YES' : 'NO'));
                 } else {
                     $results['failed']++;
+                    error_log("CoreBoost: Failed for $image_path - both AVIF and WebP returned null");
                 }
             } catch (\Exception $e) {
                 error_log('CoreBoost bulk conversion error: ' . $e->getMessage());
+                error_log('CoreBoost: Stack trace: ' . $e->getTraceAsString());
+                $results['failed']++;
+            } catch (\Error $e) {
+                error_log('CoreBoost: Fatal error processing image ' . $image_path . ': ' . $e->getMessage());
+                error_log('CoreBoost: Stack trace: ' . $e->getTraceAsString());
                 $results['failed']++;
             }
             

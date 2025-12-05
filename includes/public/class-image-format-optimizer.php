@@ -158,7 +158,7 @@ class Image_Format_Optimizer {
             $file_path = $image_url;
         } else {
             // Convert URL to path
-            $file_path = $this->url_to_path($image_url);
+            $file_path = Path_Helper::url_to_path($image_url);
             
             // Check if file exists locally
             if (!file_exists($file_path)) {
@@ -180,7 +180,7 @@ class Image_Format_Optimizer {
         }
         
         // Get image dimensions
-        $dimensions = $this->get_image_dimensions($file_path);
+        $dimensions = Path_Helper::get_image_dimensions($file_path);
         if (!$dimensions) {
             return false;
         }
@@ -203,6 +203,11 @@ class Image_Format_Optimizer {
      * @return string|null Path to generated AVIF file, or null on error
      */
     public function generate_avif_variant($image_path) {
+        // Validate input
+        if (empty($image_path) || !is_string($image_path)) {
+            return null;
+        }
+        
         // Validate file exists
         if (!file_exists($image_path)) {
             return null;
@@ -215,7 +220,7 @@ class Image_Format_Optimizer {
         
         try {
             // Generate output path
-            $output_path = $this->get_variant_path($image_path, 'avif');
+            $output_path = Path_Helper::get_variant_path($image_path, 'avif');
             
             // Create directory if needed
             $output_dir = dirname($output_path);
@@ -262,6 +267,11 @@ class Image_Format_Optimizer {
      * @return string|null Path to generated WebP file, or null on error
      */
     public function generate_webp_variant($image_path) {
+        // Validate input
+        if (empty($image_path) || !is_string($image_path)) {
+            return null;
+        }
+        
         // Validate file exists
         if (!file_exists($image_path)) {
             return null;
@@ -274,7 +284,7 @@ class Image_Format_Optimizer {
         
         try {
             // Generate output path
-            $output_path = $this->get_variant_path($image_path, 'webp');
+            $output_path = Path_Helper::get_variant_path($image_path, 'webp');
             
             // Create directory if needed
             $output_dir = dirname($output_path);

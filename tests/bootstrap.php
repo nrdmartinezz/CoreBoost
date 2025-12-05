@@ -14,9 +14,11 @@ define('COREBOOST_TESTING', true);
 define('ABSPATH', dirname(__DIR__) . '/');
 define('WP_CONTENT_DIR', ABSPATH . 'wp-content');
 define('WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins');
+define('COREBOOST_PLUGIN_DIR', dirname(__DIR__) . '/');
 
 // Autoloader for CoreBoost classes
 require_once dirname(__DIR__) . '/includes/class-autoloader.php';
+\CoreBoost\Autoloader::register();
 
 /**
  * Mock WordPress Functions
@@ -85,6 +87,36 @@ if (!function_exists('esc_html')) {
 if (!function_exists('sanitize_text_field')) {
     function sanitize_text_field($str) {
         return strip_tags($str);
+    }
+}
+
+if (!function_exists('wp_check_filetype')) {
+    function wp_check_filetype($filename, $mimes = null) {
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        
+        $types = array(
+            'jpg|jpeg|jpe' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'avif' => 'image/avif',
+        );
+        
+        foreach ($types as $exts => $mime) {
+            if (preg_match('!(^|\\|)' . preg_quote($ext) . '($|\\|)!', $exts)) {
+                return array(
+                    'ext' => $ext,
+                    'type' => $mime,
+                    'proper_filename' => false,
+                );
+            }
+        }
+        
+        return array(
+            'ext' => false,
+            'type' => false,
+            'proper_filename' => false,
+        );
     }
 }
 

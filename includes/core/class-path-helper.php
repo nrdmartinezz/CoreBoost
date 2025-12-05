@@ -151,6 +151,12 @@ class Path_Helper {
         
         // Get relative path from uploads folder
         $relative_path = str_replace($uploads_base . DIRECTORY_SEPARATOR, '', $image_path_normalized);
+        
+        // If the image isn't in uploads dir, just use the basename
+        if ($relative_path === $image_path_normalized) {
+            $relative_path = basename($image_path);
+        }
+        
         $path_info = pathinfo($relative_path);
         
         // Build filename with optional width descriptor
@@ -161,7 +167,9 @@ class Path_Helper {
         $filename .= '.' . $format;
         
         // Build variant path: /coreboost-variants/[dirname]/[filename].ext
-        $variant_path = $variants_dir . $path_info['dirname'] . DIRECTORY_SEPARATOR . $filename;
+        // Handle case where dirname is '.' (current directory)
+        $dirname = ($path_info['dirname'] === '.' || $path_info['dirname'] === '') ? '' : $path_info['dirname'] . DIRECTORY_SEPARATOR;
+        $variant_path = $variants_dir . $dirname . $filename;
         
         return $variant_path;
     }

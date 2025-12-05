@@ -57,7 +57,7 @@ class Context_Helper {
         
         // Check GET parameter (fallback)
         // phpcs:disable WordPress.Security.NonceVerification.Recommended
-        if (filter_input(INPUT_GET, 'elementor-preview', FILTER_SANITIZE_STRING)) {
+        if (filter_input(INPUT_GET, 'elementor-preview', FILTER_SANITIZE_FULL_SPECIAL_CHARS)) {
             self::$is_elementor_preview = true;
             return true;
         }
