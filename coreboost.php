@@ -52,20 +52,23 @@ require_once COREBOOST_PLUGIN_DIR . 'includes/class-autoloader.php';
 CoreBoost\Autoloader::register();
 
 /**
- * Initialize GitHub-based updates
+ * Initialize GitHub-based updates (if available)
  */
-require_once COREBOOST_PLUGIN_DIR . 'vendor/yahnis-elsts/plugin-update-checker/plugin-update-checker.php';
-use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+$updateCheckerPath = COREBOOST_PLUGIN_DIR . 'vendor/yahnis-elsts/plugin-update-checker/plugin-update-checker.php';
+if (file_exists($updateCheckerPath)) {
+    require_once $updateCheckerPath;
+    use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
-$updateChecker = PucFactory::buildUpdateChecker(
-    'https://github.com/nrdmartinezz/CoreBoost',
-    __FILE__,
-    'coreboost'
-);
+    $updateChecker = PucFactory::buildUpdateChecker(
+        'https://github.com/nrdmartinezz/CoreBoost',
+        __FILE__,
+        'coreboost'
+    );
 
-// Use GitHub releases
-$updateChecker->setBranch('main');
-$updateChecker->getVcsApi()->enableReleaseAssets();
+    // Use GitHub releases
+    $updateChecker->setBranch('main');
+    $updateChecker->getVcsApi()->enableReleaseAssets();
+}
 
 /**
  * Load Phase 5 classes (Analytics & Dashboard)
