@@ -17,6 +17,10 @@ This release introduces automatic GitHub-based updates, fixes critical async err
 
 #### Automatic Update System
 - **GitHub-based automatic updates** via Plugin Update Checker library
+- **Private repository support** with GitHub token authentication
+  - Set `COREBOOST_GITHUB_TOKEN` in `wp-config.php` for private repos
+  - Or use `GITHUB_TOKEN` environment variable for CI/CD
+  - See `UPDATE_SYSTEM.md` for detailed setup instructions
 - **Version tracking** system stores `coreboost_version` option to detect upgrades
 - **Database migration system** with version-specific upgrade routines
   - v2.0.2 migration: GTM → Generic tags conversion

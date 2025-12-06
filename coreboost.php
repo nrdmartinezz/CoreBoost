@@ -53,21 +53,45 @@ CoreBoost\Autoloader::register();
 
 /**
  * Initialize GitHub-based updates (if available)
+ * Note: For private repositories, ensure GITHUB_TOKEN environment variable is set
+ * or manually add authentication in wp-config.php:
+ * define('COREBOOST_GITHUB_TOKEN', 'your-github-token');
  */
 $updateCheckerPath = COREBOOST_PLUGIN_DIR . 'vendor/yahnis-elsts/plugin-update-checker/plugin-update-checker.php';
 if (file_exists($updateCheckerPath)) {
     require_once $updateCheckerPath;
     use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
-    $updateChecker = PucFactory::buildUpdateChecker(
-        'https://github.com/nrdmartinezz/CoreBoost',
-        __FILE__,
-        'coreboost'
-    );
+    try {
+        $updateChecker = PucFactory::buildUpdateChecker(
+            'https://github.com/nrdmartinezz/CoreBoost',
+            __FILE__,
+            'coreboost'
+        );
 
-    // Use GitHub releases
-    $updateChecker->setBranch('main');
-    $updateChecker->getVcsApi()->enableReleaseAssets();
+        // Set authentication for private repositories
+        // Check for GitHub token in wp-config.php constant first, then environment variable
+        $githubToken = defined('COREBOOST_GITHUB_TOKEN') ? COREBOOST_GITHUB_TOKEN : getenv('GITHUB_TOKEN');
+        
+        if (!empty($githubToken)) {
+            $updateChecker->setAuthentication($githubToken);
+        }
+
+        // Use GitHub releases
+        $updateChecker->setBranch('main');
+        
+        // Only enable release assets if we can access them
+        try {
+            $updateChecker->getVcsApi()->enableReleaseAssets();
+        } catch (Exception $e) {
+            // Release assets may not be available for private repos without proper auth
+            error_log('CoreBoost: Could not enable release assets: ' . $e->getMessage());
+        }
+    } catch (Exception $e) {
+        // Silently fail if update checker can't be initialized
+        // Plugin will still function normally
+        error_log('CoreBoost: Update checker initialization failed: ' . $e->getMessage());
+    }
 }
 
 /**

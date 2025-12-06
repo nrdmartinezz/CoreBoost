@@ -51,3 +51,72 @@ Removes all plugin data when deleted via WordPress admin.
 5. GitHub Actions automatically creates release with ZIP
 
 ## Sites will receive the update automatically within 12 hours.
+
+## Private Repository Setup
+
+If your CoreBoost repository is private, you need to configure GitHub authentication to enable automatic updates.
+
+### Option 1: Environment Variable (Recommended for CI/CD)
+
+Set the `GITHUB_TOKEN` environment variable on your server:
+
+```bash
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Or in `.htaccess` (if using Apache):
+
+```apache
+SetEnv GITHUB_TOKEN ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Option 2: WordPress Configuration (Recommended for Managed Hosting)
+
+Add to your `wp-config.php`:
+
+```php
+define('COREBOOST_GITHUB_TOKEN', 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+```
+
+### Creating a GitHub Personal Access Token
+
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Select scopes:
+   - `repo` (full control of private repositories)
+   - `read:user` (read user profile data)
+4. Generate and copy the token
+5. Store securely (never commit to version control)
+
+### Verification
+
+After setting up authentication:
+
+1. Check WordPress debug log: `wp-content/debug.log`
+2. Look for messages like: "CoreBoost: Update checker initialized successfully"
+3. Go to WordPress Admin → Plugins and check for update notifications
+4. Wait up to 12 hours for the update check transient to expire
+
+### Troubleshooting Private Repo Updates
+
+**Error: "Could not determine if updates are available"**
+- Check GitHub token is valid: https://api.github.com/user (should return user info)
+- Verify token has `repo` scope
+- Check token is not expired
+- Check `wp-content/debug.log` for specific error messages
+
+**Error: "Base URL: "/repos/:user/:repo/releases/latest", HTTP status code: 404"**
+- Repository URL may be incorrect
+- Token may not have proper permissions
+- Repository may not have any releases yet
+
+**Fix: Make Repository Public (Alternative)**
+
+For simpler setup without authentication:
+
+1. Go to GitHub repository settings
+2. Scroll to "Danger zone"
+3. Click "Make this repository public"
+4. Update checks will work immediately without authentication
+
+---
