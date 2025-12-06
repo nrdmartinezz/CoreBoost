@@ -22,8 +22,22 @@ class Deactivator {
      * Deactivate the plugin
      */
     public static function deactivate() {
+        // Unschedule cron jobs
+        self::unschedule_cron_events();
+        
         // Flush caches
         self::flush_caches();
+    }
+    
+    /**
+     * Unschedule WP-Cron events
+     */
+    private static function unschedule_cron_events() {
+        // Unschedule weekly orphan cleanup
+        $timestamp = wp_next_scheduled('coreboost_cleanup_orphaned_variants');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'coreboost_cleanup_orphaned_variants');
+        }
     }
     
     /**

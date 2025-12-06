@@ -3,7 +3,7 @@
  * Plugin Name: CoreBoost
  * Plugin URI: https://github.com/nrdmartinezz/coreboost
  * Description: Comprehensive site optimization plugin with LCP optimization for Elementor hero sections, advanced CSS deferring with critical CSS, Google Fonts & Adobe Fonts optimization, script optimization, and performance enhancements.
- * Version: 3.0.0
+ * Version: 3.0.6
  * Author: nrdmartinezz
  * Author URI: https://github.com/nrdmartinezz
  * License: GPL v2 or later
@@ -35,7 +35,7 @@ if (!empty($elementor_preview) || (defined('DOING_AJAX') && DOING_AJAX && !empty
 }
 
 // Define plugin constants
-define('COREBOOST_VERSION', '3.0.0');
+define('COREBOOST_VERSION', '3.0.6');
 
 define('COREBOOST_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('COREBOOST_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -50,6 +50,22 @@ require_once COREBOOST_PLUGIN_DIR . 'includes/class-autoloader.php';
  * Register the autoloader
  */
 CoreBoost\Autoloader::register();
+
+/**
+ * Initialize GitHub-based updates
+ */
+require_once COREBOOST_PLUGIN_DIR . 'vendor/yahnis-elsts/plugin-update-checker/plugin-update-checker.php';
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$updateChecker = PucFactory::buildUpdateChecker(
+    'https://github.com/nrdmartinezz/CoreBoost',
+    __FILE__,
+    'coreboost'
+);
+
+// Use GitHub releases
+$updateChecker->setBranch('main');
+$updateChecker->getVcsApi()->enableReleaseAssets();
 
 /**
  * Load Phase 5 classes (Analytics & Dashboard)
