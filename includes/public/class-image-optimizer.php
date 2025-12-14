@@ -16,6 +16,8 @@
 
 namespace CoreBoost\PublicCore;
 
+use CoreBoost\Core\Path_Helper;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -239,8 +241,8 @@ class Image_Optimizer {
                 
                 // Apply format optimization (AVIF/WebP) if enabled
                 if ($enable_format && $this->format_optimizer->should_optimize_image($src_url)) {
-                    // Strip WordPress size suffix to find original image variants
-                    $original_src = preg_replace('/-\d+x\d+(-scaled)?\.(jpg|jpeg|png|gif|webp)$/i', '.$2', $src_url);
+                    // Get original image URL using WordPress attachment functions (more reliable than regex)
+                    $original_src = $this->get_original_image_url($src_url);
                     
                     // Check for variants (using original image URL)
                     $avif_url = $this->format_optimizer->get_variant_from_cache($original_src, 'avif');
@@ -350,6 +352,45 @@ class Image_Optimizer {
         }
         
         return false;
+    }
+    
+    /**
+     * Get original image URL from potentially resized image URL
+     *
+     * Uses WordPress attachment functions to reliably find original image.
+     * Falls back to regex stripping for non-attachment images.
+     *
+     * @param string $image_url Image URL (may include WP size suffix)
+     * @return string Original image URL without size suffix
+     */
+    private function get_original_image_url($image_url) {
+        // Try WordPress attachment lookup first (most reliable)
+        $attachment_id = attachment_url_to_postid($image_url);
+        
+        if ($attachment_id) {
+            // Get original file path
+            $original_path = get_attached_file($attachment_id);
+            
+            if ($original_path && file_exists($original_path)) {
+                // Check for -scaled version (WP 5.3+)
+                if (function_exists('wp_get_original_image_path')) {
+                    $unscaled_path = wp_get_original_image_path($attachment_id);
+                    if ($unscaled_path && file_exists($unscaled_path)) {
+                        $original_path = $unscaled_path;
+                    }
+                }
+                
+                return Path_Helper::path_to_url($original_path);
+            }
+        }
+        
+        // Fallback: Strip WordPress size suffix with regex (for non-attachment images)
+        // Pattern: image-300x200.jpg -> image.jpg
+        // Pattern: image-300x200-scaled.jpg -> image.jpg
+        $stripped = preg_replace('/-\d+x\d+(-scaled)?(\.(jpg|jpeg|png|gif|webp))$/i', '$2', $image_url);
+        
+        // If regex didn't match (no size suffix), return original URL
+        return ($stripped !== $image_url) ? $stripped : $image_url;
     }
     
     /**

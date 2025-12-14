@@ -16,6 +16,7 @@
 namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Path_Helper;
+use CoreBoost\Core\Variant_Cache;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -398,16 +399,25 @@ class Image_Format_Optimizer {
      * @return string|null URL to variant file, or null if not found
      */
     public function get_variant_from_cache($image_url, $format = 'avif') {
-        // Convert URL to path
-        $file_path = Path_Helper::url_to_path($image_url);
+        // Layer 1 & 2: Check runtime and persistent cache
+        $cached_url = Variant_Cache::get_variant($image_url, $format);
+        if ($cached_url !== null) {
+            return $cached_url;
+        }
         
-        // Get variant path
+        // Layer 3: Filesystem fallback (cache miss - warm cache on hit)
+        $file_path = Path_Helper::url_to_path($image_url);
         $variant_path = Path_Helper::get_variant_path($file_path, $format);
         
-        // Check if variant exists
+        // Check if variant exists on filesystem
         if (file_exists($variant_path)) {
             // Convert back to URL
-            return Path_Helper::path_to_url($variant_path);
+            $variant_url = Path_Helper::path_to_url($variant_path);
+            
+            // Warm both cache layers for future requests
+            Variant_Cache::set_variant($image_url, $format, $variant_url);
+            
+            return $variant_url;
         }
         
         return null;

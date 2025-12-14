@@ -15,6 +15,9 @@
 
 namespace CoreBoost\Admin;
 
+use CoreBoost\Core\Path_Helper;
+use CoreBoost\Core\Variant_Cache;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -331,6 +334,16 @@ class Bulk_Image_Converter {
                 if ($avif || $webp) {
                     $results['success']++;
                     error_log("CoreBoost: Success for $image_path - AVIF: " . ($avif ? 'YES' : 'NO') . ", WebP: " . ($webp ? 'YES' : 'NO'));
+                    
+                    // Populate variant cache (zero overhead - variants already generated)
+                    $original_url = Path_Helper::path_to_url($image_path);
+                    $avif_url = $avif ? Path_Helper::path_to_url($avif) : null;
+                    $webp_url = $webp ? Path_Helper::path_to_url($webp) : null;
+                    
+                    Variant_Cache::set_variants($original_url, array(
+                        'avif' => $avif_url,
+                        'webp' => $webp_url
+                    ));
                 } else {
                     $results['failed']++;
                     error_log("CoreBoost: Failed for $image_path - both AVIF and WebP returned null");

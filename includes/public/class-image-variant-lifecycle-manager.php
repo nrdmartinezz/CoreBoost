@@ -15,6 +15,9 @@
 
 namespace CoreBoost\PublicCore;
 
+use CoreBoost\Core\Path_Helper;
+use CoreBoost\Core\Variant_Cache;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -167,10 +170,15 @@ class Image_Variant_Lifecycle_Manager {
         // Delete variants for this image
         $deleted_count = $this->delete_variants_for_image($file);
         
+        // Invalidate cache for this image
+        $file_url = Path_Helper::path_to_url($file);
+        Variant_Cache::delete_variants($file_url);
+        
         if ($deleted_count > 0) {
             $this->audit_log('delete_variants', $attachment_id, array(
                 'deleted_variants' => $deleted_count,
                 'file' => basename($file),
+                'cache_invalidated' => true,
             ));
         }
     }
@@ -200,12 +208,17 @@ class Image_Variant_Lifecycle_Manager {
         // Delete old variants (will be regenerated)
         $deleted_count = $this->delete_variants_for_image($file);
         
+        // Invalidate cache for this image
+        $file_url = Path_Helper::path_to_url($file);
+        Variant_Cache::delete_variants($file_url);
+        
         // Queue regeneration
         $this->format_optimizer->queue_background_generation($file, array('avif', 'webp'));
         
         $this->audit_log('regenerate_queued', $attachment_id, array(
             'deleted_variants' => $deleted_count,
             'file' => basename($file),
+            'cache_invalidated' => true,
         ));
         
         return $metadata;
@@ -556,6 +569,10 @@ class Image_Variant_Lifecycle_Manager {
                 $report['bytes_freed'] += $bytes;
             }
         }
+        
+        // Clear entire variant cache since all variants are deleted
+        $cache_cleared = Variant_Cache::clear_all();
+        $report['cache_cleared'] = $cache_cleared;
         
         $this->audit_log('delete_all_variants', 0, $report);
         

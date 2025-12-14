@@ -15,6 +15,8 @@
 
 namespace CoreBoost\Admin;
 
+use CoreBoost\Core\Variant_Cache;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -69,6 +71,11 @@ class Image_Variant_Admin_Tools {
         $loader->add_action('wp_ajax_coreboost_regenerate_variants', $this, 'ajax_regenerate_variants');
         $loader->add_action('wp_ajax_coreboost_delete_orphaned_variants', $this, 'ajax_delete_orphaned_variants');
         $loader->add_action('wp_ajax_coreboost_cleanup_all_variants', $this, 'ajax_cleanup_all_variants');
+        
+        // Add AJAX handlers for cache management
+        $loader->add_action('wp_ajax_coreboost_clear_variant_cache', $this, 'ajax_clear_variant_cache');
+        $loader->add_action('wp_ajax_coreboost_rebuild_variant_cache', $this, 'ajax_rebuild_variant_cache');
+        $loader->add_action('wp_ajax_coreboost_get_cache_stats', $this, 'ajax_get_cache_stats');
     }
     
     /**
@@ -111,6 +118,7 @@ class Image_Variant_Admin_Tools {
             <h1><?php echo esc_html(__('Image Variant Management', 'coreboost')); ?></h1>
             
             <?php $this->render_storage_stats(); ?>
+            <?php $this->render_cache_stats(); ?>
             <?php $this->render_action_buttons(); ?>
             <?php $this->render_audit_log(); ?>
         </div>
@@ -248,6 +256,18 @@ class Image_Variant_Admin_Tools {
                     <?php echo esc_html(__('Delete Orphaned Variants', 'coreboost')); ?>
                 </button>
                 
+                <hr style="margin: 20px 0;">
+                
+                <h3><?php echo esc_html(__('Cache Management', 'coreboost')); ?></h3>
+                
+                <button type="button" class="button" onclick="coreboostClearCache()">
+                    <?php echo esc_html(__('Clear Variant Cache', 'coreboost')); ?>
+                </button>
+                
+                <button type="button" class="button button-secondary" onclick="coreboostRebuildCache()">
+                    <?php echo esc_html(__('Rebuild Cache from Filesystem', 'coreboost')); ?>
+                </button>
+                
                 <button type="button" class="button button-link-delete" onclick="coreboostCleanupAll()">
                     <?php echo esc_html(__('Delete All Variants', 'coreboost')); ?>
                 </button>
@@ -311,6 +331,55 @@ class Image_Variant_Admin_Tools {
                     if (response.success) {
                         alert('<?php echo esc_js(__('All variants deleted. Storage freed.', 'coreboost')); ?>');
                         location.reload();
+                    }
+                });
+            }
+            
+            function coreboostClearCache() {
+                if (!confirm('<?php echo esc_js(__('Clear the variant cache? Cache will be rebuilt automatically on next page load.', 'coreboost')); ?>')) {
+                    return;
+                }
+                
+                var data = {
+                    action: 'coreboost_clear_variant_cache',
+                    nonce: '<?php echo esc_js(wp_create_nonce('coreboost_image_variants')); ?>'
+                };
+                
+                jQuery.post(ajaxurl, data, function(response) {
+                    if (response.success) {
+                        alert('<?php echo esc_js(__('Variant cache cleared successfully.', 'coreboost')); ?>');
+                        location.reload();
+                    } else {
+                        alert('<?php echo esc_js(__('Error clearing cache: ', 'coreboost')); ?>' + response.data);
+                    }
+                });
+            }
+            
+            function coreboostRebuildCache() {
+                if (!confirm('<?php echo esc_js(__('Rebuild cache from filesystem? This will scan all variants and may take a few minutes.', 'coreboost')); ?>')) {
+                    return;
+                }
+                
+                var data = {
+                    action: 'coreboost_rebuild_variant_cache',
+                    nonce: '<?php echo esc_js(wp_create_nonce('coreboost_image_variants')); ?>'
+                };
+                
+                var button = event.target;
+                button.disabled = true;
+                button.textContent = '<?php echo esc_js(__('Rebuilding...', 'coreboost')); ?>';
+                
+                jQuery.post(ajaxurl, data, function(response) {
+                    button.disabled = false;
+                    button.textContent = '<?php echo esc_js(__('Rebuild Cache from Filesystem', 'coreboost')); ?>';
+                    
+                    if (response.success) {
+                        alert('<?php echo esc_js(__('Cache rebuilt: ', 'coreboost')); ?>' + 
+                              response.data.cached + '<?php echo esc_js(__(' variants cached, ', 'coreboost')); ?>' +
+                              response.data.errors + '<?php echo esc_js(__(' errors', 'coreboost')); ?>');
+                        location.reload();
+                    } else {
+                        alert('<?php echo esc_js(__('Error rebuilding cache: ', 'coreboost')); ?>' + response.data);
                     }
                 });
             }
@@ -477,5 +546,145 @@ class Image_Variant_Admin_Tools {
         } else {
             wp_send_json_error('Deletion not confirmed');
         }
+    }
+    
+    /**
+     * Render cache statistics section
+     *
+     * @return void
+     */
+    private function render_cache_stats() {
+        $cache_entries = Variant_Cache::get_total_entries();
+        $cache_stats = Variant_Cache::get_stats();
+        
+        ?>
+        <div class="coreboost-admin-card">
+            <h2><?php echo esc_html(__('Variant Cache Statistics', 'coreboost')); ?></h2>
+            
+            <table class="coreboost-stats-table">
+                <tr>
+                    <td><strong><?php echo esc_html(__('Cached Images', 'coreboost')); ?></strong></td>
+                    <td><?php echo (int)$cache_entries; ?> images</td>
+                </tr>
+                <tr>
+                    <td><strong><?php echo esc_html(__('Runtime Cache Size', 'coreboost')); ?></strong></td>
+                    <td><?php echo (int)$cache_stats['cache_size']; ?> entries (current request)</td>
+                </tr>
+                <tr>
+                    <td><strong><?php echo esc_html(__('Cache Hit Rate', 'coreboost')); ?></strong></td>
+                    <td>
+                        <?php if ($cache_stats['total_requests'] > 0): ?>
+                            <?php echo number_format($cache_stats['hit_rate'], 1); ?>% 
+                            (<?php echo (int)($cache_stats['runtime_hits'] + $cache_stats['persistent_hits']); ?> hits / 
+                            <?php echo (int)$cache_stats['total_requests']; ?> requests)
+                        <?php else: ?>
+                            No requests yet
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong><?php echo esc_html(__('Runtime Hits', 'coreboost')); ?></strong></td>
+                    <td><?php echo (int)$cache_stats['runtime_hits']; ?> (instant lookups)</td>
+                </tr>
+                <tr>
+                    <td><strong><?php echo esc_html(__('Persistent Hits', 'coreboost')); ?></strong></td>
+                    <td><?php echo (int)$cache_stats['persistent_hits']; ?> (database lookups)</td>
+                </tr>
+                <tr>
+                    <td><strong><?php echo esc_html(__('Filesystem Hits', 'coreboost')); ?></strong></td>
+                    <td><?php echo (int)$cache_stats['filesystem_hits']; ?> (cache warmed)</td>
+                </tr>
+                <tr>
+                    <td><strong><?php echo esc_html(__('Cache Misses', 'coreboost')); ?></strong></td>
+                    <td><?php echo (int)$cache_stats['misses']; ?> (variants not found)</td>
+                </tr>
+            </table>
+            
+            <p style="margin-top: 15px; color: #666;">
+                <?php echo esc_html(__('The variant cache eliminates filesystem lookups by storing URL-to-variant mappings. Higher hit rates indicate better performance.', 'coreboost')); ?>
+            </p>
+        </div>
+        <?php
+    }
+    
+    /**
+     * AJAX: Clear variant cache
+     *
+     * @return void
+     */
+    public function ajax_clear_variant_cache() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'coreboost_image_variants')) {
+            wp_send_json_error('Invalid nonce');
+        }
+        
+        // Check permission
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permission');
+        }
+        
+        // Clear cache
+        $deleted_chunks = Variant_Cache::clear_all();
+        
+        wp_send_json_success(array(
+            'message' => 'Cache cleared successfully',
+            'deleted_chunks' => $deleted_chunks,
+        ));
+    }
+    
+    /**
+     * AJAX: Rebuild variant cache from filesystem
+     *
+     * @return void
+     */
+    public function ajax_rebuild_variant_cache() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'coreboost_image_variants')) {
+            wp_send_json_error('Invalid nonce');
+        }
+        
+        // Check permission
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permission');
+        }
+        
+        // Rebuild cache
+        $result = Variant_Cache::rebuild_from_filesystem();
+        
+        if ($result['success']) {
+            wp_send_json_success(array(
+                'message' => 'Cache rebuilt successfully',
+                'scanned' => $result['stats']['scanned'],
+                'cached' => $result['stats']['cached'],
+                'errors' => $result['stats']['errors'],
+            ));
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+    
+    /**
+     * AJAX: Get current cache statistics
+     *
+     * @return void
+     */
+    public function ajax_get_cache_stats() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'coreboost_image_variants')) {
+            wp_send_json_error('Invalid nonce');
+        }
+        
+        // Check permission
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permission');
+        }
+        
+        $stats = Variant_Cache::get_stats();
+        $total_entries = Variant_Cache::get_total_entries();
+        
+        wp_send_json_success(array(
+            'total_entries' => $total_entries,
+            'stats' => $stats,
+        ));
     }
 }
