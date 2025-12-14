@@ -243,6 +243,26 @@ class Image_Format_Optimizer {
                 // Save as AVIF with quality setting
                 if (imageavif($source, $output_path, $this->avif_quality)) {
                     imagedestroy($source);
+                    
+                    // Track compression analytics
+                    $original_size = filesize($image_path);
+                    $variant_size = filesize($output_path);
+                    if ($original_size && $variant_size) {
+                        // Extract width from filename if responsive variant
+                        $width = null;
+                        if (preg_match('/-(\d+)w\.(jpg|jpeg|png|gif)$/i', basename($image_path), $matches)) {
+                            $width = (int)$matches[1];
+                        }
+                        
+                        \CoreBoost\Core\Compression_Analytics::track_variant_generation(
+                            Path_Helper::path_to_url($image_path),
+                            'avif',
+                            $original_size,
+                            $variant_size,
+                            $width
+                        );
+                    }
+                    
                     return $output_path;
                 }
             }
@@ -311,6 +331,26 @@ class Image_Format_Optimizer {
             // Save as WebP with quality setting
             if (imagewebp($source, $output_path, $this->webp_quality)) {
                 imagedestroy($source);
+                
+                // Track compression analytics
+                $original_size = filesize($image_path);
+                $variant_size = filesize($output_path);
+                if ($original_size && $variant_size) {
+                    // Extract width from filename if responsive variant
+                    $width = null;
+                    if (preg_match('/-(\d+)w\.(jpg|jpeg|png|gif)$/i', basename($image_path), $matches)) {
+                        $width = (int)$matches[1];
+                    }
+                    
+                    \CoreBoost\Core\Compression_Analytics::track_variant_generation(
+                        Path_Helper::path_to_url($image_path),
+                        'webp',
+                        $original_size,
+                        $variant_size,
+                        $width
+                    );
+                }
+                
                 return $output_path;
             }
             

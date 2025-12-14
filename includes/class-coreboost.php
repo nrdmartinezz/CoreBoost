@@ -24,6 +24,9 @@ use CoreBoost\PublicCore\Image_Format_Optimizer;
 use CoreBoost\PublicCore\Image_Variant_Lifecycle_Manager;
 use CoreBoost\Admin\Image_Variant_Admin_Tools;
 use CoreBoost\Admin\Bulk_Image_Converter;
+use CoreBoost\Core\Cache_Invalidator;
+use CoreBoost\Core\Cache_Warmer;
+use CoreBoost\Core\Cache_Consistency_Checker;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -280,6 +283,25 @@ class CoreBoost {
                     $this->image_variant_admin_tools->register_hooks($this->loader);
                 }
             }
+        }
+        
+        // Initialize cache invalidator (Phase 3.1 - v3.1.0)
+        // Always initialize if image optimization is enabled
+        if (!empty($this->options['enable_image_optimization']) || 
+            !empty($this->options['enable_image_format_conversion'])) {
+            Cache_Invalidator::init();
+        }
+        
+        // Initialize cache warmer (Phase 3.1 - v3.1.0)
+        // Only initialize if format conversion is enabled
+        if (!empty($this->options['enable_image_format_conversion'])) {
+            Cache_Warmer::init();
+        }
+        
+        // Initialize cache consistency checker (Phase 3.1 - v3.1.0)
+        if (!empty($this->options['enable_image_optimization']) || 
+            !empty($this->options['enable_image_format_conversion'])) {
+            Cache_Consistency_Checker::init();
         }
     }    
     /**

@@ -65,11 +65,12 @@ class Variant_Cache {
      *
      * @param string $image_url Original image URL
      * @param string $format Variant format (avif, webp)
+     * @param int|null $width Width descriptor for responsive variants (e.g., 400, 800)
      * @return string|null Variant URL or null if not cached
      */
-    public static function get_variant($image_url, $format = 'avif') {
+    public static function get_variant($image_url, $format = 'avif', $width = null) {
         // Layer 1: Runtime cache (instant)
-        $cache_key = self::make_cache_key($image_url, $format);
+        $cache_key = self::make_cache_key($image_url, $format, $width);
         
         if (isset(self::$runtime_cache[$cache_key])) {
             self::$stats['runtime_hits']++;
@@ -77,7 +78,7 @@ class Variant_Cache {
         }
         
         // Layer 2: Persistent cache (fast)
-        $variant_url = self::get_persistent($image_url, $format);
+        $variant_url = self::get_persistent($image_url, $format, $width);
         
         if ($variant_url !== null) {
             // Warm runtime cache
@@ -91,19 +92,49 @@ class Variant_Cache {
     }
     
     /**
+     * Get all responsive variants for an image
+     *
+     * Returns array of all cached width variants for given format.
+     * Used for building complete srcset strings.
+     *
+     * @param string $image_url Original image URL
+     * @param string $format Variant format (avif, webp)
+     * @return array Array of variants: [width => variant_url]
+     */
+    public static function get_responsive_variants($image_url, $format = 'avif') {
+        $chunk_id = self::get_chunk_id($image_url);
+        $option_name = "coreboost_variant_cache_{$chunk_id}";
+        
+        $chunk_data = get_option($option_name, array());
+        
+        if (!is_array($chunk_data)) {
+            return array();
+        }
+        
+        $image_hash = md5($image_url);
+        
+        if (!isset($chunk_data[$image_hash]['responsive'][$format])) {
+            return array();
+        }
+        
+        return $chunk_data[$image_hash]['responsive'][$format];
+    }
+    
+    /**
      * Set variant URL in all cache layers
      *
      * @param string $image_url Original image URL
      * @param string $format Variant format (avif, webp)
      * @param string $variant_url Variant URL to cache
+     * @param int|null $width Width descriptor for responsive variants (e.g., 400, 800)
      */
-    public static function set_variant($image_url, $format, $variant_url) {
+    public static function set_variant($image_url, $format, $variant_url, $width = null) {
         // Layer 1: Runtime cache
-        $cache_key = self::make_cache_key($image_url, $format);
+        $cache_key = self::make_cache_key($image_url, $format, $width);
         self::$runtime_cache[$cache_key] = $variant_url;
         
         // Layer 2: Persistent cache
-        self::set_persistent($image_url, $format, $variant_url);
+        self::set_persistent($image_url, $format, $variant_url, $width);
     }
     
     /**
@@ -320,12 +351,13 @@ class Variant_Cache {
      *
      * @param string $image_url Original image URL
      * @param string $format Variant format
+     * @param int|null $width Width descriptor for responsive variants
      * @return string|null Variant URL or null
      */
-    private static function get_persistent($image_url, $format) {
+    private static function get_persistent($image_url, $format, $width = null) {
         // Use WordPress object cache if available (Redis/Memcached)
         if (wp_using_ext_object_cache()) {
-            $cache_key = self::make_cache_key($image_url, $format);
+            $cache_key = self::make_cache_key($image_url, $format, $width);
             $cached = wp_cache_get($cache_key, 'coreboost_variants');
             
             if ($cached !== false) {
@@ -345,6 +377,15 @@ class Variant_Cache {
         
         $image_hash = md5($image_url);
         
+        // Check for responsive variant with width descriptor
+        if ($width !== null) {
+            if (isset($chunk_data[$image_hash]['responsive'][$format][$width])) {
+                return $chunk_data[$image_hash]['responsive'][$format][$width];
+            }
+            return null;
+        }
+        
+        // Check for base format variant (no width descriptor)
         if (isset($chunk_data[$image_hash][$format])) {
             return $chunk_data[$image_hash][$format];
         }
@@ -358,11 +399,12 @@ class Variant_Cache {
      * @param string $image_url Original image URL
      * @param string $format Variant format
      * @param string $variant_url Variant URL
+     * @param int|null $width Width descriptor for responsive variants
      */
-    private static function set_persistent($image_url, $format, $variant_url) {
+    private static function set_persistent($image_url, $format, $variant_url, $width = null) {
         // Set in WordPress object cache if available
         if (wp_using_ext_object_cache()) {
-            $cache_key = self::make_cache_key($image_url, $format);
+            $cache_key = self::make_cache_key($image_url, $format, $width);
             wp_cache_set($cache_key, $variant_url, 'coreboost_variants', HOUR_IN_SECONDS);
         }
         
@@ -383,10 +425,29 @@ class Variant_Cache {
                 'url' => $image_url,
                 'avif' => null,
                 'webp' => null,
+                'responsive' => array(
+                    'avif' => array(),
+                    'webp' => array(),
+                ),
             );
         }
         
-        $chunk_data[$image_hash][$format] = $variant_url;
+        // Store responsive variant with width descriptor
+        if ($width !== null) {
+            if (!isset($chunk_data[$image_hash]['responsive'])) {
+                $chunk_data[$image_hash]['responsive'] = array(
+                    'avif' => array(),
+                    'webp' => array(),
+                );
+            }
+            if (!isset($chunk_data[$image_hash]['responsive'][$format])) {
+                $chunk_data[$image_hash]['responsive'][$format] = array();
+            }
+            $chunk_data[$image_hash]['responsive'][$format][$width] = $variant_url;
+        } else {
+            // Store base variant (no width descriptor)
+            $chunk_data[$image_hash][$format] = $variant_url;
+        }
         
         // Use add_option with autoload=no on first write
         if (get_option($option_name) === false) {
@@ -403,10 +464,18 @@ class Variant_Cache {
      * @param string $format Variant format
      */
     private static function delete_persistent($image_url, $format) {
-        // Delete from object cache if available
+        // Delete from object cache if available (all widths)
         if (wp_using_ext_object_cache()) {
-            $cache_key = self::make_cache_key($image_url, $format);
+            // Delete base variant
+            $cache_key = self::make_cache_key($image_url, $format, null);
             wp_cache_delete($cache_key, 'coreboost_variants');
+            
+            // Delete responsive variants (common widths)
+            $common_widths = array(400, 600, 800, 1024, 1200, 1600);
+            foreach ($common_widths as $width) {
+                $width_key = self::make_cache_key($image_url, $format, $width);
+                wp_cache_delete($width_key, 'coreboost_variants');
+            }
         }
         
         // Delete from options table
@@ -422,11 +491,22 @@ class Variant_Cache {
         $image_hash = md5($image_url);
         
         if (isset($chunk_data[$image_hash])) {
+            // Clear base variant
             $chunk_data[$image_hash][$format] = null;
             
-            // Remove entry if both formats are null
+            // Clear all responsive variants for this format
+            if (isset($chunk_data[$image_hash]['responsive'][$format])) {
+                $chunk_data[$image_hash]['responsive'][$format] = array();
+            }
+            
+            // Remove entry if both formats are null and no responsive variants
+            $has_responsive = isset($chunk_data[$image_hash]['responsive']) && 
+                             (!empty($chunk_data[$image_hash]['responsive']['avif']) || 
+                              !empty($chunk_data[$image_hash]['responsive']['webp']));
+            
             if ($chunk_data[$image_hash]['avif'] === null && 
-                $chunk_data[$image_hash]['webp'] === null) {
+                $chunk_data[$image_hash]['webp'] === null &&
+                !$has_responsive) {
                 unset($chunk_data[$image_hash]);
             }
             
@@ -439,10 +519,15 @@ class Variant_Cache {
      *
      * @param string $image_url Original image URL
      * @param string $format Variant format
+     * @param int|null $width Width descriptor for responsive variants
      * @return string Cache key
      */
-    private static function make_cache_key($image_url, $format) {
-        return md5($image_url) . ':' . $format;
+    private static function make_cache_key($image_url, $format, $width = null) {
+        $key = md5($image_url) . ':' . $format;
+        if ($width !== null) {
+            $key .= ':' . $width . 'w';
+        }
+        return $key;
     }
     
     /**

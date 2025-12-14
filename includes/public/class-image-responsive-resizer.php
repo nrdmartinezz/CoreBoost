@@ -386,6 +386,7 @@ class Image_Responsive_Resizer {
      *
      * Uses WP_Image_Editor to resize image, then pipes through
      * format optimizer to generate AVIF and WebP versions.
+     * Caches all generated variants for future lookups.
      *
      * @param string $file_path Original image path
      * @param int $width Target width
@@ -426,10 +427,24 @@ class Image_Responsive_Resizer {
             return false;
         }
         
+        // Get original image URL for caching
+        $original_url = Path_Helper::path_to_url($file_path);
+        
         // Generate AVIF and WebP variants of the resized image
         if ($this->format_optimizer) {
-            $this->format_optimizer->generate_avif_variant($resized_path);
-            $this->format_optimizer->generate_webp_variant($resized_path);
+            $avif_path = $this->format_optimizer->generate_avif_variant($resized_path);
+            $webp_path = $this->format_optimizer->generate_webp_variant($resized_path);
+            
+            // Cache the responsive variants with width descriptors
+            if ($avif_path && file_exists($avif_path)) {
+                $avif_url = Path_Helper::path_to_url($avif_path);
+                \CoreBoost\Core\Variant_Cache::set_variant($original_url, 'avif', $avif_url, $width);
+            }
+            
+            if ($webp_path && file_exists($webp_path)) {
+                $webp_url = Path_Helper::path_to_url($webp_path);
+                \CoreBoost\Core\Variant_Cache::set_variant($original_url, 'webp', $webp_url, $width);
+            }
         }
         
         return true;
@@ -439,7 +454,7 @@ class Image_Responsive_Resizer {
      * Get available responsive variants for image
      *
      * Returns array of available AVIF/WebP variants with width descriptors
-     * for building srcset attributes.
+     * for building srcset attributes. Checks cache first, falls back to filesystem.
      *
      * @param string $image_url Original image URL (will strip WP size suffix)
      * @return array Array of variants: ['width' => int, 'avif' => url, 'webp' => url]
@@ -447,6 +462,33 @@ class Image_Responsive_Resizer {
     public function get_available_responsive_variants($image_url) {
         // Strip WordPress size suffixes to get original image
         $original_url = $this->get_original_image_url($image_url);
+        
+        // Try cache first (fast path)
+        $avif_variants = \CoreBoost\Core\Variant_Cache::get_responsive_variants($original_url, 'avif');
+        $webp_variants = \CoreBoost\Core\Variant_Cache::get_responsive_variants($original_url, 'webp');
+        
+        // Merge cached variants
+        $variants = array();
+        foreach ($avif_variants as $width => $url) {
+            if (!isset($variants[$width])) {
+                $variants[$width] = array('width' => $width);
+            }
+            $variants[$width]['avif'] = $url;
+        }
+        foreach ($webp_variants as $width => $url) {
+            if (!isset($variants[$width])) {
+                $variants[$width] = array('width' => $width);
+            }
+            $variants[$width]['webp'] = $url;
+        }
+        
+        // If we have cached variants, return them (fast path)
+        if (!empty($variants)) {
+            ksort($variants);
+            return array_values($variants);
+        }
+        
+        // Fallback: Scan filesystem and warm cache
         $file_path = Path_Helper::url_to_path($original_url);
         $upload_dir = wp_upload_dir();
         $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
@@ -484,7 +526,11 @@ class Image_Responsive_Resizer {
                 }
                 
                 // Convert path to URL
-                $variants[$width][$format] = Path_Helper::path_to_url($file);
+                $variant_url = Path_Helper::path_to_url($file);
+                $variants[$width][$format] = $variant_url;
+                
+                // Warm the cache for future lookups
+                \CoreBoost\Core\Variant_Cache::set_variant($original_url, $format, $variant_url, $width);
             }
         }
         
