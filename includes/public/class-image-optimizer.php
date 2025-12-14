@@ -255,6 +255,13 @@ class Image_Optimizer {
                         $responsive_variants = array();
                         if ($this->responsive_resizer) {
                             $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
+                            
+                            // If no variants exist but dimensions are known, generate them on-demand
+                            if (empty($responsive_variants) && $width && $height) {
+                                $this->responsive_resizer->generate_variants_if_needed($src_url, $width, $height);
+                                // Check again after generation
+                                $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
+                            }
                         }
                         
                         // Render picture tag

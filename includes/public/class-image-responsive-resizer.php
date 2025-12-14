@@ -69,6 +69,47 @@ class Image_Responsive_Resizer {
     }
     
     /**
+     * Generate responsive variants if they don't exist
+     *
+     * Checks if variants exist, and if not, generates them immediately.
+     * This ensures PSI tests see properly-sized images on first page load.
+     *
+     * @param string $image_url Image URL
+     * @param int $rendered_width Rendered width in pixels
+     * @param int $rendered_height Rendered height in pixels
+     * @return bool True if variants were generated
+     */
+    public function generate_variants_if_needed($image_url, $rendered_width, $rendered_height) {
+        // Check if variants already exist
+        $existing = $this->get_available_responsive_variants($image_url);
+        if (!empty($existing)) {
+            return false; // Already have variants
+        }
+        
+        // Check if image is oversized (needs resizing)
+        $file_path = Path_Helper::url_to_path($image_url);
+        if (!file_exists($file_path)) {
+            return false;
+        }
+        
+        $actual_dims = @getimagesize($file_path);
+        if (!$actual_dims) {
+            return false;
+        }
+        
+        $actual_width = $actual_dims[0];
+        $actual_height = $actual_dims[1];
+        
+        // Only generate if image is actually oversized
+        if ($actual_width <= $rendered_width && $actual_height <= $rendered_height) {
+            return false; // Image is already properly sized
+        }
+        
+        // Generate immediately (not queued)
+        return $this->handle_background_resize($image_url, $rendered_width, $rendered_height);
+    }
+    
+    /**
      * Detect and queue oversized images for responsive resizing
      *
      * Scans HTML for img tags, compares actual vs rendered dimensions,
