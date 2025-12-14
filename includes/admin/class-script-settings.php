@@ -252,9 +252,12 @@ class Script_Settings {
      * @return array Updated sanitized values
      */
     public function sanitize_settings($input, $sanitized) {
-        // Sanitize enable_default_exclusions
+        // Sanitize enable_default_exclusions (handle both checked and unchecked)
         if (isset($input['enable_default_exclusions'])) {
             $sanitized['enable_default_exclusions'] = !empty($input['enable_default_exclusions']);
+        } else {
+            // Checkbox was unchecked - explicitly set to false
+            $sanitized['enable_default_exclusions'] = false;
         }
 
         // Sanitize script_exclusion_patterns
