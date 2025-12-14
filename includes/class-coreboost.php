@@ -27,6 +27,7 @@ use CoreBoost\Admin\Bulk_Image_Converter;
 use CoreBoost\Core\Cache_Invalidator;
 use CoreBoost\Core\Cache_Warmer;
 use CoreBoost\Core\Cache_Consistency_Checker;
+use CoreBoost\Core\Variant_Cache_Headers;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -303,6 +304,12 @@ class CoreBoost {
             !empty($this->options['enable_image_format_conversion'])) {
             Cache_Consistency_Checker::init();
         }
+        
+        // Initialize variant cache headers (Phase 3.1 - v3.1.0)
+        // Manages browser caching for image variants
+        if (!empty($this->options['enable_image_format_conversion'])) {
+            Variant_Cache_Headers::init();
+        }
     }    
     /**
      * Run the loader to execute all hooks
@@ -413,7 +420,8 @@ class CoreBoost {
             'lazy_load_exclude_count' => 2,
             'enable_image_format_conversion' => false,
             'avif_quality' => 85,
-            'webp_quality' => 85
+            'webp_quality' => 85,
+            'variant_cache_lifetime' => 31536000, // 1 year in seconds
         );
     }
 }

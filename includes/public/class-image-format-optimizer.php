@@ -66,6 +66,13 @@ class Image_Format_Optimizer {
     private $generation_mode;
     
     /**
+     * Static flag to track if .htaccess has been checked this request
+     *
+     * @var bool
+     */
+    private static $htaccess_checked = false;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -228,6 +235,9 @@ class Image_Format_Optimizer {
             if (!wp_mkdir_p($output_dir)) {
                 return null;
             }
+            
+            // Ensure .htaccess exists for cache headers (one-time check per request)
+            $this->ensure_htaccess_exists();
             
             // Load source image based on file type
             $source = $this->load_image_resource($image_path);
@@ -834,5 +844,33 @@ class Image_Format_Optimizer {
         );
         
         return $count > 0;
+    }
+    
+    /**
+     * Ensure .htaccess file exists for cache headers
+     *
+     * Creates .htaccess file in variants directory if it doesn't exist.
+     * Only checks once per request to avoid performance overhead.
+     */
+    private function ensure_htaccess_exists() {
+        // Skip if already checked this request
+        if (self::$htaccess_checked) {
+            return;
+        }
+        
+        self::$htaccess_checked = true;
+        
+        // Skip if Variant_Cache_Headers class not available
+        if (!class_exists('CoreBoost\\Core\\Variant_Cache_Headers')) {
+            return;
+        }
+        
+        // Verify .htaccess exists
+        $status = \CoreBoost\Core\Variant_Cache_Headers::verify_htaccess();
+        
+        // Create if missing or outdated
+        if (!$status['exists'] || !$status['current']) {
+            \CoreBoost\Core\Variant_Cache_Headers::create_htaccess();
+        }
     }
 }
