@@ -141,13 +141,13 @@ class Cache_Consistency_Checker {
         $chunks = $wpdb->get_results(
             "SELECT option_value FROM {$wpdb->options} 
              WHERE option_name LIKE 'coreboost_variant_cache_%'",
-            ARRAY_A
+            \ARRAY_A
         );
         
         $entries = array();
         
         foreach ($chunks as $chunk) {
-            $data = maybe_unserialize($chunk['option_value']);
+            $data = \maybe_unserialize($chunk['option_value']);
             if (is_array($data)) {
                 foreach ($data as $image_hash => $image_data) {
                     $entries[] = array(
@@ -171,7 +171,7 @@ class Cache_Consistency_Checker {
      * @return array Array of variant file data
      */
     private static function scan_filesystem_variants() {
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $variants_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants';
         
         if (!is_dir($variants_dir)) {
@@ -226,7 +226,7 @@ class Cache_Consistency_Checker {
      * @return string|null Original image URL or null
      */
     private static function get_original_url_from_variant($variant_path, $format) {
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
         
         // Get relative path from variants directory
@@ -297,11 +297,11 @@ class Cache_Consistency_Checker {
      */
     public static function init() {
         // Schedule daily consistency check
-        if (!wp_next_scheduled('coreboost_check_cache_consistency')) {
-            wp_schedule_event(time(), 'daily', 'coreboost_check_cache_consistency');
+        if (!\wp_next_scheduled('coreboost_check_cache_consistency')) {
+            \wp_schedule_event(time(), 'daily', 'coreboost_check_cache_consistency');
         }
         
-        add_action('coreboost_check_cache_consistency', array(__CLASS__, 'daily_check'));
+        \add_action('coreboost_check_cache_consistency', array(__CLASS__, 'daily_check'));
     }
     
     /**

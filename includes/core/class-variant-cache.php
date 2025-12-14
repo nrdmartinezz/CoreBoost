@@ -105,7 +105,7 @@ class Variant_Cache {
         $chunk_id = self::get_chunk_id($image_url);
         $option_name = "coreboost_variant_cache_{$chunk_id}";
         
-        $chunk_data = get_option($option_name, array());
+        $chunk_data = \get_option($option_name, array());
         
         if (!is_array($chunk_data)) {
             return array();
@@ -194,8 +194,8 @@ class Variant_Cache {
         );
         
         // Clear object cache if available
-        if (wp_using_ext_object_cache()) {
-            wp_cache_flush_group('coreboost_variants');
+        if (\wp_using_ext_object_cache()) {
+            \wp_cache_flush_group('coreboost_variants');
         }
         
         return $result;
@@ -230,12 +230,12 @@ class Variant_Cache {
         $chunks = $wpdb->get_results(
             "SELECT option_value FROM {$wpdb->options} 
              WHERE option_name LIKE 'coreboost_variant_cache_%'",
-            ARRAY_A
+            \ARRAY_A
         );
         
         $total = 0;
         foreach ($chunks as $chunk) {
-            $data = maybe_unserialize($chunk['option_value']);
+            $data = \maybe_unserialize($chunk['option_value']);
             if (is_array($data)) {
                 $total += count($data);
             }
@@ -253,7 +253,7 @@ class Variant_Cache {
      * @return array Rebuild statistics
      */
     public static function rebuild_from_filesystem() {
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $variants_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants';
         
         if (!is_dir($variants_dir)) {
@@ -322,7 +322,7 @@ class Variant_Cache {
      * @return string|null Original image URL or null if not found
      */
     private static function get_original_from_variant($variant_path, $variant_format) {
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
         
         // Get relative path from variants directory
@@ -356,9 +356,9 @@ class Variant_Cache {
      */
     private static function get_persistent($image_url, $format, $width = null) {
         // Use WordPress object cache if available (Redis/Memcached)
-        if (wp_using_ext_object_cache()) {
+        if (\wp_using_ext_object_cache()) {
             $cache_key = self::make_cache_key($image_url, $format, $width);
-            $cached = wp_cache_get($cache_key, 'coreboost_variants');
+            $cached = \wp_cache_get($cache_key, 'coreboost_variants');
             
             if ($cached !== false) {
                 return $cached;
@@ -369,7 +369,7 @@ class Variant_Cache {
         $chunk_id = self::get_chunk_id($image_url);
         $option_name = "coreboost_variant_cache_{$chunk_id}";
         
-        $chunk_data = get_option($option_name, array());
+        $chunk_data = \get_option($option_name, array());
         
         if (!is_array($chunk_data)) {
             return null;
@@ -403,16 +403,16 @@ class Variant_Cache {
      */
     private static function set_persistent($image_url, $format, $variant_url, $width = null) {
         // Set in WordPress object cache if available
-        if (wp_using_ext_object_cache()) {
+        if (\wp_using_ext_object_cache()) {
             $cache_key = self::make_cache_key($image_url, $format, $width);
-            wp_cache_set($cache_key, $variant_url, 'coreboost_variants', HOUR_IN_SECONDS);
+            \wp_cache_set($cache_key, $variant_url, 'coreboost_variants', \HOUR_IN_SECONDS);
         }
         
         // Set in options table (chunked storage)
         $chunk_id = self::get_chunk_id($image_url);
         $option_name = "coreboost_variant_cache_{$chunk_id}";
         
-        $chunk_data = get_option($option_name, array());
+        $chunk_data = \get_option($option_name, array());
         
         if (!is_array($chunk_data)) {
             $chunk_data = array();
@@ -450,10 +450,10 @@ class Variant_Cache {
         }
         
         // Use add_option with autoload=no on first write
-        if (get_option($option_name) === false) {
-            add_option($option_name, $chunk_data, '', 'no');
+        if (\get_option($option_name) === false) {
+            \add_option($option_name, $chunk_data, '', 'no');
         } else {
-            update_option($option_name, $chunk_data);
+            \update_option($option_name, $chunk_data);
         }
     }
     
@@ -465,16 +465,16 @@ class Variant_Cache {
      */
     private static function delete_persistent($image_url, $format) {
         // Delete from object cache if available (all widths)
-        if (wp_using_ext_object_cache()) {
+        if (\wp_using_ext_object_cache()) {
             // Delete base variant
             $cache_key = self::make_cache_key($image_url, $format, null);
-            wp_cache_delete($cache_key, 'coreboost_variants');
+            \wp_cache_delete($cache_key, 'coreboost_variants');
             
             // Delete responsive variants (common widths)
             $common_widths = array(400, 600, 800, 1024, 1200, 1600);
             foreach ($common_widths as $width) {
                 $width_key = self::make_cache_key($image_url, $format, $width);
-                wp_cache_delete($width_key, 'coreboost_variants');
+                \wp_cache_delete($width_key, 'coreboost_variants');
             }
         }
         
@@ -482,7 +482,7 @@ class Variant_Cache {
         $chunk_id = self::get_chunk_id($image_url);
         $option_name = "coreboost_variant_cache_{$chunk_id}";
         
-        $chunk_data = get_option($option_name, array());
+        $chunk_data = \get_option($option_name, array());
         
         if (!is_array($chunk_data)) {
             return;
@@ -510,7 +510,7 @@ class Variant_Cache {
                 unset($chunk_data[$image_hash]);
             }
             
-            update_option($option_name, $chunk_data);
+            \update_option($option_name, $chunk_data);
         }
     }
     

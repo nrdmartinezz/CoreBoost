@@ -53,7 +53,7 @@ class External_Image_Handler {
      * @return bool True if external
      */
     public static function is_external_url($url) {
-        $site_url = get_site_url();
+        $site_url = \get_site_url();
         $site_domain = parse_url($site_url, PHP_URL_HOST);
         $url_domain = parse_url($url, PHP_URL_HOST);
         
@@ -81,7 +81,7 @@ class External_Image_Handler {
         }
         
         // Check custom whitelist from settings
-        $options = get_option('coreboost_options', array());
+        $options = \get_option('coreboost_options', array());
         if (isset($options['external_image_domains'])) {
             $custom_domains = explode("\n", $options['external_image_domains']);
             foreach ($custom_domains as $custom) {
@@ -126,10 +126,10 @@ class External_Image_Handler {
         }
         
         // Create cache directory
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $cache_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-external';
         
-        if (!wp_mkdir_p($cache_dir)) {
+        if (!\wp_mkdir_p($cache_dir)) {
             error_log("CoreBoost: Failed to create external cache directory");
             return null;
         }
@@ -140,23 +140,23 @@ class External_Image_Handler {
         if (file_exists($local_path)) {
             // Check if file is older than 7 days (refresh cache)
             $age = time() - filemtime($local_path);
-            if ($age < (7 * DAY_IN_SECONDS)) {
+            if ($age < (7 * \DAY_IN_SECONDS)) {
                 return $local_path;
             }
         }
         
         // Download image
-        $response = wp_remote_get($external_url, array(
+        $response = \wp_remote_get($external_url, array(
             'timeout' => 15,
             'sslverify' => true,
         ));
         
-        if (is_wp_error($response)) {
+        if (\is_wp_error($response)) {
             error_log("CoreBoost: Failed to download external image: " . $response->get_error_message());
             return null;
         }
         
-        $body = wp_remote_retrieve_body($response);
+        $body = \wp_remote_retrieve_body($response);
         if (empty($body)) {
             error_log("CoreBoost: Empty response for external image: {$external_url}");
             return null;
@@ -230,7 +230,7 @@ class External_Image_Handler {
      * @return array Cleanup statistics
      */
     public static function cleanup_old_cache($days = 30) {
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $cache_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-external';
         
         if (!is_dir($cache_dir)) {
@@ -242,7 +242,7 @@ class External_Image_Handler {
         
         $deleted = 0;
         $bytes_freed = 0;
-        $threshold = time() - ($days * DAY_IN_SECONDS);
+        $threshold = time() - ($days * \DAY_IN_SECONDS);
         
         $files = glob($cache_dir . DIRECTORY_SEPARATOR . '*');
         
@@ -275,7 +275,7 @@ class External_Image_Handler {
      * @param string $domain Domain to trust
      */
     public static function add_trusted_domain($domain) {
-        $options = get_option('coreboost_options', array());
+        $options = \get_option('coreboost_options', array());
         
         if (!isset($options['external_image_domains'])) {
             $options['external_image_domains'] = '';
@@ -285,7 +285,7 @@ class External_Image_Handler {
         $domains[] = trim($domain);
         $options['external_image_domains'] = implode("\n", array_unique(array_filter($domains)));
         
-        update_option('coreboost_options', $options);
+        \update_option('coreboost_options', $options);
     }
     
     /**
@@ -296,7 +296,7 @@ class External_Image_Handler {
     public static function get_trusted_domains() {
         $all_domains = self::$trusted_domains;
         
-        $options = get_option('coreboost_options', array());
+        $options = \get_option('coreboost_options', array());
         if (isset($options['external_image_domains'])) {
             $custom_domains = explode("\n", $options['external_image_domains']);
             foreach ($custom_domains as $domain) {

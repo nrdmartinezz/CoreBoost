@@ -55,14 +55,14 @@ class Cache_Warmer {
      */
     public static function init() {
         // Schedule daily cache warming
-        if (!wp_next_scheduled('coreboost_warm_cache')) {
-            wp_schedule_event(time(), 'daily', 'coreboost_warm_cache');
+        if (!\wp_next_scheduled('coreboost_warm_cache')) {
+            \wp_schedule_event(time(), 'daily', 'coreboost_warm_cache');
         }
         
-        add_action('coreboost_warm_cache', array(__CLASS__, 'warm_recent_images'));
+        \add_action('coreboost_warm_cache', array(__CLASS__, 'warm_recent_images'));
         
         // Warm cache for newly uploaded images immediately
-        add_action('add_attachment', array(__CLASS__, 'warm_new_image'), 10, 1);
+        \add_action('add_attachment', array(__CLASS__, 'warm_new_image'), 10, 1);
     }
     
     /**
@@ -73,14 +73,14 @@ class Cache_Warmer {
      * @param int $attachment_id Attachment ID
      */
     public static function warm_new_image($attachment_id) {
-        $image_url = wp_get_attachment_url($attachment_id);
+        $image_url = \wp_get_attachment_url($attachment_id);
         
         if (!$image_url) {
             return;
         }
         
         // Check if image format conversion is enabled
-        $options = get_option('coreboost_options', array());
+        $options = \get_option('coreboost_options', array());
         if (!isset($options['enable_image_format_conversion']) || !$options['enable_image_format_conversion']) {
             return;
         }
@@ -88,7 +88,7 @@ class Cache_Warmer {
         error_log("CoreBoost: Warming cache for new image: {$image_url}");
         
         // Get image metadata
-        $metadata = wp_get_attachment_metadata($attachment_id);
+        $metadata = \wp_get_attachment_metadata($attachment_id);
         if (!$metadata || !isset($metadata['width'], $metadata['height'])) {
             return;
         }
@@ -111,7 +111,7 @@ class Cache_Warmer {
         error_log("CoreBoost: Starting cache warming for recent images");
         
         // Get options
-        $options = get_option('coreboost_options', array());
+        $options = \get_option('coreboost_options', array());
         if (!isset($options['enable_image_format_conversion']) || !$options['enable_image_format_conversion']) {
             error_log("CoreBoost: Cache warming skipped - format conversion disabled");
             return;
@@ -136,12 +136,12 @@ class Cache_Warmer {
         $warmed_count = 0;
         
         foreach ($recent_images as $image) {
-            $image_url = wp_get_attachment_url($image->ID);
+            $image_url = \wp_get_attachment_url($image->ID);
             if (!$image_url) {
                 continue;
             }
             
-            $metadata = wp_get_attachment_metadata($image->ID);
+            $metadata = \wp_get_attachment_metadata($image->ID);
             if (!$metadata || !isset($metadata['width'], $metadata['height'])) {
                 continue;
             }
@@ -173,7 +173,7 @@ class Cache_Warmer {
      */
     private static function warm_image_at_breakpoints($image_url, $original_width, $original_height) {
         // Get format optimizer and resizer instances
-        $options = get_option('coreboost_options', array());
+        $options = \get_option('coreboost_options', array());
         $format_optimizer = new Image_Format_Optimizer($options);
         $resizer = new Image_Responsive_Resizer($options, $format_optimizer);
         
@@ -235,13 +235,13 @@ class Cache_Warmer {
         );
         
         foreach ($attachment_ids as $attachment_id) {
-            $image_url = wp_get_attachment_url($attachment_id);
+            $image_url = \wp_get_attachment_url($attachment_id);
             if (!$image_url) {
                 $stats['skipped']++;
                 continue;
             }
             
-            $metadata = wp_get_attachment_metadata($attachment_id);
+            $metadata = \wp_get_attachment_metadata($attachment_id);
             if (!$metadata || !isset($metadata['width'], $metadata['height'])) {
                 $stats['skipped']++;
                 continue;

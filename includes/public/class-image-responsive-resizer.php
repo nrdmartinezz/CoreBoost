@@ -64,7 +64,7 @@ class Image_Responsive_Resizer {
         
         // Register Action Scheduler hook for background processing
         if (function_exists('add_action')) {
-            add_action('coreboost_resize_responsive_image', array($this, 'handle_background_resize'), 10, 3);
+            \add_action('coreboost_resize_responsive_image', array($this, 'handle_background_resize'), 10, 3);
         }
     }
     
@@ -239,12 +239,12 @@ class Image_Responsive_Resizer {
     public function queue_responsive_resize($image_url, $rendered_width, $rendered_height) {
         // Check if already queued (avoid duplicates)
         $transient_key = 'coreboost_resize_queued_' . md5($image_url);
-        if (get_transient($transient_key)) {
+        if (\get_transient($transient_key)) {
             return false;
         }
         
         // Mark as queued (24 hour expiration)
-        set_transient($transient_key, true, DAY_IN_SECONDS);
+        \set_transient($transient_key, true, \DAY_IN_SECONDS);
         
         // Use Action Scheduler if available
         if (function_exists('as_schedule_single_action')) {
@@ -262,7 +262,7 @@ class Image_Responsive_Resizer {
         }
         
         // Fallback to WP-Cron
-        wp_schedule_single_event(
+        \wp_schedule_single_event(
             time(),
             'coreboost_resize_responsive_image',
             array(
@@ -395,9 +395,9 @@ class Image_Responsive_Resizer {
      */
     private function generate_responsive_variant($file_path, $width, $height) {
         // Load image editor
-        $editor = wp_get_image_editor($file_path);
+        $editor = \wp_get_image_editor($file_path);
         
-        if (is_wp_error($editor)) {
+        if (\is_wp_error($editor)) {
             error_log('CoreBoost: Image editor error: ' . $editor->get_error_message());
             return false;
         }
@@ -405,7 +405,7 @@ class Image_Responsive_Resizer {
         // Resize image
         $resize_result = $editor->resize($width, $height, false);
         
-        if (is_wp_error($resize_result)) {
+        if (\is_wp_error($resize_result)) {
             error_log('CoreBoost: Resize error: ' . $resize_result->get_error_message());
             return false;
         }
@@ -415,14 +415,14 @@ class Image_Responsive_Resizer {
         
         // Create directory if needed
         $output_dir = dirname($resized_path);
-        if (!wp_mkdir_p($output_dir)) {
+        if (!\wp_mkdir_p($output_dir)) {
             return false;
         }
         
         // Save resized image
         $save_result = $editor->save($resized_path);
         
-        if (is_wp_error($save_result)) {
+        if (\is_wp_error($save_result)) {
             error_log('CoreBoost: Save error: ' . $save_result->get_error_message());
             return false;
         }
@@ -490,7 +490,7 @@ class Image_Responsive_Resizer {
         
         // Fallback: Scan filesystem and warm cache
         $file_path = Path_Helper::url_to_path($original_url);
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
         
         // Get relative path
@@ -568,7 +568,7 @@ class Image_Responsive_Resizer {
      * @return string Path to variant being served
      */
     private function get_served_variant_path($original_path) {
-        $upload_dir = wp_upload_dir();
+        $upload_dir = \wp_upload_dir();
         $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
         
         // Get relative path from uploads

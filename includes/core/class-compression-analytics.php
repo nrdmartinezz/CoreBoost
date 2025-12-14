@@ -127,7 +127,7 @@ class Compression_Analytics {
      * @return array Analytics data structure
      */
     public static function get_analytics() {
-        $analytics = get_option(self::ANALYTICS_OPTION, array());
+        $analytics = \get_option(self::ANALYTICS_OPTION, array());
         
         // Initialize structure if empty
         if (empty($analytics)) {
@@ -151,7 +151,7 @@ class Compression_Analytics {
      * @param array $analytics Analytics data
      */
     private static function save_analytics($analytics) {
-        update_option(self::ANALYTICS_OPTION, $analytics, false);
+        \update_option(self::ANALYTICS_OPTION, $analytics, false);
     }
     
     /**
@@ -281,7 +281,7 @@ class Compression_Analytics {
      * Resets all analytics tracking.
      */
     public static function clear_analytics() {
-        delete_option(self::ANALYTICS_OPTION);
+        \delete_option(self::ANALYTICS_OPTION);
         error_log("CoreBoost: Compression analytics cleared");
     }
     

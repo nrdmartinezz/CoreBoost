@@ -44,18 +44,18 @@ class Cache_Invalidator {
      */
     public static function init() {
         // Watch for settings changes
-        add_action('update_option_coreboost_options', array(__CLASS__, 'handle_settings_change'), 10, 2);
+        \add_action('update_option_coreboost_options', array(__CLASS__, 'handle_settings_change'), 10, 2);
         
         // Watch for image edits
-        add_action('wp_generate_attachment_metadata', array(__CLASS__, 'handle_image_edit'), 10, 2);
+        \add_action('wp_generate_attachment_metadata', array(__CLASS__, 'handle_image_edit'), 10, 2);
         
         // Watch for image deletions
-        add_action('delete_attachment', array(__CLASS__, 'handle_image_delete'), 10, 1);
+        \add_action('delete_attachment', array(__CLASS__, 'handle_image_delete'), 10, 1);
         
         // Watch for theme/plugin changes
-        add_action('switch_theme', array(__CLASS__, 'handle_theme_switch'));
-        add_action('activated_plugin', array(__CLASS__, 'handle_plugin_change'));
-        add_action('deactivated_plugin', array(__CLASS__, 'handle_plugin_change'));
+        \add_action('switch_theme', array(__CLASS__, 'handle_theme_switch'));
+        \add_action('activated_plugin', array(__CLASS__, 'handle_plugin_change'));
+        \add_action('deactivated_plugin', array(__CLASS__, 'handle_plugin_change'));
     }
     
     /**
@@ -95,7 +95,7 @@ class Cache_Invalidator {
      * @param int $attachment_id Attachment ID
      */
     public static function handle_image_edit($metadata, $attachment_id) {
-        $image_url = wp_get_attachment_url($attachment_id);
+        $image_url = \wp_get_attachment_url($attachment_id);
         
         if ($image_url) {
             Variant_Cache::delete_variants($image_url);
@@ -111,7 +111,7 @@ class Cache_Invalidator {
      * @param int $attachment_id Attachment ID
      */
     public static function handle_image_delete($attachment_id) {
-        $image_url = wp_get_attachment_url($attachment_id);
+        $image_url = \wp_get_attachment_url($attachment_id);
         
         if ($image_url) {
             Variant_Cache::delete_variants($image_url);
@@ -149,7 +149,7 @@ class Cache_Invalidator {
         error_log("CoreBoost: Full cache invalidation completed ({$deleted} chunks deleted)");
         
         // Set flag to indicate cache was cleared
-        set_transient('coreboost_cache_cleared', time(), HOUR_IN_SECONDS);
+        \set_transient('coreboost_cache_cleared', time(), \HOUR_IN_SECONDS);
     }
     
     /**
@@ -168,6 +168,6 @@ class Cache_Invalidator {
      * @return int|null Unix timestamp or null if never invalidated
      */
     public static function get_last_invalidation_time() {
-        return get_transient('coreboost_cache_cleared');
+        return \get_transient('coreboost_cache_cleared');
     }
 }
