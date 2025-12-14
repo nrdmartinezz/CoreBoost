@@ -246,17 +246,13 @@ class Image_Optimizer {
                 }
                 
                 if ($enable_format && $this->format_optimizer->should_optimize_image($src_url)) {
-                    // Get original image URL using WordPress attachment functions (more reliable than regex)
-                    $original_src = $this->get_original_image_url($src_url);
-                    
                     if (defined('WP_DEBUG') && WP_DEBUG) {
                         error_log("CoreBoost Image Optimizer: Processing image: {$src_url}");
-                        error_log("CoreBoost Image Optimizer: Original URL: {$original_src}");
                     }
                     
-                    // Check for variants (using original image URL)
-                    $avif_url = $this->format_optimizer->get_variant_from_cache($original_src, 'avif');
-                    $webp_url = $this->format_optimizer->get_variant_from_cache($original_src, 'webp');
+                    // Check for variants
+                    $avif_url = $this->format_optimizer->get_variant_from_cache($src_url, 'avif');
+                    $webp_url = $this->format_optimizer->get_variant_from_cache($src_url, 'webp');
                     
                     if (defined('WP_DEBUG') && WP_DEBUG) {
                         error_log("CoreBoost Image Optimizer: AVIF URL: " . ($avif_url ?: 'NOT FOUND'));
@@ -275,31 +271,18 @@ class Image_Optimizer {
                         $class_match = [];
                         $classes = preg_match($this->pattern_img_class, $attrs, $class_match) ? $class_match[1] : '';
                         
-                        // Check for responsive variants (resizer handles URL stripping internally)
+                        // Check for responsive variants
                         $responsive_variants = array();
                         if ($this->responsive_resizer) {
                             $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
-                            
-                            // If no variants exist but dimensions are known, generate them on-demand
-                            if (empty($responsive_variants) && $width && $height) {
-                                $this->responsive_resizer->generate_variants_if_needed($src_url, $width, $height);
-                                // Check again after generation
-                                $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
-                            }
                         }
                         
-                        // Render picture tag (using original URL for variant lookups)
+                        // Render picture tag
                         if (!empty($responsive_variants)) {
-                            $picture_html = $this->format_optimizer->render_responsive_picture_tag($original_src, $alt, $classes, array(), $responsive_variants, $width);
+                            return $this->format_optimizer->render_responsive_picture_tag($src_url, $alt, $classes, array(), $responsive_variants, $width);
                         } else {
-                            $picture_html = $this->format_optimizer->render_picture_tag($original_src, $alt, $classes);
+                            return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes);
                         }
-                        
-                        if (defined('WP_DEBUG') && WP_DEBUG) {
-                            error_log("CoreBoost: Returning picture tag: " . substr($picture_html, 0, 100));
-                        }
-                        
-                        return $picture_html;
                     } else {
                         if (defined('WP_DEBUG') && WP_DEBUG) {
                             error_log("CoreBoost Image Optimizer: No variants found for {$original_src} - serving original image");
