@@ -278,9 +278,12 @@ class Resource_Remover {
             
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log("CoreBoost: After image optimization - HTML contains <picture>: " . (strpos($html, '<picture>') !== false ? 'YES' : 'NO'));
+                error_log("CoreBoost: After image optimization - HTML contains coreboost-variants: " . (strpos($html, 'coreboost-variants') !== false ? 'YES' : 'NO'));
                 // Show a sample of the modified HTML around one image
-                if (preg_match('/(picture>.*?1000_F_507464080.*?<\/picture>)/s', $html, $matches)) {
-                    error_log("CoreBoost: Picture tag sample: " . substr($matches[0], 0, 300));
+                if (preg_match('/(<picture>.*?1000_F_507464080.*?<\/picture>)/s', $html, $matches)) {
+                    error_log("CoreBoost: Full picture tag found: " . substr($matches[0], 0, 300));
+                } else if (preg_match('/(<img[^>]*1000_F_507464080[^>]*>)/s', $html, $matches)) {
+                    error_log("CoreBoost: Only img tag found (no picture wrapper): " . substr($matches[0], 0, 300));
                 }
             }
         }
