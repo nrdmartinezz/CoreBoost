@@ -240,6 +240,11 @@ class Image_Optimizer {
                 }
                 
                 // Apply format optimization (AVIF/WebP) if enabled
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("CoreBoost: Format enabled: " . ($enable_format ? 'YES' : 'NO'));
+                    error_log("CoreBoost: Should optimize: " . ($this->format_optimizer->should_optimize_image($src_url) ? 'YES' : 'NO'));
+                }
+                
                 if ($enable_format && $this->format_optimizer->should_optimize_image($src_url)) {
                     // Get original image URL using WordPress attachment functions (more reliable than regex)
                     $original_src = $this->get_original_image_url($src_url);

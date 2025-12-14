@@ -488,6 +488,10 @@ class Image_Format_Optimizer {
         $html .= '<img ' . $img_attrs . '>';
         $html .= '</picture>';
         
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("CoreBoost render_picture_tag OUTPUT: " . substr($html, 0, 200) . "...");
+        }
+        
         return $html;
     }
     
