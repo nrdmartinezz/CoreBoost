@@ -69,25 +69,45 @@ class Image_Responsive_Resizer {
     }
     
     /**
+     * Strip WordPress size suffix from image URL
+     *
+     * Converts: image-1024x683.jpg -> image.jpg
+     * Converts: image-300x200-scaled.jpg -> image.jpg
+     *
+     * @param string $image_url Image URL
+     * @return string Original image URL without size suffix
+     */
+    private function get_original_image_url($image_url) {
+        // Strip WordPress size patterns: -{width}x{height}, -scaled
+        $original_url = preg_replace('/-\d+x\d+(-scaled)?\.(jpg|jpeg|png|gif|webp)$/i', '.$2', $image_url);
+        return $original_url;
+    }
+    
+    /**
      * Generate responsive variants if they don't exist
      *
      * Checks if variants exist, and if not, generates them immediately.
      * This ensures PSI tests see properly-sized images on first page load.
      *
-     * @param string $image_url Image URL
+     * @param string $image_url Image URL (may include WP size suffix)
      * @param int $rendered_width Rendered width in pixels
      * @param int $rendered_height Rendered height in pixels
      * @return bool True if variants were generated
      */
     public function generate_variants_if_needed($image_url, $rendered_width, $rendered_height) {
+        // Use original image URL (strip WordPress size suffixes like -1024x683)
+        $original_url = $this->get_original_image_url($image_url);
+        // Use original image URL (strip WordPress size suffixes like -1024x683)
+        $original_url = $this->get_original_image_url($image_url);
+        
         // Check if variants already exist
-        $existing = $this->get_available_responsive_variants($image_url);
+        $existing = $this->get_available_responsive_variants($original_url);
         if (!empty($existing)) {
             return false; // Already have variants
         }
         
         // Check if image is oversized (needs resizing)
-        $file_path = Path_Helper::url_to_path($image_url);
+        $file_path = Path_Helper::url_to_path($original_url);
         if (!file_exists($file_path)) {
             return false;
         }
@@ -106,7 +126,7 @@ class Image_Responsive_Resizer {
         }
         
         // Generate immediately (not queued)
-        return $this->handle_background_resize($image_url, $rendered_width, $rendered_height);
+        return $this->handle_background_resize($original_url, $rendered_width, $rendered_height);
     }
     
     /**
@@ -421,11 +441,13 @@ class Image_Responsive_Resizer {
      * Returns array of available AVIF/WebP variants with width descriptors
      * for building srcset attributes.
      *
-     * @param string $image_url Original image URL
+     * @param string $image_url Original image URL (will strip WP size suffix)
      * @return array Array of variants: ['width' => int, 'avif' => url, 'webp' => url]
      */
     public function get_available_responsive_variants($image_url) {
-        $file_path = Path_Helper::url_to_path($image_url);
+        // Strip WordPress size suffixes to get original image
+        $original_url = $this->get_original_image_url($image_url);
+        $file_path = Path_Helper::url_to_path($original_url);
         $upload_dir = wp_upload_dir();
         $variants_base = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants' . DIRECTORY_SEPARATOR;
         
