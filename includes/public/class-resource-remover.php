@@ -270,7 +270,19 @@ class Resource_Remover {
         
         // Optimize images (lazy loading, width/height, aspect ratio)
         if (!empty($this->options['enable_image_optimization']) && isset($this->image_optimizer)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("CoreBoost: Before image optimization - HTML contains: " . (strpos($html, '1000_F_507464080') !== false ? 'YES' : 'NO'));
+            }
+            
             $html = $this->image_optimizer->optimize_images($html);
+            
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("CoreBoost: After image optimization - HTML contains <picture>: " . (strpos($html, '<picture>') !== false ? 'YES' : 'NO'));
+                // Show a sample of the modified HTML around one image
+                if (preg_match('/(picture>.*?1000_F_507464080.*?<\/picture>)/s', $html, $matches)) {
+                    error_log("CoreBoost: Picture tag sample: " . substr($matches[0], 0, 300));
+                }
+            }
         }
         
         return $html;
