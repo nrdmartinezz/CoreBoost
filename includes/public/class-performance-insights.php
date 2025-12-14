@@ -9,15 +9,17 @@
  * @version 2.5.0
  */
 
+namespace CoreBoost\PublicCore;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class CoreBoost_Performance_Insights {
+class Performance_Insights {
 	/**
 	 * Analytics engine instance
 	 *
-	 * @var CoreBoost_Analytics_Engine
+	 * @var Analytics_Engine
 	 */
 	private $analytics = null;
 
@@ -38,7 +40,7 @@ class CoreBoost_Performance_Insights {
 	/**
 	 * Constructor
 	 *
-	 * @param CoreBoost_Analytics_Engine $analytics Analytics engine.
+	 * @param Analytics_Engine $analytics Analytics engine.
 	 */
 	public function __construct( $analytics ) {
 		// Only initialize on frontend (not admin or AJAX requests)

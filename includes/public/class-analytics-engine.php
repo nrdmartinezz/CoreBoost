@@ -10,11 +10,13 @@
  * @version 2.5.0
  */
 
+namespace CoreBoost\PublicCore;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class CoreBoost_Analytics_Engine {
+class Analytics_Engine {
 	/**
 	 * Script metrics storage
 	 *

@@ -9,8 +9,11 @@
 namespace CoreBoost;
 
 use CoreBoost\Admin\Admin;
+use CoreBoost\Admin\Dashboard_UI;
 use CoreBoost\Core\Context_Helper;
+use CoreBoost\PublicCore\Analytics_Engine;
 use CoreBoost\PublicCore\Hero_Optimizer;
+use CoreBoost\PublicCore\Performance_Insights;
 use CoreBoost\PublicCore\Script_Optimizer;
 use CoreBoost\PublicCore\CSS_Optimizer;
 use CoreBoost\PublicCore\Font_Optimizer;
@@ -140,14 +143,14 @@ class CoreBoost {
     /**
      * Analytics engine instance
      *
-     * @var \CoreBoost_Analytics_Engine
+     * @var Analytics_Engine
      */
     private $analytics_engine;
     
     /**
      * Dashboard UI instance
      *
-     * @var \CoreBoost_Dashboard_UI
+     * @var Dashboard_UI
      */
     private $dashboard_ui;
     
@@ -217,14 +220,14 @@ class CoreBoost {
         if (is_admin()) {
             $this->admin = new Admin($this->options, $this->loader);
             // Initialize dashboard UI (Phase 5) - will lazy-load analytics engine when needed
-            $this->dashboard_ui = new \CoreBoost_Dashboard_UI(null, $this->options);
+            $this->dashboard_ui = new Dashboard_UI(null, $this->options);
         }
         
         // Initialize frontend optimizers
         // Skip on admin pages and preview contexts (Elementor, etc)
         if (!Context_Helper::should_skip_optimization()) {
             // Initialize analytics engine (Phase 5) - frontend only
-            $this->analytics_engine = new \CoreBoost_Analytics_Engine($this->options, defined('WP_DEBUG') && WP_DEBUG);
+            $this->analytics_engine = new Analytics_Engine($this->options, defined('WP_DEBUG') && WP_DEBUG);
             
             $this->hero_optimizer = new Hero_Optimizer($this->options, $this->loader);
             $this->script_optimizer = new Script_Optimizer($this->options, $this->loader);
@@ -309,7 +312,7 @@ class CoreBoost {
      * Get Analytics_Engine instance
      * Allows other classes to access the analytics engine for metrics recording
      *
-     * @return \CoreBoost_Analytics_Engine|null
+     * @return Analytics_Engine|null
      */
     public function get_analytics_engine() {
         return $this->analytics_engine;

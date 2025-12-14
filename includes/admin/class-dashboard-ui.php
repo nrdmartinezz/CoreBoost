@@ -10,15 +10,19 @@
  * @version 2.5.0
  */
 
+namespace CoreBoost\Admin;
+
+use CoreBoost\PublicCore\Analytics_Engine;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class CoreBoost_Dashboard_UI {
+class Dashboard_UI {
 	/**
 	 * Analytics engine instance
 	 *
-	 * @var CoreBoost_Analytics_Engine
+	 * @var Analytics_Engine
 	 */
 	private $analytics = null;
 
@@ -32,8 +36,8 @@ class CoreBoost_Dashboard_UI {
 	/**
 	 * Constructor
 	 *
-	 * @param CoreBoost_Analytics_Engine $analytics Analytics engine.
-	 * @param array                      $options Plugin options.
+	 * @param Analytics_Engine $analytics Analytics engine.
+	 * @param array            $options Plugin options.
 	 */
 	public function __construct( $analytics, $options = array() ) {
 		// Only initialize in admin area
@@ -62,11 +66,11 @@ class CoreBoost_Dashboard_UI {
 	/**
 	 * Get or lazy-load analytics engine
 	 *
-	 * @return CoreBoost_Analytics_Engine
+	 * @return Analytics_Engine
 	 */
 	private function get_analytics() {
 		if ( ! $this->analytics ) {
-			$this->analytics = new \CoreBoost_Analytics_Engine( $this->options, false );
+			$this->analytics = new Analytics_Engine( $this->options, false );
 		}
 		return $this->analytics;
 	}
