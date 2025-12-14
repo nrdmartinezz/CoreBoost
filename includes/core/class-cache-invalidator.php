@@ -43,6 +43,11 @@ class Cache_Invalidator {
      * Initialize invalidation hooks
      */
     public static function init() {
+        // Only register hooks if WordPress functions are available
+        if (!function_exists('add_action')) {
+            return;
+        }
+        
         // Watch for settings changes
         \add_action('update_option_coreboost_options', array(__CLASS__, 'handle_settings_change'), 10, 2);
         

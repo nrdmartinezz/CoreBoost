@@ -54,6 +54,11 @@ class Cache_Warmer {
      * Initialize cache warming hooks
      */
     public static function init() {
+        // Only schedule if WordPress functions are available
+        if (!function_exists('wp_next_scheduled') || !function_exists('wp_schedule_event')) {
+            return;
+        }
+        
         // Schedule daily cache warming
         if (!\wp_next_scheduled('coreboost_warm_cache')) {
             \wp_schedule_event(time(), 'daily', 'coreboost_warm_cache');

@@ -296,6 +296,11 @@ class Cache_Consistency_Checker {
      * Schedule daily consistency checks
      */
     public static function init() {
+        // Only schedule if WordPress functions are available
+        if (!function_exists('wp_next_scheduled') || !function_exists('wp_schedule_event')) {
+            return;
+        }
+        
         // Schedule daily consistency check
         if (!\wp_next_scheduled('coreboost_check_cache_consistency')) {
             \wp_schedule_event(time(), 'daily', 'coreboost_check_cache_consistency');
