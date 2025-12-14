@@ -865,12 +865,17 @@ class Image_Format_Optimizer {
             return;
         }
         
-        // Verify .htaccess exists
-        $status = \CoreBoost\Core\Variant_Cache_Headers::verify_htaccess();
-        
-        // Create if missing or outdated
-        if (!$status['exists'] || !$status['current']) {
-            \CoreBoost\Core\Variant_Cache_Headers::create_htaccess();
+        try {
+            // Verify .htaccess exists
+            $status = \CoreBoost\Core\Variant_Cache_Headers::verify_htaccess();
+            
+            // Create if missing or outdated
+            if (!$status['exists'] || !$status['current']) {
+                \CoreBoost\Core\Variant_Cache_Headers::create_htaccess();
+            }
+        } catch (\Exception $e) {
+            // Log error but don't crash
+            error_log('CoreBoost: Failed to ensure .htaccess exists: ' . $e->getMessage());
         }
     }
 }

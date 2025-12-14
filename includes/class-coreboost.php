@@ -288,26 +288,30 @@ class CoreBoost {
         
         // Initialize cache invalidator (Phase 3.1 - v3.1.0)
         // Always initialize if image optimization is enabled
-        if (!empty($this->options['enable_image_optimization']) || 
-            !empty($this->options['enable_image_format_conversion'])) {
+        if (class_exists('CoreBoost\\Core\\Cache_Invalidator') && 
+            (!empty($this->options['enable_image_optimization']) || 
+             !empty($this->options['enable_image_format_conversion']))) {
             Cache_Invalidator::init();
         }
         
         // Initialize cache warmer (Phase 3.1 - v3.1.0)
         // Only initialize if format conversion is enabled
-        if (!empty($this->options['enable_image_format_conversion'])) {
+        if (class_exists('CoreBoost\\Core\\Cache_Warmer') && 
+            !empty($this->options['enable_image_format_conversion'])) {
             Cache_Warmer::init();
         }
         
         // Initialize cache consistency checker (Phase 3.1 - v3.1.0)
-        if (!empty($this->options['enable_image_optimization']) || 
-            !empty($this->options['enable_image_format_conversion'])) {
+        if (class_exists('CoreBoost\\Core\\Cache_Consistency_Checker') && 
+            (!empty($this->options['enable_image_optimization']) || 
+             !empty($this->options['enable_image_format_conversion']))) {
             Cache_Consistency_Checker::init();
         }
         
         // Initialize variant cache headers (Phase 3.1 - v3.1.0)
         // Manages browser caching for image variants
-        if (!empty($this->options['enable_image_format_conversion'])) {
+        if (class_exists('CoreBoost\\Core\\Variant_Cache_Headers') && 
+            !empty($this->options['enable_image_format_conversion'])) {
             Variant_Cache_Headers::init();
         }
     }    

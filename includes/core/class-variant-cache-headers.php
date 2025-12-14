@@ -35,12 +35,17 @@ class Variant_Cache_Headers {
      * Initialize cache headers management
      */
     public static function init() {
+        // Only initialize if WordPress functions are available
+        if (!function_exists('add_action')) {
+            return;
+        }
+        
         // Create .htaccess when variants directory is created
         \add_action('coreboost_variants_dir_created', array(__CLASS__, 'create_htaccess'));
         
-        // Recreate .htaccess on plugin activation
-        if (function_exists('register_activation_hook')) {
-            register_activation_hook(COREBOOST_PLUGIN_FILE, array(__CLASS__, 'create_htaccess'));
+        // Recreate .htaccess on plugin activation (if constant is defined)
+        if (defined('COREBOOST_PLUGIN_FILE') && function_exists('register_activation_hook')) {
+            \register_activation_hook(\COREBOOST_PLUGIN_FILE, array(__CLASS__, 'create_htaccess'));
         }
     }
     
