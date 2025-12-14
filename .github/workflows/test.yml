@@ -329,9 +329,6 @@ jobs:
         if (!function_exists('__')) {
             function __($text, $domain = 'default') { return $text; }
         }
-        if (!function_exists('error_log')) {
-            function error_log($message, $message_type = 0, $destination = null, $extra_headers = null) { return true; }
-        }
         
         // Try to include the plugin
         try {
@@ -393,7 +390,6 @@ jobs:
         function wp_localize_script($handle, $object_name, $l10n) { return true; }
         function add_menu_page($page_title, $menu_title, $capability, $menu_slug, $function = '', $icon_url = '', $position = null) { return true; }
         function add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function = '') { return true; }
-        function error_log($message, $message_type = 0, $destination = null, $extra_headers = null) { return true; }
         
         // Include plugin
         include 'coreboost.php';
