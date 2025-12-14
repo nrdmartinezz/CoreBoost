@@ -239,9 +239,12 @@ class Image_Optimizer {
                 
                 // Apply format optimization (AVIF/WebP) if enabled
                 if ($enable_format && $this->format_optimizer->should_optimize_image($src_url)) {
-                    // Check for variants
-                    $avif_url = $this->format_optimizer->get_variant_from_cache($src_url, 'avif');
-                    $webp_url = $this->format_optimizer->get_variant_from_cache($src_url, 'webp');
+                    // Strip WordPress size suffix to find original image variants
+                    $original_src = preg_replace('/-\d+x\d+(-scaled)?\.(jpg|jpeg|png|gif|webp)$/i', '.$2', $src_url);
+                    
+                    // Check for variants (using original image URL)
+                    $avif_url = $this->format_optimizer->get_variant_from_cache($original_src, 'avif');
+                    $webp_url = $this->format_optimizer->get_variant_from_cache($original_src, 'webp');
                     
                     if ($avif_url || $webp_url) {
                         // Extract alt and classes for picture tag
@@ -251,7 +254,7 @@ class Image_Optimizer {
                         $class_match = [];
                         $classes = preg_match($this->pattern_img_class, $attrs, $class_match) ? $class_match[1] : '';
                         
-                        // Check for responsive variants
+                        // Check for responsive variants (resizer handles URL stripping internally)
                         $responsive_variants = array();
                         if ($this->responsive_resizer) {
                             $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
@@ -264,11 +267,11 @@ class Image_Optimizer {
                             }
                         }
                         
-                        // Render picture tag
+                        // Render picture tag (using original URL for variant lookups)
                         if (!empty($responsive_variants)) {
-                            return $this->format_optimizer->render_responsive_picture_tag($src_url, $alt, $classes, array(), $responsive_variants, $width);
+                            return $this->format_optimizer->render_responsive_picture_tag($original_src, $alt, $classes, array(), $responsive_variants, $width);
                         } else {
-                            return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes);
+                            return $this->format_optimizer->render_picture_tag($original_src, $alt, $classes);
                         }
                     }
                 }
