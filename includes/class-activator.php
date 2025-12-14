@@ -22,6 +22,29 @@ class Activator {
      * Activate the plugin
      */
     public static function activate() {
+        // Check if this is an upgrade from a previous version
+        $installed_version = get_option('coreboost_version', '0.0.0');
+        
+        if ($installed_version && version_compare($installed_version, COREBOOST_VERSION, '<')) {
+            // This is an upgrade - run migrations
+            error_log('CoreBoost: Upgrading from version ' . $installed_version . ' to ' . COREBOOST_VERSION);
+            
+            // Backup current options before migration
+            self::backup_options($installed_version);
+            
+            // Run version-specific migrations
+            require_once COREBOOST_PLUGIN_DIR . 'includes/core/class-migration.php';
+            Core\Migration::run($installed_version);
+        }
+        
+        // Update version in database
+        update_option('coreboost_version', COREBOOST_VERSION);
+        
+        // Add installed timestamp if first install
+        if (!get_option('coreboost_installed_at')) {
+            update_option('coreboost_installed_at', current_time('timestamp'));
+        }
+        
         // Add default options if they don't exist
         if (!get_option('coreboost_options')) {
             add_option('coreboost_options', self::get_default_options());
@@ -32,6 +55,8 @@ class Activator {
         
         // Flush caches
         self::flush_caches();
+        
+        error_log('CoreBoost: Activation completed successfully for version ' . COREBOOST_VERSION);
     }
     
     /**
@@ -121,6 +146,20 @@ class Activator {
         // Flush WordPress cache
         if (function_exists('wp_cache_flush')) {
             wp_cache_flush();
+        }
+    }
+    
+    /**
+     * Backup current options before migration
+     * 
+     * @param string $version Version being upgraded from
+     */
+    private static function backup_options($version) {
+        $options = get_option('coreboost_options');
+        if ($options) {
+            $backup_key = 'coreboost_options_backup_' . str_replace('.', '_', $version);
+            update_option($backup_key, $options, false); // autoload = false
+            error_log('CoreBoost: Options backed up to ' . $backup_key);
         }
     }
 }

@@ -15,6 +15,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.4'
+    
+    - name: Install Composer dependencies
+      run: composer install --no-dev --optimize-autoloader
+    
     - name: Get version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -29,12 +37,16 @@ jobs:
         cp readme.txt coreboost-release/
         cp README.md coreboost-release/
         cp CHANGELOG.md coreboost-release/
+        cp uninstall.php coreboost-release/
         
         # Copy modular includes directory (22 PHP classes - v2.0.0)
         cp -r includes coreboost-release/
         
         # Copy assets
         cp -r assets coreboost-release/
+        
+        # Copy vendor directory with plugin update checker
+        cp -r vendor coreboost-release/
         
         # Verify structure
         echo "Verifying release structure..."
