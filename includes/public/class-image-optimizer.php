@@ -290,10 +290,16 @@ class Image_Optimizer {
                         
                         // Render picture tag (using original URL for variant lookups)
                         if (!empty($responsive_variants)) {
-                            return $this->format_optimizer->render_responsive_picture_tag($original_src, $alt, $classes, array(), $responsive_variants, $width);
+                            $picture_html = $this->format_optimizer->render_responsive_picture_tag($original_src, $alt, $classes, array(), $responsive_variants, $width);
                         } else {
-                            return $this->format_optimizer->render_picture_tag($original_src, $alt, $classes);
+                            $picture_html = $this->format_optimizer->render_picture_tag($original_src, $alt, $classes);
                         }
+                        
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            error_log("CoreBoost: Returning picture tag: " . substr($picture_html, 0, 100));
+                        }
+                        
+                        return $picture_html;
                     } else {
                         if (defined('WP_DEBUG') && WP_DEBUG) {
                             error_log("CoreBoost Image Optimizer: No variants found for {$original_src} - serving original image");
@@ -302,6 +308,9 @@ class Image_Optimizer {
                 }
                 
                 // Return optimized img tag
+                if (defined('WP_DEBUG') && WP_DEBUG && strpos($attrs, '1000_F_507464080') !== false) {
+                    error_log("CoreBoost: Returning regular img tag for: " . substr($attrs, 0, 100));
+                }
                 return '<img ' . $attrs . '>';
             },
             $html
