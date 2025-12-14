@@ -60,10 +60,9 @@ CoreBoost\Autoloader::register();
 $updateCheckerPath = COREBOOST_PLUGIN_DIR . 'vendor/yahnis-elsts/plugin-update-checker/plugin-update-checker.php';
 if (file_exists($updateCheckerPath)) {
     require_once $updateCheckerPath;
-    use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
     try {
-        $updateChecker = PucFactory::buildUpdateChecker(
+        $updateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
             'https://github.com/nrdmartinezz/CoreBoost',
             __FILE__,
             'coreboost'
