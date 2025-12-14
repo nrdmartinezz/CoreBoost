@@ -244,11 +244,25 @@ class Image_Optimizer {
                     // Get original image URL using WordPress attachment functions (more reliable than regex)
                     $original_src = $this->get_original_image_url($src_url);
                     
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log("CoreBoost Image Optimizer: Processing image: {$src_url}");
+                        error_log("CoreBoost Image Optimizer: Original URL: {$original_src}");
+                    }
+                    
                     // Check for variants (using original image URL)
                     $avif_url = $this->format_optimizer->get_variant_from_cache($original_src, 'avif');
                     $webp_url = $this->format_optimizer->get_variant_from_cache($original_src, 'webp');
                     
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log("CoreBoost Image Optimizer: AVIF URL: " . ($avif_url ?: 'NOT FOUND'));
+                        error_log("CoreBoost Image Optimizer: WebP URL: " . ($webp_url ?: 'NOT FOUND'));
+                    }
+                    
                     if ($avif_url || $webp_url) {
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            error_log("CoreBoost Image Optimizer: Variants found! Rendering picture tag");
+                        }
+                        
                         // Extract alt and classes for picture tag
                         $alt_match = [];
                         $alt = preg_match($this->pattern_img_alt, $attrs, $alt_match) ? $alt_match[1] : '';
@@ -274,6 +288,10 @@ class Image_Optimizer {
                             return $this->format_optimizer->render_responsive_picture_tag($original_src, $alt, $classes, array(), $responsive_variants, $width);
                         } else {
                             return $this->format_optimizer->render_picture_tag($original_src, $alt, $classes);
+                        }
+                    } else {
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            error_log("CoreBoost Image Optimizer: No variants found for {$original_src} - serving original image");
                         }
                     }
                 }
@@ -367,6 +385,11 @@ class Image_Optimizer {
         // Try WordPress attachment lookup first (most reliable)
         $attachment_id = attachment_url_to_postid($image_url);
         
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("CoreBoost get_original_image_url: Input URL: {$image_url}");
+            error_log("CoreBoost get_original_image_url: Attachment ID: " . ($attachment_id ?: 'NOT FOUND'));
+        }
+        
         if ($attachment_id) {
             // Get original file path
             $original_path = get_attached_file($attachment_id);
@@ -388,8 +411,11 @@ class Image_Optimizer {
         // Pattern: image-300x200.jpg -> image.jpg
         // Pattern: image-300x200-scaled.jpg -> image.jpg
         $stripped = preg_replace('/-\d+x\d+(-scaled)?(\.(jpg|jpeg|png|gif|webp))$/i', '$2', $image_url);
-        
-        // If regex didn't match (no size suffix), return original URL
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("CoreBoost get_original_image_url: Regex stripped: {$stripped}");
+            error_log("CoreBoost get_original_image_url: Final result: " . (($stripped !== $image_url) ? $stripped : $image_url));
+        }
+                // If regex didn't match (no size suffix), return original URL
         return ($stripped !== $image_url) ? $stripped : $image_url;
     }
     
