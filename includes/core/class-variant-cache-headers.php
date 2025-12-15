@@ -108,38 +108,23 @@ class Variant_Cache_Headers {
 # Generated automatically - do not edit manually
 # Cache lifetime: {$cache_days} days ({$cache_lifetime} seconds)
 
-<IfModule mod_headers.c>
-    # Set cache headers for AVIF and WebP images
-    <FilesMatch "\.(avif|webp)$">
-        # Enable caching
-        Header set Cache-Control "public, max-age={$cache_lifetime}, immutable"
-        
-        # Set Expires header (for older browsers)
-        ExpiresActive On
-        ExpiresDefault "access plus {$cache_days} days"
-        
-        # Add ETag for cache validation
-        FileETag MTime Size
-        
-        # Disable Last-Modified (immutable files don't need it)
-        Header unset Last-Modified
-    </FilesMatch>
-</IfModule>
-
+# Enable expires module
 <IfModule mod_expires.c>
-    # Fallback expires rules if mod_headers not available
     ExpiresActive On
     ExpiresByType image/avif "access plus {$cache_days} days"
     ExpiresByType image/webp "access plus {$cache_days} days"
 </IfModule>
 
+# Set cache control headers
+<IfModule mod_headers.c>
+    <FilesMatch "\.(avif|webp)$">
+        Header set Cache-Control "public, max-age={$cache_lifetime}, immutable"
+        Header unset Last-Modified
+    </FilesMatch>
+</IfModule>
+
 # Prevent directory listing
 Options -Indexes
-
-# Allow access to image files only
-<FilesMatch "\.(avif|webp)$">
-    Require all granted
-</FilesMatch>
 
 HTACCESS;
     }
