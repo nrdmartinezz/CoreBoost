@@ -84,49 +84,38 @@ class Image_Responsive_Resizer {
     }
     
     /**
-     * Generate responsive variants if they don't exist
+     * Queue responsive variants if they don't exist (lightweight version)
      *
-     * Checks if variants exist, and if not, generates them immediately.
-     * This ensures PSI tests see properly-sized images on first page load.
+     * Fast cache-only check that queues generation for background processing.
+     * Does NOT block page rendering - no filesystem operations, no image decoding.
      *
      * @param string $image_url Image URL (may include WP size suffix)
      * @param int $rendered_width Rendered width in pixels
      * @param int $rendered_height Rendered height in pixels
-     * @return bool True if variants were generated
+     * @return bool True if queued successfully
      */
     public function generate_variants_if_needed($image_url, $rendered_width, $rendered_height) {
+        // Quick check: already queued? (avoids duplicate queue entries)
+        $transient_key = 'coreboost_resize_queued_' . md5($image_url);
+        if (\get_transient($transient_key)) {
+            return false; // Already queued, skip
+        }
+        
         // Use original image URL (strip WordPress size suffixes like -1024x683)
         $original_url = $this->get_original_image_url($image_url);
-        // Use original image URL (strip WordPress size suffixes like -1024x683)
-        $original_url = $this->get_original_image_url($image_url);
         
-        // Check if variants already exist
-        $existing = $this->get_available_responsive_variants($original_url);
-        if (!empty($existing)) {
-            return false; // Already have variants
+        // Fast check: do responsive variants exist in cache? (no filesystem access)
+        // Check both AVIF and WebP responsive variants
+        $avif_variants = \CoreBoost\Core\Variant_Cache::get_responsive_variants($original_url, 'avif');
+        $webp_variants = \CoreBoost\Core\Variant_Cache::get_responsive_variants($original_url, 'webp');
+        
+        // If we have cached responsive variants for this image, skip queuing
+        if (!empty($avif_variants) || !empty($webp_variants)) {
+            return false; // Has cached responsive variants
         }
         
-        // Check if image is oversized (needs resizing)
-        $file_path = Path_Helper::url_to_path($original_url);
-        if (!file_exists($file_path)) {
-            return false;
-        }
-        
-        $actual_dims = @getimagesize($file_path);
-        if (!$actual_dims) {
-            return false;
-        }
-        
-        $actual_width = $actual_dims[0];
-        $actual_height = $actual_dims[1];
-        
-        // Only generate if image is actually oversized
-        if ($actual_width <= $rendered_width && $actual_height <= $rendered_height) {
-            return false; // Image is already properly sized
-        }
-        
-        // Generate immediately (not queued)
-        return $this->handle_background_resize($original_url, $rendered_width, $rendered_height);
+        // No cached variants found - queue for background processing
+        return $this->queue_responsive_resize($original_url, $rendered_width, $rendered_height);
     }
     
     /**
