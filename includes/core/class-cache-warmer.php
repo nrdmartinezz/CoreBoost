@@ -205,12 +205,7 @@ class Cache_Warmer {
             // Generate the responsive variant
             $file_path = Path_Helper::url_to_path($image_url);
             if (file_exists($file_path)) {
-                // Use reflection to call private method (temporary solution)
-                $reflection = new \ReflectionClass($resizer);
-                $method = $reflection->getMethod('generate_responsive_variant');
-                $method->setAccessible(true);
-                
-                if ($method->invoke($resizer, $file_path, $breakpoint_width, $breakpoint_height)) {
+                if ($resizer->generate_responsive_variant($file_path, $breakpoint_width, $breakpoint_height)) {
                     $generated_count++;
                 }
             }

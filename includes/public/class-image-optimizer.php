@@ -271,6 +271,11 @@ class Image_Optimizer {
                         $class_match = [];
                         $classes = preg_match($this->pattern_img_class, $attrs, $class_match) ? $class_match[1] : '';
                         
+                        // Generate responsive variants if needed (on-demand generation)
+                        if ($this->responsive_resizer && $width && $height) {
+                            $this->responsive_resizer->generate_variants_if_needed($src_url, $width, $height);
+                        }
+                        
                         // Check for responsive variants
                         $responsive_variants = array();
                         if ($this->responsive_resizer) {

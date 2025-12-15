@@ -393,7 +393,7 @@ class Image_Responsive_Resizer {
      * @param int $height Target height
      * @return bool True if variant generated successfully
      */
-    private function generate_responsive_variant($file_path, $width, $height) {
+    public function generate_responsive_variant($file_path, $width, $height) {
         // Load image editor
         $editor = \wp_get_image_editor($file_path);
         
