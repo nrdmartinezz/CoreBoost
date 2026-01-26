@@ -281,7 +281,7 @@ class Compression_Analytics {
      * Resets all analytics tracking.
      */
     public static function clear_analytics() {
-        \\delete_option(self::ANALYTICS_OPTION);
+        \delete_option(self::ANALYTICS_OPTION);
         Context_Helper::debug_log("Compression analytics cleared");
     }
     

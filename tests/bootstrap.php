@@ -16,6 +16,15 @@ define('WP_CONTENT_DIR', ABSPATH . 'wp-content');
 define('WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins');
 define('COREBOOST_PLUGIN_DIR', dirname(__DIR__) . '/');
 
+// WP_DEBUG for testing - can be overridden in individual tests
+if (!defined('WP_DEBUG')) {
+    define('WP_DEBUG', true);
+}
+
+// Load mock Context_Helper BEFORE the autoloader
+// This ensures our mock is used instead of the real class
+require_once __DIR__ . '/mocks/class-context-helper-mock.php';
+
 // Autoloader for CoreBoost classes
 require_once dirname(__DIR__) . '/includes/class-autoloader.php';
 \CoreBoost\Autoloader::register();
@@ -141,16 +150,40 @@ if (!function_exists('update_option')) {
     }
 }
 
+if (!function_exists('delete_option')) {
+    function delete_option($option) {
+        return true;
+    }
+}
+
+if (!function_exists('is_admin')) {
+    function is_admin() {
+        return false;
+    }
+}
+
+if (!function_exists('wp_doing_ajax')) {
+    function wp_doing_ajax() {
+        return false;
+    }
+}
+
 if (!class_exists('WP_Error')) {
     class WP_Error {
         private $error_message;
+        private $error_code;
         
-        public function __construct($code = '', $message = '') {
+        public function __construct($code = '', $message = '', $data = '') {
+            $this->error_code = $code;
             $this->error_message = $message;
         }
         
         public function get_error_message() {
             return $this->error_message;
+        }
+        
+        public function get_error_code() {
+            return $this->error_code;
         }
     }
 }

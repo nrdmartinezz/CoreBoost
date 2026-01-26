@@ -46,6 +46,40 @@ jobs:
         
         echo "✅ Basic security checks passed"
 
+  phpunit-tests:
+    runs-on: ubuntu-latest
+    needs: syntax-check
+    
+    strategy:
+      matrix:
+        php-version: [7.4, 8.1]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, gd, xml, zip, xdebug
+        coverage: xdebug
+        tools: composer
+    
+    - name: Install Dependencies
+      run: composer install --prefer-dist --no-progress
+    
+    - name: Run PHPUnit Tests
+      run: |
+        vendor/bin/phpunit --configuration phpunit.xml --coverage-html tests/coverage/html --coverage-clover tests/coverage/clover.xml
+    
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      if: matrix.php-version == '8.1'
+      with:
+        name: coverage-report
+        path: tests/coverage/
+        retention-days: 14
+
   wordpress-compatibility:
     runs-on: ubuntu-latest
     needs: syntax-check
@@ -122,11 +156,11 @@ jobs:
         test -d /tmp/wordpress/wp-content/plugins/coreboost/includes/public && echo "✅ includes/public/ exists"
         test -d /tmp/wordpress/wp-content/plugins/coreboost/includes/core && echo "✅ includes/core/ exists"
         
-        # Count PHP class files (should be 22)
+        # Count PHP class files (should be 40+)
         CLASS_COUNT=$(find /tmp/wordpress/wp-content/plugins/coreboost/includes -name "*.php" | wc -l)
         echo "Found $CLASS_COUNT PHP class files"
-        if [ "$CLASS_COUNT" -lt 20 ]; then
-          echo "❌ ERROR: Expected at least 20 class files, found $CLASS_COUNT"
+        if [ "$CLASS_COUNT" -lt 40 ]; then
+          echo "❌ ERROR: Expected at least 40 class files, found $CLASS_COUNT"
           exit 1
         fi
         
@@ -199,8 +233,8 @@ jobs:
         # Count class files
         CLASS_COUNT=$(find includes -name "class-*.php" | wc -l)
         echo "Found $CLASS_COUNT class files"
-        if [ "$CLASS_COUNT" -lt 20 ]; then
-          echo "❌ ERROR: Expected at least 20 class files, found $CLASS_COUNT"
+        if [ "$CLASS_COUNT" -lt 40 ]; then
+          echo "❌ ERROR: Expected at least 40 class files, found $CLASS_COUNT"
           exit 1
         fi
         
@@ -209,10 +243,10 @@ jobs:
         test -f includes/class-loader.php && echo "✅ Loader class exists"
         test -f includes/class-autoloader.php && echo "✅ Autoloader class exists"
         
-        # Verify v2.0.0 GTM classes
-        test -f includes/core/class-gtm-detector.php && echo "✅ GTM_Detector class exists (v2.0.0)"
-        test -f includes/public/class-gtm-manager.php && echo "✅ GTM_Manager class exists (v2.0.0)"
-        test -f includes/admin/class-gtm-settings.php && echo "✅ GTM_Settings class exists (v2.0.0)"
+        # Verify v3.0.0+ core classes
+        test -f includes/core/class-context-helper.php && echo "✅ Context_Helper class exists (v3.0.0)"
+        test -f includes/core/class-bulk-converter.php && echo "✅ Bulk_Converter class exists (v3.0.0)"
+        test -f includes/core/class-compression-analytics.php && echo "✅ Compression_Analytics class exists (v3.0.0)"
         
         echo "✅ File structure check passed"
 
@@ -451,8 +485,8 @@ jobs:
         # Count PHP files in ZIP
         PHP_COUNT=$(unzip -l coreboost-test-build.zip | grep "\.php$" | wc -l)
         echo "PHP files in ZIP: $PHP_COUNT"
-        if [ "$PHP_COUNT" -lt 23 ]; then
-          echo "❌ ERROR: Expected at least 23 PHP files (1 main + 22 classes), found $PHP_COUNT"
+        if [ "$PHP_COUNT" -lt 44 ]; then
+          echo "❌ ERROR: Expected at least 44 PHP files (main + 43 classes), found $PHP_COUNT"
           exit 1
         fi
         
