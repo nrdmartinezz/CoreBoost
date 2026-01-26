@@ -10,7 +10,7 @@
 
 namespace CoreBoost\PublicCore;
 
-
+use CoreBoost\Core\Context_Helper;
 
 class Tag_Manager {
 
@@ -93,14 +93,8 @@ class Tag_Manager {
      * Output head tags
      */
     public function output_head_tags() {
-        // CRITICAL: Don't output in Elementor preview/AJAX
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
-            return;
-        }
-        
-        // Safety check: don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
 
@@ -124,14 +118,8 @@ class Tag_Manager {
      * Output body tags (at top of body)
      */
     public function output_body_tags() {
-        // CRITICAL: Don't output in Elementor preview/AJAX
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
-            return;
-        }
-        
-        // Safety check: don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
 
@@ -155,14 +143,8 @@ class Tag_Manager {
      * Output footer tags
      */
     public function output_footer_tags() {
-        // CRITICAL: Don't output in Elementor preview/AJAX
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
-            return;
-        }
-        
-        // Safety check: don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
 
@@ -186,14 +168,8 @@ class Tag_Manager {
      * Output delay script
      */
     public function output_delay_script() {
-        // CRITICAL: Don't output in Elementor preview/AJAX
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
-            return;
-        }
-        
-        // Safety check - don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
 

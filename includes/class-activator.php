@@ -8,6 +8,8 @@
 
 namespace CoreBoost;
 
+use CoreBoost\Core\Context_Helper;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -27,7 +29,7 @@ class Activator {
         
         if ($installed_version && version_compare($installed_version, COREBOOST_VERSION, '<')) {
             // This is an upgrade - run migrations
-            error_log('CoreBoost: Upgrading from version ' . $installed_version . ' to ' . COREBOOST_VERSION);
+            Context_Helper::debug_log('Upgrading from version ' . $installed_version . ' to ' . COREBOOST_VERSION);
             
             // Backup current options before migration
             self::backup_options($installed_version);
@@ -56,7 +58,7 @@ class Activator {
         // Flush caches
         self::flush_caches();
         
-        error_log('CoreBoost: Activation completed successfully for version ' . COREBOOST_VERSION);
+        Context_Helper::debug_log('Activation completed successfully for version ' . COREBOOST_VERSION);
     }
     
     /**
@@ -159,7 +161,7 @@ class Activator {
         if ($options) {
             $backup_key = 'coreboost_options_backup_' . str_replace('.', '_', $version);
             update_option($backup_key, $options, false); // autoload = false
-            error_log('CoreBoost: Options backed up to ' . $backup_key);
+            Context_Helper::debug_log('Options backed up to ' . $backup_key);
         }
     }
 }

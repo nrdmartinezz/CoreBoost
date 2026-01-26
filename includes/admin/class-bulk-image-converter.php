@@ -17,6 +17,7 @@ namespace CoreBoost\Admin;
 
 use CoreBoost\Core\Path_Helper;
 use CoreBoost\Core\Variant_Cache;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -74,9 +75,9 @@ class Bulk_Image_Converter {
             $this->define_hooks();
         }
         
-        error_log('CoreBoost: Bulk_Image_Converter constructed');
-        error_log('CoreBoost: Loader exists: ' . ($loader ? 'yes' : 'no'));
-        error_log('CoreBoost: Format optimizer passed: ' . ($format_optimizer ? 'yes' : 'no'));
+        Context_Helper::debug_log('Bulk_Image_Converter constructed');
+        Context_Helper::debug_log('Loader exists: ' . ($loader ? 'yes' : 'no'));
+        Context_Helper::debug_log('Format optimizer passed: ' . ($format_optimizer ? 'yes' : 'no'));
     }
     
     /**
@@ -95,7 +96,7 @@ class Bulk_Image_Converter {
         // Hook into media upload for auto-generation
         $this->loader->add_action('wp_handle_upload', $this, 'auto_generate_on_upload', 10, 1);
 
-        error_log('CoreBoost: Registering bulk converter AJAX hooks');
+        Context_Helper::debug_log('Registering bulk converter AJAX hooks');
     }
     
 
@@ -117,13 +118,13 @@ class Bulk_Image_Converter {
             ));
         }
         
-        error_log('CoreBoost: ajax_scan_uploads called');
-        error_log('CoreBoost: format_optimizer: ' . ($this->format_optimizer ? 'initialized' : 'NULL'));
+        Context_Helper::debug_log('ajax_scan_uploads called');
+        Context_Helper::debug_log('format_optimizer: ' . ($this->format_optimizer ? 'initialized' : 'NULL'));
         
         $images = $this->scan_uploads_folder();
         $count = count($images);
         
-        error_log('CoreBoost: Scanned ' . $count . ' images');
+        Context_Helper::debug_log('Scanned ' . $count . ' images');
         
         if ($count === 0) {
             wp_send_json_success(array(
@@ -140,11 +141,11 @@ class Bulk_Image_Converter {
         $start_conversion = filter_input(INPUT_POST, 'start_conversion', FILTER_SANITIZE_FULL_SPECIAL_CHARS) === 'true';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         
-        error_log('CoreBoost: start_conversion flag: ' . ($start_conversion ? 'true' : 'false'));
+        Context_Helper::debug_log('start_conversion flag: ' . ($start_conversion ? 'true' : 'false'));
         
         // Only delete existing variants when starting a new conversion
         if ($start_conversion) {
-            error_log('CoreBoost: Deleting existing variants before conversion');
+            Context_Helper::debug_log('Deleting existing variants before conversion');
             $this->delete_existing_variants();
         }
         
@@ -175,7 +176,7 @@ class Bulk_Image_Converter {
         // Count how many images already have variants
         $converted_count = $this->count_converted_images($images);
         
-        error_log('CoreBoost: Sending response - Total: ' . $count . ', Converted: ' . $converted_count);
+        Context_Helper::debug_log('Sending response - Total: ' . $count . ', Converted: ' . $converted_count);
         
         wp_send_json_success(array(
             'count' => $count,
@@ -233,7 +234,7 @@ class Bulk_Image_Converter {
             $batch_images = array_slice($images, $start_index, $progress['batch_size']);
             
             // Debug: Log what we're processing
-            error_log("CoreBoost: Processing batch of " . count($batch_images) . " images starting at index $start_index");
+            Context_Helper::debug_log("Processing batch of " . count($batch_images) . " images starting at index $start_index");
             
             $batch_results = $this->process_image_batch($batch_images);
             
@@ -267,7 +268,7 @@ class Bulk_Image_Converter {
                 'batch_results' => $batch_results,
             ));
         } catch (\Exception $e) {
-            error_log('CoreBoost: Batch processing error: ' . $e->getMessage());
+            Context_Helper::debug_log('Batch processing error: ' . $e->getMessage());
             wp_send_json_error(array(
                 'message' => 'Batch processing failed: ' . $e->getMessage(),
                 'batch' => $progress['current_batch'],
@@ -308,32 +309,32 @@ class Bulk_Image_Converter {
         
         // Ensure format optimizer is available
         if (!$this->format_optimizer) {
-            error_log('CoreBoost: Format optimizer not initialized in batch processing');
+            Context_Helper::debug_log('Format optimizer not initialized in batch processing');
             return $results;
         }
         
         foreach ($image_paths as $image_path) {
             try {
                 // Log current image being processed
-                error_log("CoreBoost: Processing image: $image_path");
+                Context_Helper::debug_log("Processing image: $image_path");
                 
                 if (!$this->format_optimizer->should_optimize_image($image_path)) {
                     $results['skipped']++;
-                    error_log("CoreBoost: Skipped image: $image_path (should_optimize_image returned false)");
+                    Context_Helper::debug_log("Skipped image: $image_path (should_optimize_image returned false)");
                     continue;
                 }
                 
                 // Generate AVIF variant
-                error_log("CoreBoost: Generating AVIF for: $image_path");
+                Context_Helper::debug_log("Generating AVIF for: $image_path");
                 $avif = $this->format_optimizer->generate_avif_variant($image_path);
                 
                 // Generate WebP variant
-                error_log("CoreBoost: Generating WebP for: $image_path");
+                Context_Helper::debug_log("Generating WebP for: $image_path");
                 $webp = $this->format_optimizer->generate_webp_variant($image_path);
                 
                 if ($avif || $webp) {
                     $results['success']++;
-                    error_log("CoreBoost: Success for $image_path - AVIF: " . ($avif ? 'YES' : 'NO') . ", WebP: " . ($webp ? 'YES' : 'NO'));
+                    Context_Helper::debug_log("Success for $image_path - AVIF: " . ($avif ? 'YES' : 'NO') . ", WebP: " . ($webp ? 'YES' : 'NO'));
                     
                     // Populate variant cache (zero overhead - variants already generated)
                     $original_url = Path_Helper::path_to_url($image_path);
@@ -346,15 +347,15 @@ class Bulk_Image_Converter {
                     ));
                 } else {
                     $results['failed']++;
-                    error_log("CoreBoost: Failed for $image_path - both AVIF and WebP returned null");
+                    Context_Helper::debug_log("Failed for $image_path - both AVIF and WebP returned null");
                 }
             } catch (\Exception $e) {
-                error_log('CoreBoost bulk conversion error: ' . $e->getMessage());
-                error_log('CoreBoost: Stack trace: ' . $e->getTraceAsString());
+                Context_Helper::debug_log('Bulk conversion error: ' . $e->getMessage());
+                Context_Helper::debug_log('Stack trace: ' . $e->getTraceAsString());
                 $results['failed']++;
             } catch (\Error $e) {
-                error_log('CoreBoost: Fatal error processing image ' . $image_path . ': ' . $e->getMessage());
-                error_log('CoreBoost: Stack trace: ' . $e->getTraceAsString());
+                Context_Helper::debug_log('Fatal error processing image ' . $image_path . ': ' . $e->getMessage());
+                Context_Helper::debug_log('Stack trace: ' . $e->getTraceAsString());
                 $results['failed']++;
             }
             
@@ -381,7 +382,7 @@ class Bulk_Image_Converter {
         
         // Don't process if format optimizer not available
         if (!$this->format_optimizer) {
-            error_log('CoreBoost: Format optimizer not available for auto-generation on upload');
+            Context_Helper::debug_log('Format optimizer not available for auto-generation on upload');
             return $upload;
         }
         
@@ -398,7 +399,7 @@ class Bulk_Image_Converter {
             if ($upload_dir && isset($upload_dir['basedir'])) {
                 $file_path = $upload_dir['basedir'] . '/' . $file_path;
             } else {
-                error_log('CoreBoost: Could not determine upload directory');
+                Context_Helper::debug_log('Could not determine upload directory');
                 return $upload;
             }
         }
@@ -409,7 +410,7 @@ class Bulk_Image_Converter {
                 return $upload;
             }
         } catch (\Exception $e) {
-            error_log('CoreBoost: Error checking if image should optimize: ' . $e->getMessage());
+            Context_Helper::debug_log('Error checking if image should optimize: ' . $e->getMessage());
             return $upload;
         }
         
@@ -418,7 +419,7 @@ class Bulk_Image_Converter {
             $this->format_optimizer->generate_avif_variant($file_path);
             $this->format_optimizer->generate_webp_variant($file_path);
         } catch (\Exception $e) {
-            error_log('CoreBoost auto-generate error: ' . $e->getMessage());
+            Context_Helper::debug_log('Auto-generate error: ' . $e->getMessage());
         }
         
         return $upload;
@@ -432,7 +433,7 @@ class Bulk_Image_Converter {
     private function scan_uploads_folder() {
         // Only call in WordPress context
         if (!function_exists('wp_upload_dir')) {
-            error_log('CoreBoost: WordPress not loaded, cannot scan uploads');
+            Context_Helper::debug_log('WordPress not loaded, cannot scan uploads');
             return array();
         }
         
@@ -440,14 +441,14 @@ class Bulk_Image_Converter {
         
         // Validate upload directory exists
         if (!$upload_dir || !isset($upload_dir['basedir']) || !is_dir($upload_dir['basedir'])) {
-            error_log('CoreBoost: Invalid uploads directory');
+            Context_Helper::debug_log('Invalid uploads directory');
             return array();
         }
         
         $uploads_path = $upload_dir['basedir'];
         $images = array();
         
-        error_log('CoreBoost: Scanning uploads directory: ' . $uploads_path);
+        Context_Helper::debug_log('Scanning uploads directory: ' . $uploads_path);
         
         try {
             // Recursive directory scan
@@ -466,10 +467,10 @@ class Bulk_Image_Converter {
                 }
             }
         } catch (\Exception $e) {
-            error_log('CoreBoost: Error scanning uploads folder: ' . $e->getMessage());
+            Context_Helper::debug_log('Error scanning uploads folder: ' . $e->getMessage());
         }
         
-        error_log('CoreBoost: Found ' . count($images) . ' images to process');
+        Context_Helper::debug_log('Found ' . count($images) . ' images to process');
         
         return $images;
     }
@@ -480,7 +481,7 @@ class Bulk_Image_Converter {
     private function delete_existing_variants() {
         // Only call in WordPress context
         if (!function_exists('wp_upload_dir')) {
-            error_log('CoreBoost: WordPress not loaded, cannot delete variants');
+            Context_Helper::debug_log('WordPress not loaded, cannot delete variants');
             return;
         }
         
@@ -562,17 +563,17 @@ class Bulk_Image_Converter {
      */
     private function count_converted_images($images) {
         if (!$this->format_optimizer) {
-            error_log('CoreBoost: count_converted_images - format_optimizer is null');
+            Context_Helper::debug_log('count_converted_images - format_optimizer is null');
             return 0;
         }
         
         $upload_dir = wp_upload_dir();
         $variants_dir = $upload_dir['basedir'] . '/coreboost-variants/';
         
-        error_log('CoreBoost: Checking variants directory: ' . $variants_dir);
+        Context_Helper::debug_log('Checking variants directory: ' . $variants_dir);
         
         if (!is_dir($variants_dir)) {
-            error_log('CoreBoost: Variants directory does not exist');
+            Context_Helper::debug_log('Variants directory does not exist');
             return 0;
         }
         
@@ -597,11 +598,11 @@ class Bulk_Image_Converter {
             
             if ($avif_exists || $webp_exists) {
                 $converted_count++;
-                error_log('CoreBoost: Found variant for: ' . $path_info['basename'] . ' (AVIF: ' . ($avif_exists ? 'yes' : 'no') . ', WebP: ' . ($webp_exists ? 'yes' : 'no') . ')');
+                Context_Helper::debug_log('Found variant for: ' . $path_info['basename'] . ' (AVIF: ' . ($avif_exists ? 'yes' : 'no') . ', WebP: ' . ($webp_exists ? 'yes' : 'no') . ')');
             }
         }
         
-        error_log('CoreBoost: Total converted images found: ' . $converted_count . ' out of ' . count($images));
+        Context_Helper::debug_log('Total converted images found: ' . $converted_count . ' out of ' . count($images));
         
         return $converted_count;
     }

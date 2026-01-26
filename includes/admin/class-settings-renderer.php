@@ -116,8 +116,8 @@ class Settings_Renderer {
         // Check if image format conversion is enabled
         $format_conversion_enabled = !empty($this->options['enable_image_format_conversion']);
         
-        // Bulk Image Converter UI
-        echo '<div style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 16px; margin: 20px 0; border-radius: 3px;">';
+        // Bulk Image Converter UI - wrapped in state container
+        echo '<div id="coreboost-bulk-converter" class="is-idle" style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 16px; margin: 20px 0; border-radius: 3px;">';
         echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Bulk Image Converter', 'coreboost') . '</h4>';
         
         // Warning if format conversion is disabled
@@ -130,7 +130,7 @@ class Settings_Renderer {
         
         // Status and info
         echo '<div style="margin-bottom: 15px;">';
-        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Status:', 'coreboost') . '</strong> <span id="coreboost-bulk-status" style="font-weight: bold; color: #666;">Not started</span></p>';
+        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Status:', 'coreboost') . '</strong> <span id="coreboost-bulk-status" class="coreboost-status coreboost-status--idle">Not started</span></p>';
         echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Images converted:', 'coreboost') . '</strong> <span id="coreboost-images-converted" style="font-weight: bold; color: #2196F3;">0</span> / <span id="coreboost-image-count">-</span></p>';
         echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Batch size:', 'coreboost') . '</strong> <span id="coreboost-batch-size">-</span></p>';
         echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Estimated time:', 'coreboost') . '</strong> <span id="coreboost-est-time">-</span></p>';

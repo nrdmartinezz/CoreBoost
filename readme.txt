@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.0.0
+Stable tag: 3.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,15 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.0.7 - 2025-01-26 =
+* Changed: Refactored bulk converter UI to use state machine pattern for reliable state management
+* Changed: Rewrote bulk-converter.css without !important declarations using proper CSS specificity
+* Changed: Added Context_Helper::debug_log() method for centralized, WP_DEBUG-aware logging
+* Changed: Converted 50+ error_log() calls to use centralized debug logging (prevents production log pollution)
+* Changed: Migrated manual Elementor preview checks to Context_Helper::should_skip_optimization()
+* Fixed: Removed duplicate lazy_load_exclude_count from default options
+* Removed: Deprecated class-debug-helper.php (empty since v2.5.1)
 
 = 1.1.2 - 2024-11-27 =
 * Improved: Enhanced unused script/CSS removal to catch late-enqueued resources

@@ -17,6 +17,7 @@ namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Path_Helper;
 use CoreBoost\Core\Variant_Cache;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -282,7 +283,7 @@ class Image_Format_Optimizer {
             
         } catch (\Exception $e) {
             // Log error but don't break processing
-            error_log('CoreBoost AVIF generation error: ' . $e->getMessage());
+            Context_Helper::debug_log('AVIF generation error: ' . $e->getMessage());
             return null;
         }
     }
@@ -369,7 +370,7 @@ class Image_Format_Optimizer {
             
         } catch (\Exception $e) {
             // Log error but don't break processing
-            error_log('CoreBoost WebP generation error: ' . $e->getMessage());
+            Context_Helper::debug_log('WebP generation error: ' . $e->getMessage());
             return null;
         }
     }
@@ -392,7 +393,7 @@ class Image_Format_Optimizer {
         $file_size = filesize($image_path);
         $max_size = 50 * 1024 * 1024; // 50MB limit
         if ($file_size > $max_size) {
-            error_log("CoreBoost: Skipping large image ({$file_size} bytes): {$image_path}");
+            Context_Helper::debug_log("Skipping large image ({$file_size} bytes): {$image_path}");
             return false;
         }
         
@@ -403,7 +404,7 @@ class Image_Format_Optimizer {
                 // Load PNG with proper transparency preservation
                 $resource = @imagecreatefrompng($image_path);
                 if ($resource === false) {
-                    error_log("CoreBoost: Failed to load PNG: {$image_path}");
+                    Context_Helper::debug_log("Failed to load PNG: {$image_path}");
                     return false;
                 }
                 
@@ -424,7 +425,7 @@ class Image_Format_Optimizer {
                 // Load JPEG
                 $resource = @imagecreatefromjpeg($image_path);
                 if ($resource === false) {
-                    error_log("CoreBoost: Failed to load JPEG: {$image_path}");
+                    Context_Helper::debug_log("Failed to load JPEG: {$image_path}");
                     return false;
                 }
                 return $resource;
@@ -433,7 +434,7 @@ class Image_Format_Optimizer {
             return false;
             
         } catch (\Exception $e) {
-            error_log('CoreBoost: Image resource loading error: ' . $e->getMessage());
+            Context_Helper::debug_log('Image resource loading error: ' . $e->getMessage());
             return false;
         }
     }
@@ -538,9 +539,7 @@ class Image_Format_Optimizer {
         $html .= '<img ' . $img_attrs . '>';
         $html .= '</picture>';
         
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("CoreBoost render_picture_tag OUTPUT: " . substr($html, 0, 200) . "...");
-        }
+        Context_Helper::debug_log("render_picture_tag OUTPUT: " . substr($html, 0, 200) . "...");
         
         return $html;
     }
@@ -875,7 +874,7 @@ class Image_Format_Optimizer {
             }
         } catch (\Exception $e) {
             // Log error but don't crash
-            error_log('CoreBoost: Failed to ensure .htaccess exists: ' . $e->getMessage());
+            Context_Helper::debug_log('Failed to ensure .htaccess exists: ' . $e->getMessage());
         }
     }
 }

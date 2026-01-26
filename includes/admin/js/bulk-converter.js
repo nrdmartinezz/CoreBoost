@@ -6,6 +6,7 @@
  *
  * @package CoreBoost
  * @since 2.7.0
+ * @updated 3.1.0 - Refactored to use state machine pattern with CSS classes
  */
 
 (function() {
@@ -20,6 +21,16 @@
         return;
     }
 
+    // State machine states
+    const STATES = {
+        IDLE: 'idle',
+        SCANNING: 'scanning',
+        PROCESSING: 'processing',
+        COMPLETE: 'complete',
+        ERROR: 'error',
+        STOPPED: 'stopped'
+    };
+
     // Configuration
     const config = {
         pollInterval: 3000, // 3 seconds
@@ -27,10 +38,9 @@
         nonce: (typeof coreBoostAdmin !== 'undefined' ? coreBoostAdmin.nonce : document.querySelector('input[name="coreboost_nonce"]')?.value) || '',
     };
 
-    // State
+    // State - using state machine pattern
     let state = {
-        isRunning: false,
-        isPaused: false,
+        current: STATES.IDLE,
         imageCount: 0,
         imagesConverted: 0,
         currentBatch: 0,
@@ -40,6 +50,47 @@
         pollTimer: null,
         elapsedTimer: null,
     };
+
+    /**
+     * Transition to a new state and update UI accordingly
+     * @param {string} newState - One of STATES values
+     */
+    function transitionTo(newState) {
+        const container = document.getElementById('coreboost-bulk-converter');
+        if (!container) return;
+
+        // Remove all state classes
+        Object.values(STATES).forEach(s => container.classList.remove('is-' + s));
+        
+        // Add new state class
+        container.classList.add('is-' + newState);
+        state.current = newState;
+        
+        // Update status text based on state
+        const statusMap = {
+            [STATES.IDLE]: { text: 'Not started', color: 'idle' },
+            [STATES.SCANNING]: { text: 'Scanning images...', color: 'processing' },
+            [STATES.PROCESSING]: { text: 'Processing...', color: 'processing' },
+            [STATES.COMPLETE]: { text: 'Complete', color: 'complete' },
+            [STATES.ERROR]: { text: 'Error', color: 'error' },
+            [STATES.STOPPED]: { text: 'Stopped', color: 'processing' }
+        };
+
+        const status = statusMap[newState];
+        if (status && elements.statusText) {
+            elements.statusText.textContent = status.text;
+            elements.statusText.className = 'coreboost-status coreboost-status--' + status.color;
+        }
+
+        console.log('CoreBoost: State transition to', newState);
+    }
+
+    /**
+     * Check if currently in a running state
+     */
+    function isRunning() {
+        return state.current === STATES.SCANNING || state.current === STATES.PROCESSING;
+    }
 
     // DOM elements
     const elements = {
@@ -264,9 +315,10 @@
         elements.progressBar.style.width = percentage + '%';
         elements.progressBar.textContent = percentage + '%';
 
-        // Update status text
-        elements.statusText.textContent = 'Processing...';
-        elements.statusText.style.color = '#F57C00';
+        // Ensure we're in processing state
+        if (state.current !== STATES.PROCESSING) {
+            transitionTo(STATES.PROCESSING);
+        }
 
         // Update progress text with batch results if available
         let progressText = 'Batch ' + progress.currentBatch + ' of ' + progress.totalBatches + ' (' + percentage + '%)';
@@ -278,9 +330,6 @@
 
         // Update remaining time (elapsed time updates via interval)
         elements.timeRemaining.textContent = 'Remaining: ' + formatTime(remainingSeconds);
-
-        // Show progress container
-        elements.progressContainer.style.display = 'block';
         
         // Update stats dashboard
         updateStatsDashboard({
@@ -297,10 +346,8 @@
         // Stop elapsed timer on error
         stopElapsedTimer();
         
+        transitionTo(STATES.ERROR);
         elements.errorText.textContent = message;
-        elements.errorContainer.style.display = 'block';
-        elements.successContainer.style.display = 'none';
-        state.isRunning = false;
         resetUI();
     }
 
@@ -309,39 +356,25 @@
      */
     function showSuccess(message) {
         elements.successText.textContent = message;
-        elements.successContainer.style.display = 'block';
-        elements.errorContainer.style.display = 'none';
-        state.isRunning = false;
+        transitionTo(STATES.COMPLETE);
         resetUI();
     }
 
     /**
-     * Hide messages
+     * Hide messages - handled by CSS state classes now
      */
     function hideMessages() {
-        elements.errorContainer.style.display = 'none';
-        elements.successContainer.style.display = 'none';
+        // Messages visibility controlled by parent state class
     }
 
     /**
      * Reset UI to initial state
      */
     function resetUI() {
-        state.isRunning = false;
-        state.isPaused = false;
-        
         // Stop elapsed timer
         stopElapsedTimer();
         
-        elements.startBtn.style.display = 'inline-block';
-        elements.startBtn.disabled = false;
-        elements.stopBtn.style.display = 'none';
-        elements.stopBtn.disabled = true;
-        
-        elements.statusText.textContent = 'Not started';
-        elements.statusText.style.color = '#666';
-        
-        // Reset images converted counter
+        // Reset state values
         state.imagesConverted = 0;
         if (elements.imagesConvertedText) {
             elements.imagesConvertedText.textContent = '0';
@@ -409,15 +442,9 @@
             return;
         }
 
-        state.isRunning = true;
         state.startTime = Date.now();
         hideMessages();
-
-        elements.startBtn.style.display = 'none';
-        elements.stopBtn.style.display = 'inline-block';
-        elements.stopBtn.disabled = false;
-        elements.statusText.textContent = 'Scanning images...';
-        elements.statusText.style.color = '#F57C00';
+        transitionTo(STATES.SCANNING);
 
         try {
             const result = await scanImages();
@@ -436,8 +463,7 @@
             const estimatedSeconds = estimatedMinutes * 60;
             elements.estTimeText.textContent = formatTime(estimatedSeconds);
 
-            // Show progress container
-            elements.progressContainer.style.display = 'block';
+            // Reset progress bar
             elements.progressBar.style.width = '0%';
             elements.progressText.textContent = 'Starting conversion...';
 
@@ -459,6 +485,9 @@
                 orphaned: 0
             });
 
+            // Transition to processing and start
+            transitionTo(STATES.PROCESSING);
+            
             // Start elapsed time ticker
             startElapsedTimer();
 
@@ -482,7 +511,7 @@
         let totalFailed = 0;
         let totalSkipped = 0;
 
-        while (state.currentBatch < state.totalBatches && state.isRunning) {
+        while (state.currentBatch < state.totalBatches && isRunning()) {
             state.currentBatch++;
 
             try {
@@ -566,7 +595,7 @@
         }
 
         // Check if stopped by user
-        if (!state.isRunning) {
+        if (!isRunning()) {
             return;
         }
 
@@ -592,8 +621,8 @@
 
         elements.progressBar.style.width = '100%';
         elements.progressBar.textContent = '100%';
-        elements.statusText.textContent = 'Complete';
-        elements.statusText.style.color = '#4CAF50';
+        
+        transitionTo(STATES.COMPLETE);
         
         // Show detailed results
         const resultsText = totalSuccess + ' converted, ' + totalFailed + ' failed, ' + totalSkipped + ' skipped';
@@ -613,11 +642,10 @@
         if (totalFailed > 0) {
             message += 'Check browser console for details on failed conversions.';
         }
-        showSuccess(message);
+        elements.successText.textContent = message;
         
         setTimeout(() => {
-            resetUI();
-            elements.progressContainer.style.display = 'none';
+            transitionTo(STATES.IDLE);
         }, 5000);
     }
 
@@ -625,14 +653,10 @@
      * Stop bulk conversion
      */
     function stopConversion() {
-        state.isRunning = false;
+        transitionTo(STATES.STOPPED);
         
         // Stop elapsed timer
         stopElapsedTimer();
-        
-        elements.statusText.textContent = 'Stopped';
-        elements.statusText.style.color = '#F57C00';
-        elements.stopBtn.disabled = true;
 
         // Set stop flag in backend
         fetch(config.ajaxurl, {
@@ -647,7 +671,7 @@
         });
 
         setTimeout(() => {
-            resetUI();
+            transitionTo(STATES.IDLE);
         }, 2000);
     }
 

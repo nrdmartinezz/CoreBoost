@@ -17,6 +17,7 @@
 namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Path_Helper;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -196,8 +197,8 @@ class Image_Responsive_Resizer {
                 $this->queue_responsive_resize($image_url, $rendered_width, $rendered_height);
                 $queued_count++;
                 
-                error_log(sprintf(
-                    "CoreBoost: Queued oversized image - Actual: %dx%d (%s), Rendered: %dx%d, Estimated savings: %s",
+                Context_Helper::debug_log(sprintf(
+                    'Queued oversized image - Actual: %dx%d (%s), Rendered: %dx%d, Estimated savings: %s',
                     $actual_width,
                     $actual_height,
                     Path_Helper::format_bytes($served_size),
@@ -209,7 +210,7 @@ class Image_Responsive_Resizer {
         }
         
         if ($queued_count > 0) {
-            error_log("CoreBoost: Queued {$queued_count} oversized images for responsive resizing");
+            Context_Helper::debug_log("Queued {$queued_count} oversized images for responsive resizing");
         }
         
         return $queued_count;
@@ -279,7 +280,7 @@ class Image_Responsive_Resizer {
         $file_path = Path_Helper::url_to_path($image_url);
         
         if (!file_exists($file_path)) {
-            error_log("CoreBoost: Resize failed - file not found: {$file_path}");
+            Context_Helper::debug_log("Resize failed - file not found: {$file_path}");
             return false;
         }
         
@@ -305,7 +306,7 @@ class Image_Responsive_Resizer {
         }
         
         if ($generated_count > 0) {
-            error_log("CoreBoost: Generated {$generated_count} responsive variants for: {$image_url}");
+            Context_Helper::debug_log("Generated {$generated_count} responsive variants for: {$image_url}");
         }
         
         return $generated_count > 0;
@@ -387,7 +388,7 @@ class Image_Responsive_Resizer {
         $editor = \wp_get_image_editor($file_path);
         
         if (\is_wp_error($editor)) {
-            error_log('CoreBoost: Image editor error: ' . $editor->get_error_message());
+            Context_Helper::debug_log('Image editor error: ' . $editor->get_error_message());
             return false;
         }
         
@@ -395,7 +396,7 @@ class Image_Responsive_Resizer {
         $resize_result = $editor->resize($width, $height, false);
         
         if (\is_wp_error($resize_result)) {
-            error_log('CoreBoost: Resize error: ' . $resize_result->get_error_message());
+            Context_Helper::debug_log('Resize error: ' . $resize_result->get_error_message());
             return false;
         }
         
@@ -412,7 +413,7 @@ class Image_Responsive_Resizer {
         $save_result = $editor->save($resized_path);
         
         if (\is_wp_error($save_result)) {
-            error_log('CoreBoost: Save error: ' . $save_result->get_error_message());
+            Context_Helper::debug_log('Save error: ' . $save_result->get_error_message());
             return false;
         }
         

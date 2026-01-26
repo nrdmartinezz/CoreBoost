@@ -17,6 +17,7 @@ namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Path_Helper;
 use CoreBoost\Core\Variant_Cache;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -250,7 +251,7 @@ class Image_Variant_Lifecycle_Manager {
         // Scan variant directories - CRITICAL FIX: Handle scandir() false returns
         $scan_result = scandir($variants_dir);
         if ($scan_result === false) {
-            error_log('[CoreBoost] Failed to scan variants directory: ' . $variants_dir);
+            Context_Helper::debug_log('Failed to scan variants directory: ' . $variants_dir);
             return $report;
         }
         $variant_dirs = array_diff($scan_result, array('.', '..')); 
@@ -302,7 +303,7 @@ class Image_Variant_Lifecycle_Manager {
         // Scan variant directories - CRITICAL FIX: Handle scandir() false returns
         $scan_result = scandir($this->variants_dir);
         if ($scan_result === false) {
-            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            Context_Helper::debug_log('Failed to scan variants directory: ' . $this->variants_dir);
             return $orphaned;
         }
         $variant_dirs = array_diff($scan_result, array('.', '..'));
@@ -359,7 +360,7 @@ class Image_Variant_Lifecycle_Manager {
         // Scan variant directories - CRITICAL FIX: Handle scandir() false returns
         $scan_result = scandir($this->variants_dir);
         if ($scan_result === false) {
-            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            Context_Helper::debug_log('Failed to scan variants directory: ' . $this->variants_dir);
             return $stats;
         }
         $variant_dirs = array_diff($scan_result, array('.', '..'));
@@ -378,7 +379,7 @@ class Image_Variant_Lifecycle_Manager {
             // Scan format directories - CRITICAL FIX: Handle scandir() false returns
             $format_scan = scandir($image_hash_path);
             if ($format_scan === false) {
-                error_log('[CoreBoost] Failed to scan image hash directory: ' . $image_hash_path);
+                Context_Helper::debug_log('Failed to scan image hash directory: ' . $image_hash_path);
                 continue;
             }
             $formats = array_diff($format_scan, array('.', '..'));
@@ -393,7 +394,7 @@ class Image_Variant_Lifecycle_Manager {
                 // Get files in format directory - CRITICAL FIX: Handle scandir() false returns
                 $file_scan = scandir($format_path);
                 if ($file_scan === false) {
-                    error_log('[CoreBoost] Failed to scan format directory: ' . $format_path);
+                    Context_Helper::debug_log('Failed to scan format directory: ' . $format_path);
                     continue;
                 }
                 $files = array_diff($file_scan, array('.', '..'));
@@ -554,7 +555,7 @@ class Image_Variant_Lifecycle_Manager {
         // Scan and delete all variant directories - CRITICAL FIX: Handle scandir() false returns
         $scan_result = scandir($this->variants_dir);
         if ($scan_result === false) {
-            error_log('[CoreBoost] Failed to scan variants directory: ' . $this->variants_dir);
+            Context_Helper::debug_log('Failed to scan variants directory: ' . $this->variants_dir);
             $report['errors'][] = 'Failed to read variants directory';
             return $report;
         }
@@ -635,7 +636,7 @@ class Image_Variant_Lifecycle_Manager {
         // CRITICAL FIX: Handle scandir() false return (errors return false, not array)
         $scan_result = scandir($dir_path);
         if ($scan_result === false) {
-            error_log('[CoreBoost] Failed to scan directory: ' . $dir_path);
+            Context_Helper::debug_log('Failed to scan directory: ' . $dir_path);
             return 0;
         }
         
@@ -655,7 +656,7 @@ class Image_Variant_Lifecycle_Manager {
                 if (!$count_only) {
                     // CRITICAL FIX: Check unlink return value for error handling
                     if (!@unlink($file_path)) {
-                        error_log('[CoreBoost] Failed to delete file: ' . $file_path);
+                        Context_Helper::debug_log('Failed to delete file: ' . $file_path);
                     }
                 }
             }
@@ -664,7 +665,7 @@ class Image_Variant_Lifecycle_Manager {
         // Delete empty directory
         if (!$count_only && is_dir($dir_path)) {
             if (!@rmdir($dir_path)) {
-                error_log('[CoreBoost] Failed to remove directory: ' . $dir_path);
+                Context_Helper::debug_log('Failed to remove directory: ' . $dir_path);
             }
         }
         

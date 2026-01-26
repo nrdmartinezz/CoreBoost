@@ -421,7 +421,6 @@ class CoreBoost {
             'add_width_height_attributes' => true,
             'generate_aspect_ratio_css' => true,
             'add_decoding_async' => true,
-            'lazy_load_exclude_count' => 2,
             'enable_image_format_conversion' => false,
             'enable_responsive_image_resizing' => false,
             'avif_quality' => 85,

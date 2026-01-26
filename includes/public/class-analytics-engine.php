@@ -12,6 +12,8 @@
 
 namespace CoreBoost\PublicCore;
 
+use CoreBoost\Core\Context_Helper;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -138,7 +140,7 @@ class Analytics_Engine {
 		update_option( 'coreboost_script_metrics', $this->script_metrics );
 
 		if ( $this->debug_mode ) {
-			error_log( "CoreBoost: Recorded metric for $handle - " . json_encode( $record ) );
+			Context_Helper::debug_log( "Recorded metric for $handle - " . json_encode( $record ) );
 		}
 	}
 
@@ -198,7 +200,7 @@ class Analytics_Engine {
 		update_option( 'coreboost_pattern_effectiveness', $this->pattern_effectiveness );
 
 		if ( $this->debug_mode ) {
-			error_log( "CoreBoost: Pattern '$pattern' effectiveness updated - Scripts: $scripts_affected, Bytes: $bytes_saved" );
+			Context_Helper::debug_log( "Pattern '$pattern' effectiveness updated - Scripts: $scripts_affected, Bytes: $bytes_saved" );
 		}
 	}
 

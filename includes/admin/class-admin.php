@@ -347,16 +347,14 @@ class Admin {
         }
         
         // Log to PHP error log if debug mode is enabled
-        if (defined('WP_DEBUG') && WP_DEBUG && defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
-            error_log(sprintf(
-                'CoreBoost Client Error [%s]: %s - %s | Context: %s | URL: %s',
-                $error['category'] ?? 'unknown',
-                $error['operation'] ?? 'unknown',
-                $error['message'] ?? 'no message',
-                json_encode($error['context'] ?? []),
-                $error['url'] ?? 'unknown'
-            ));
-        }
+        Context_Helper::debug_log(sprintf(
+            'Client Error [%s]: %s - %s | Context: %s | URL: %s',
+            $error['category'] ?? 'unknown',
+            $error['operation'] ?? 'unknown',
+            $error['message'] ?? 'no message',
+            json_encode($error['context'] ?? []),
+            $error['url'] ?? 'unknown'
+        ));
         
         // Store critical errors in database for later review
         if (!empty($error['errorName']) && in_array($error['errorName'], ['AbortError', 'NetworkError', 'TimeoutError'])) {

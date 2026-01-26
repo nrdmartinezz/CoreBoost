@@ -315,7 +315,7 @@ class Cache_Consistency_Checker {
     public static function daily_check() {
         $report = self::check_consistency(true); // Auto-repair enabled
         
-        error_log("CoreBoost: Daily consistency check completed - " .
+        Context_Helper::debug_log("Daily consistency check completed - " .
                  "Consistent: {$report['consistent']}, " .
                  "Orphaned cache: {$report['orphaned_cache']}, " .
                  "Orphaned files: {$report['orphaned_files']}, " .

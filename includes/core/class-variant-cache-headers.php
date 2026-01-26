@@ -14,6 +14,8 @@
 
 namespace CoreBoost\Core;
 
+use CoreBoost\Core\Context_Helper;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -86,11 +88,11 @@ class Variant_Cache_Headers {
         $result = file_put_contents($htaccess_file, $htaccess_content);
         
         if ($result !== false) {
-            error_log("CoreBoost: Created .htaccess for variants directory with {$cache_lifetime}s cache lifetime");
+            Context_Helper::debug_log("Created .htaccess for variants directory with {$cache_lifetime}s cache lifetime");
             return true;
         }
         
-        error_log("CoreBoost: Failed to create .htaccess for variants directory");
+        Context_Helper::debug_log('Failed to create .htaccess for variants directory');
         return false;
     }
     

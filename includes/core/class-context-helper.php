@@ -157,4 +157,29 @@ class Context_Helper {
         self::$is_elementor_preview = null;
         self::$should_skip = null;
     }
+    
+    /**
+     * Check if debug mode is enabled
+     *
+     * Returns true if WP_DEBUG is enabled. Use this instead of
+     * checking WP_DEBUG directly to allow for future customization.
+     *
+     * @return bool True if debug mode is enabled
+     */
+    public static function is_debug_mode() {
+        return defined('WP_DEBUG') && WP_DEBUG;
+    }
+    
+    /**
+     * Log a debug message if debug mode is enabled
+     *
+     * @param string $message The message to log
+     * @param string $prefix Optional prefix (defaults to 'CoreBoost')
+     * @return void
+     */
+    public static function debug_log($message, $prefix = 'CoreBoost') {
+        if (self::is_debug_mode()) {
+            error_log("{$prefix}: {$message}");
+        }
+    }
 }

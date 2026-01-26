@@ -17,6 +17,7 @@
 namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Path_Helper;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -152,7 +153,7 @@ class Image_Optimizer {
         
         // Log format optimization status
         if ($enable_format) {
-            error_log("CoreBoost: Phase 2 format optimization enabled (single-pass mode)");
+            Context_Helper::debug_log('Phase 2 format optimization enabled (single-pass mode)');
         }
         
         // Single regex pass handles all optimizations
@@ -241,13 +242,13 @@ class Image_Optimizer {
                 
                 // Apply format optimization (AVIF/WebP) if enabled
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("CoreBoost: Format enabled: " . ($enable_format ? 'YES' : 'NO'));
-                    error_log("CoreBoost: Should optimize: " . ($this->format_optimizer->should_optimize_image($src_url) ? 'YES' : 'NO'));
+                    Context_Helper::debug_log('Format enabled: ' . ($enable_format ? 'YES' : 'NO'));
+                    Context_Helper::debug_log('Should optimize: ' . ($this->format_optimizer->should_optimize_image($src_url) ? 'YES' : 'NO'));
                 }
                 
                 if ($enable_format && $this->format_optimizer->should_optimize_image($src_url)) {
                     if (defined('WP_DEBUG') && WP_DEBUG) {
-                        error_log("CoreBoost Image Optimizer: Processing image: {$src_url}");
+                        Context_Helper::debug_log("Processing image: {$src_url}", 'Image Optimizer');
                     }
                     
                     // Check for variants
@@ -255,13 +256,13 @@ class Image_Optimizer {
                     $webp_url = $this->format_optimizer->get_variant_from_cache($src_url, 'webp');
                     
                     if (defined('WP_DEBUG') && WP_DEBUG) {
-                        error_log("CoreBoost Image Optimizer: AVIF URL: " . ($avif_url ?: 'NOT FOUND'));
-                        error_log("CoreBoost Image Optimizer: WebP URL: " . ($webp_url ?: 'NOT FOUND'));
+                        Context_Helper::debug_log('AVIF URL: ' . ($avif_url ?: 'NOT FOUND'), 'Image Optimizer');
+                        Context_Helper::debug_log('WebP URL: ' . ($webp_url ?: 'NOT FOUND'), 'Image Optimizer');
                     }
                     
                     if ($avif_url || $webp_url) {
                         if (defined('WP_DEBUG') && WP_DEBUG) {
-                            error_log("CoreBoost Image Optimizer: Variants found! Rendering picture tag");
+                            Context_Helper::debug_log('Variants found! Rendering picture tag', 'Image Optimizer');
                         }
                         
                         // Extract alt and classes for picture tag
@@ -290,14 +291,14 @@ class Image_Optimizer {
                         }
                     } else {
                         if (defined('WP_DEBUG') && WP_DEBUG) {
-                            error_log("CoreBoost Image Optimizer: No variants found for {$original_src} - serving original image");
+                            Context_Helper::debug_log("No variants found for {$original_src} - serving original image", 'Image Optimizer');
                         }
                     }
                 }
                 
                 // Return optimized img tag
                 if (defined('WP_DEBUG') && WP_DEBUG && strpos($attrs, '1000_F_507464080') !== false) {
-                    error_log("CoreBoost: Returning regular img tag for: " . substr($attrs, 0, 100));
+                    Context_Helper::debug_log('Returning regular img tag for: ' . substr($attrs, 0, 100));
                 }
                 return '<img ' . $attrs . '>';
             },
@@ -388,8 +389,8 @@ class Image_Optimizer {
         $attachment_id = attachment_url_to_postid($image_url);
         
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("CoreBoost get_original_image_url: Input URL: {$image_url}");
-            error_log("CoreBoost get_original_image_url: Attachment ID: " . ($attachment_id ?: 'NOT FOUND'));
+            Context_Helper::debug_log("Input URL: {$image_url}", 'get_original_image_url');
+            Context_Helper::debug_log('Attachment ID: ' . ($attachment_id ?: 'NOT FOUND'), 'get_original_image_url');
         }
         
         if ($attachment_id) {
@@ -414,8 +415,8 @@ class Image_Optimizer {
         // Pattern: image-300x200-scaled.jpg -> image.jpg
         $stripped = preg_replace('/-\d+x\d+(-scaled)?(\.(jpg|jpeg|png|gif|webp))$/i', '$2', $image_url);
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("CoreBoost get_original_image_url: Regex stripped: {$stripped}");
-            error_log("CoreBoost get_original_image_url: Final result: " . (($stripped !== $image_url) ? $stripped : $image_url));
+            Context_Helper::debug_log("Regex stripped: {$stripped}", 'get_original_image_url');
+            Context_Helper::debug_log('Final result: ' . (($stripped !== $image_url) ? $stripped : $image_url), 'get_original_image_url');
         }
                 // If regex didn't match (no size suffix), return original URL
         return ($stripped !== $image_url) ? $stripped : $image_url;
@@ -462,14 +463,14 @@ class Image_Optimizer {
         // Count style tags and attributes
         $style_tag_count = preg_match_all('/<style[^>]*>.*?<\/style>/is', $html);
         $style_attr_count = preg_match_all('/style=["\'][^"\']*["\']/', $html);
-        error_log("CoreBoost: Found {$style_tag_count} <style> tags and {$style_attr_count} style attributes");
+        Context_Helper::debug_log("Found {$style_tag_count} <style> tags and {$style_attr_count} style attributes");
         
         // Find inline style tags
         $html = preg_replace_callback(
             '/<style[^>]*>(.*?)<\/style>/is',
             function($matches) use (&$replacements_made) {
                 $css = $matches[1];
-                error_log("CoreBoost: Processing <style> tag with " . strlen($css) . " characters");
+                Context_Helper::debug_log('Processing <style> tag with ' . strlen($css) . ' characters');
                 $optimized_css = $this->process_css_background_images($css, $replacements_made);
                 return '<style' . (strpos($matches[0], ' ') !== false ? substr($matches[0], 6, strpos($matches[0], '>') - 6) : '') . '>' . $optimized_css . '</style>';
             },
@@ -481,7 +482,7 @@ class Image_Optimizer {
             '/style=["\']([^"\']*background[^"\']*)["\']/',
             function($matches) use (&$replacements_made) {
                 $style = $matches[1];
-                error_log("CoreBoost: Processing style attribute: " . substr($style, 0, 100));
+                Context_Helper::debug_log('Processing style attribute: ' . substr($style, 0, 100));
                 $optimized_style = $this->process_css_background_images($style, $replacements_made);
                 return 'style="' . esc_attr($optimized_style) . '"';
             },
@@ -489,7 +490,7 @@ class Image_Optimizer {
         );
         
         // Debug logging
-        error_log("CoreBoost: Total CSS background images optimized: {$replacements_made}");
+        Context_Helper::debug_log("Total CSS background images optimized: {$replacements_made}");
         
         return $html;
     }
@@ -510,11 +511,11 @@ class Image_Optimizer {
                 $original_url = $matches[3]; // the image URL
                 $after_url = $matches[4]; // any values after url() (position, size, etc)
                 
-                error_log("CoreBoost: Found CSS background: {$original_url}");
+                Context_Helper::debug_log("Found CSS background: {$original_url}");
                 
                 // Check if should optimize this image
                 if (!$this->format_optimizer->should_optimize_image($original_url)) {
-                    error_log("CoreBoost: Image should not be optimized");
+                    Context_Helper::debug_log('Image should not be optimized');
                     return $matches[0];
                 }
                 
@@ -522,17 +523,17 @@ class Image_Optimizer {
                 $avif_url = $this->format_optimizer->get_variant_from_cache($original_url, 'avif');
                 $webp_url = $this->format_optimizer->get_variant_from_cache($original_url, 'webp');
                 
-                error_log("CoreBoost: AVIF variant: " . ($avif_url ? $avif_url : 'NOT FOUND'));
-                error_log("CoreBoost: WebP variant: " . ($webp_url ? $webp_url : 'NOT FOUND'));
+                Context_Helper::debug_log('AVIF variant: ' . ($avif_url ? $avif_url : 'NOT FOUND'));
+                Context_Helper::debug_log('WebP variant: ' . ($webp_url ? $webp_url : 'NOT FOUND'));
                 
                 // If no variants found, return original
                 if (!$avif_url && !$webp_url) {
-                    error_log("CoreBoost: No variants found, keeping original");
+                    Context_Helper::debug_log('No variants found, keeping original');
                     return $matches[0];
                 }
                 
                 $replacements_made++;
-                error_log("CoreBoost: Replacing background with optimized variants");
+                Context_Helper::debug_log('Replacing background with optimized variants');
                 
                 // Build progressive enhancement CSS
                 // Use the best available format (AVIF > WebP > original)
@@ -575,7 +576,7 @@ class Image_Optimizer {
             return $html;
         }
         
-        error_log("CoreBoost: Found " . count($link_matches[0]) . " stylesheet links");
+        Context_Helper::debug_log('Found ' . count($link_matches[0]) . ' stylesheet links');
         
         foreach ($link_matches[0] as $link_tag) {
             // Extract href
@@ -600,7 +601,7 @@ class Image_Optimizer {
             $css_path = str_replace('/', DIRECTORY_SEPARATOR, $css_path);
             
             if (!file_exists($css_path)) {
-                error_log("CoreBoost: CSS file NOT FOUND - URL: {$css_url} | Path: {$css_path}");
+                Context_Helper::debug_log("CSS file NOT FOUND - URL: {$css_url} | Path: {$css_path}");
                 continue;
             }
             
@@ -610,11 +611,11 @@ class Image_Optimizer {
             
             if ($cached_override !== false) {
                 $overrides[] = $cached_override;
-                error_log("CoreBoost: Using cached CSS background optimizations for: " . basename($css_path));
+                Context_Helper::debug_log('Using cached CSS background optimizations for: ' . basename($css_path));
                 continue;
             }
             
-            error_log("CoreBoost: Reading CSS file: {$css_path}");
+            Context_Helper::debug_log("Reading CSS file: {$css_path}");
             
             // Read CSS file
             $css_content = file_get_contents($css_path);
@@ -636,9 +637,9 @@ class Image_Optimizer {
                 set_transient($cache_key, $override_block, DAY_IN_SECONDS);
                 
                 $overrides[] = $override_block;
-                error_log("CoreBoost: Optimized {$replacements_made} background images in: " . basename($css_path));
+                Context_Helper::debug_log("Optimized {$replacements_made} background images in: " . basename($css_path));
             } else {
-                error_log("CoreBoost: No optimizable background images found in: " . basename($css_path));
+                Context_Helper::debug_log('No optimizable background images found in: ' . basename($css_path));
             }
         }
         
@@ -650,7 +651,7 @@ class Image_Optimizer {
             $override_css .= "\n</style>\n";
             
             $html = str_replace('</head>', $override_css . '</head>', $html);
-            error_log("CoreBoost: Injected " . count($overrides) . " CSS background image overrides");
+            Context_Helper::debug_log('Injected ' . count($overrides) . ' CSS background image overrides');
         }
         
         return $html;

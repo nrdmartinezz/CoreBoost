@@ -8,7 +8,7 @@
 
 namespace CoreBoost\PublicCore;
 
-
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -211,14 +211,8 @@ class Resource_Remover {
      * Start output buffer to catch inline/hardcoded CSS and scripts
      */
     public function start_output_buffer() {
-        // CRITICAL: Don't buffer in Elementor preview/AJAX contexts
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
-            return;
-        }
-        
-        // Don't buffer on admin, AJAX, or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
         if ($this->options['enable_css_defer'] || $this->options['enable_script_defer'] || 
@@ -232,9 +226,8 @@ class Resource_Remover {
      * Process inline CSS and scripts in HTML output
      */
     public function process_inline_assets($html) {
-        // Don't process on admin, AJAX, or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return $html;
         }
         
@@ -270,21 +263,17 @@ class Resource_Remover {
         
         // Optimize images (lazy loading, width/height, aspect ratio)
         if (!empty($this->options['enable_image_optimization']) && isset($this->image_optimizer)) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("CoreBoost: Before image optimization - HTML contains: " . (strpos($html, '1000_F_507464080') !== false ? 'YES' : 'NO'));
-            }
+            Context_Helper::debug_log("Before image optimization - HTML contains: " . (strpos($html, '1000_F_507464080') !== false ? 'YES' : 'NO'));
             
             $html = $this->image_optimizer->optimize_images($html);
             
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("CoreBoost: After image optimization - HTML contains <picture>: " . (strpos($html, '<picture>') !== false ? 'YES' : 'NO'));
-                error_log("CoreBoost: After image optimization - HTML contains coreboost-variants: " . (strpos($html, 'coreboost-variants') !== false ? 'YES' : 'NO'));
-                // Show a sample of the modified HTML around one image
-                if (preg_match('/(<picture>.*?1000_F_507464080.*?<\/picture>)/s', $html, $matches)) {
-                    error_log("CoreBoost: Full picture tag found: " . substr($matches[0], 0, 300));
-                } else if (preg_match('/(<img[^>]*1000_F_507464080[^>]*>)/s', $html, $matches)) {
-                    error_log("CoreBoost: Only img tag found (no picture wrapper): " . substr($matches[0], 0, 300));
-                }
+            Context_Helper::debug_log("After image optimization - HTML contains <picture>: " . (strpos($html, '<picture>') !== false ? 'YES' : 'NO'));
+            Context_Helper::debug_log("After image optimization - HTML contains coreboost-variants: " . (strpos($html, 'coreboost-variants') !== false ? 'YES' : 'NO'));
+            // Show a sample of the modified HTML around one image
+            if (preg_match('/(<picture>.*?1000_F_507464080.*?<\/picture>)/s', $html, $matches)) {
+                Context_Helper::debug_log("Full picture tag found: " . substr($matches[0], 0, 300));
+            } else if (preg_match('/(<img[^>]*1000_F_507464080[^>]*>)/s', $html, $matches)) {
+                Context_Helper::debug_log("Only img tag found (no picture wrapper): " . substr($matches[0], 0, 300));
             }
         }
         
