@@ -16,6 +16,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Skip if class already defined (e.g., mock loaded during testing)
+if (class_exists('CoreBoost\Core\Context_Helper', false)) {
+    return;
+}
+
 /**
  * Class Context_Helper
  *
