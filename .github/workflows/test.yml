@@ -32,13 +32,14 @@ jobs:
       run: |
         # Check for common security issues
         echo "Running security checks..."
-        if grep -r "eval(" . --include="*.php"; then
+        if grep -r "eval(" . --include="*.php" --exclude-dir=tests --exclude-dir=vendor; then
           echo "ERROR: eval() function found"
           exit 1
         fi
         
         # Check for direct unsanitized superglobal usage (allowing filter_input which is secure)
-        if grep -rP '\$_(GET|POST|REQUEST|COOKIE)\[' . --include="*.php" | grep -v "filter_input" | grep -v "sanitize" | grep -v "wp_verify_nonce"; then
+        # Excludes tests/ directory as test files may legitimately use superglobals for mocking
+        if grep -rP '\$_(GET|POST|REQUEST|COOKIE)\[' . --include="*.php" --exclude-dir=tests --exclude-dir=vendor | grep -v "filter_input" | grep -v "sanitize" | grep -v "wp_verify_nonce"; then
           echo "ERROR: Unsanitized superglobal usage found"
           echo "Use filter_input() or WordPress sanitization functions"
           exit 1
