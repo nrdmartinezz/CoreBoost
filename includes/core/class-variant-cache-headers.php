@@ -14,6 +14,8 @@
 
 namespace CoreBoost\Core;
 
+use CoreBoost\Core\Context_Helper;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;

@@ -9,6 +9,7 @@
 namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Config;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -97,9 +98,8 @@ class CSS_Optimizer {
      * Output critical CSS
      */
     public function output_critical_css() {
-        // Don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
         
@@ -177,14 +177,8 @@ class CSS_Optimizer {
      * Debug CSS detection and output information
      */
     public function debug_css_detection() {
-        // CRITICAL: Don't output anything in Elementor preview contexts
-        if (defined('COREBOOST_ELEMENTOR_PREVIEW') && COREBOOST_ELEMENTOR_PREVIEW) {
-            return;
-        }
-        
-        // Don't output debug info on admin pages, preview contexts, or AJAX requests
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (!$this->options['debug_mode'] || is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip if debug mode disabled or in admin/AJAX/Elementor preview contexts
+        if (!$this->options['debug_mode'] || Context_Helper::should_skip_optimization()) {
             return;
         }
         
@@ -223,9 +217,8 @@ class CSS_Optimizer {
      * Log enqueued styles for debugging
      */
     public function log_enqueued_styles() {
-        // Don't log on admin pages, preview contexts, or AJAX requests
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (!$this->options['debug_mode'] || is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip if debug mode disabled or in admin/AJAX/Elementor preview contexts
+        if (!$this->options['debug_mode'] || Context_Helper::should_skip_optimization()) {
             return;
         }
         
@@ -235,7 +228,7 @@ class CSS_Optimizer {
         $styles_to_defer = $this->get_styles_to_defer();
         foreach ($wp_styles->queue as $handle) {
             if (isset($wp_styles->registered[$handle]) && $this->should_defer_style($handle, $styles_to_defer)) {
-                error_log("CoreBoost: Will defer CSS - Handle: {$handle}");
+                Context_Helper::debug_log("Will defer CSS - Handle: {$handle}");
             }
         }
     }

@@ -9,7 +9,7 @@
 
 namespace CoreBoost\PublicCore;
 
-
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -157,9 +157,8 @@ HTML;
             return;
         }
         
-        // Don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip in admin, AJAX, or Elementor preview contexts
+        if (Context_Helper::should_skip_optimization()) {
             return;
         }
         

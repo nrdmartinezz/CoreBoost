@@ -10,6 +10,8 @@
 
 namespace CoreBoost\Core;
 
+use CoreBoost\Core\Context_Helper;
+
 // Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
@@ -26,7 +28,7 @@ class Migration {
      * @param string $from_version The version being upgraded from
      */
     public static function run($from_version) {
-        error_log('CoreBoost Migration: Starting migration from version ' . $from_version);
+        Context_Helper::debug_log('Starting migration from version ' . $from_version, 'Migration');
         
         // Run version-specific migrations in order
         if (version_compare($from_version, '2.0.2', '<')) {
@@ -47,7 +49,7 @@ class Migration {
         // Clear all caches after migration
         self::clear_all_caches();
         
-        error_log('CoreBoost Migration: Completed successfully');
+        Context_Helper::debug_log('Completed successfully', 'Migration');
     }
     
     /**
@@ -55,7 +57,7 @@ class Migration {
      * - Transition from GTM-specific settings to generic tag settings
      */
     private static function migrate_to_2_0_2() {
-        error_log('CoreBoost Migration: Migrating to 2.0.2');
+        Context_Helper::debug_log('Migrating to 2.0.2', 'Migration');
         
         $options = get_option('coreboost_options', array());
         
@@ -100,7 +102,7 @@ class Migration {
      * - Add analytics and A/B testing features
      */
     private static function migrate_to_2_5_0() {
-        error_log('CoreBoost Migration: Migrating to 2.5.0');
+        Context_Helper::debug_log('Migrating to 2.5.0', 'Migration');
         
         $options = get_option('coreboost_options', array());
         
@@ -135,7 +137,7 @@ class Migration {
      * - Update hero detection cache format
      */
     private static function migrate_to_3_0_0() {
-        error_log('CoreBoost Migration: Migrating to 3.0.0');
+        Context_Helper::debug_log('Migrating to 3.0.0', 'Migration');
         
         $options = get_option('coreboost_options', array());
         
@@ -170,7 +172,7 @@ class Migration {
      * Adds any new settings while preserving existing values
      */
     private static function merge_option_defaults() {
-        error_log('CoreBoost Migration: Merging default options');
+        Context_Helper::debug_log('Merging default options', 'Migration');
         
         $options = get_option('coreboost_options', array());
         $defaults = self::get_default_options();
@@ -188,7 +190,7 @@ class Migration {
      * Clear all plugin caches after migration
      */
     private static function clear_all_caches() {
-        error_log('CoreBoost Migration: Clearing all caches');
+        Context_Helper::debug_log('Clearing all caches', 'Migration');
         
         global $wpdb;
         

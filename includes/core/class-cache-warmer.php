@@ -90,7 +90,7 @@ class Cache_Warmer {
             return;
         }
         
-        error_log("CoreBoost: Warming cache for new image: {$image_url}");
+        Context_Helper::debug_log("Warming cache for new image: {$image_url}");
         
         // Get image metadata
         $metadata = \wp_get_attachment_metadata($attachment_id);
@@ -113,12 +113,12 @@ class Cache_Warmer {
     public static function warm_recent_images() {
         global $wpdb;
         
-        error_log("CoreBoost: Starting cache warming for recent images");
+        Context_Helper::debug_log("Starting cache warming for recent images");
         
         // Get options
         $options = \get_option('coreboost_options', array());
         if (!isset($options['enable_image_format_conversion']) || !$options['enable_image_format_conversion']) {
-            error_log("CoreBoost: Cache warming skipped - format conversion disabled");
+            Context_Helper::debug_log("Cache warming skipped - format conversion disabled");
             return;
         }
         
@@ -134,7 +134,7 @@ class Cache_Warmer {
         );
         
         if (empty($recent_images)) {
-            error_log("CoreBoost: No recent images found for warming");
+            Context_Helper::debug_log("No recent images found for warming");
             return;
         }
         
@@ -163,7 +163,7 @@ class Cache_Warmer {
             usleep(100000); // 100ms delay between images
         }
         
-        error_log("CoreBoost: Cache warming completed - {$warmed_count} images warmed");
+        Context_Helper::debug_log("Cache warming completed - {$warmed_count} images warmed");
     }
     
     /**
@@ -212,7 +212,7 @@ class Cache_Warmer {
         }
         
         if ($generated_count > 0) {
-            error_log("CoreBoost: Generated {$generated_count} variants for {$image_url}");
+            Context_Helper::debug_log("Generated {$generated_count} variants for {$image_url}");
         }
         
         return $generated_count > 0;

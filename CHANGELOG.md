@@ -7,6 +7,111 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.7] - 2025-01-26
+
+### 🛠️ Code Quality & Architecture Improvements
+
+This release focuses on code quality, DRY principles, and eliminating debug log pollution in production environments. Major refactoring of state management, logging infrastructure, and Elementor compatibility checks.
+
+### Changed
+
+#### Bulk Converter UI State Machine
+- **Refactored bulk converter JavaScript** to use state machine pattern
+  - Added `STATES` constant object: `IDLE`, `SCANNING`, `PROCESSING`, `COMPLETE`, `ERROR`, `STOPPED`
+  - Implemented `transitionTo(newState)` function as single source of truth for UI state
+  - Added `isRunning()` helper function replacing fragile `state.isRunning` boolean
+  - CSS state classes (`.is-idle`, `.is-scanning`, `.is-processing`, etc.) replace inline style manipulation
+- **Rewrote bulk converter CSS** without `!important` declarations
+  - Proper CSS specificity using container state classes
+  - State-based visibility rules: `#coreboost-bulk-converter.is-scanning .scan-phase { display: block; }`
+  - Reduced CSS specificity conflicts and improved maintainability
+- **Updated settings renderer** with semantic HTML structure
+  - Added `id="coreboost-bulk-converter"` container with `class="is-idle"` initial state
+  - Status elements now use `.coreboost-status--idle`, `.coreboost-status--processing` classes
+
+#### Centralized Debug Logging System
+- **Enhanced `Context_Helper` class** with standardized debug methods
+  - Added `is_debug_mode()` static method checking `WP_DEBUG` constant
+  - Added `debug_log($message, $prefix = 'CoreBoost')` static method
+  - Debug messages only output when `WP_DEBUG` is enabled
+  - Automatic "CoreBoost:" prefix applied to all log messages
+- **Converted 50+ `error_log()` calls** across 15+ files to use `Context_Helper::debug_log()`
+  - Files updated: `class-bulk-image-converter.php`, `class-image-optimizer.php`, `class-css-optimizer.php`, `class-image-format-optimizer.php`, `class-image-responsive-resizer.php`, `class-analytics-engine.php`, `class-performance-insights.php`, `class-image-variant-lifecycle-manager.php`, `class-migration.php`, `class-variant-cache-headers.php`, `class-external-image-handler.php`, `class-cache-consistency-checker.php`, `class-cache-invalidator.php`, `class-cache-warmer.php`, `class-compression-analytics.php`, `class-admin.php`, `class-activator.php`, `class-resource-remover.php`
+  - Eliminates debug log pollution in production WordPress installations
+  - Consistent log message formatting with optional prefix parameter
+
+#### Elementor Preview Check Consolidation
+- **Migrated all manual Elementor checks** to `Context_Helper::should_skip_optimization()`
+  - Removed ~40 lines of duplicated code across 5 files
+  - Files updated: `class-tag-manager.php`, `class-video-facade.php`, `class-script-optimizer.php`, `class-css-optimizer.php`, `class-resource-remover.php`
+  - `should_skip_optimization()` checks: `is_admin()`, `wp_doing_ajax()`, `is_elementor_preview()`, and REST API requests
+  - Single cached check improves performance on subsequent calls
+
+### Fixed
+
+#### Duplicate Option Key
+- **Removed duplicate `lazy_load_exclude_count`** from `get_default_options()` in `class-coreboost.php`
+  - Option was defined twice (lines ~366 and ~423) causing potential initialization issues
+
+### Removed
+
+#### Deprecated Code Cleanup
+- **Deleted `class-debug-helper.php`** from `includes/core/`
+  - File was deprecated since v2.5.1 with empty methods
+  - No references existed in codebase
+  - Functionality replaced by `Context_Helper::debug_log()`
+
+### Developer Notes
+
+#### State Machine Pattern
+The bulk converter now uses a proper state machine for UI management:
+```javascript
+const STATES = {
+    IDLE: 'idle',
+    SCANNING: 'scanning', 
+    PROCESSING: 'processing',
+    COMPLETE: 'complete',
+    ERROR: 'error',
+    STOPPED: 'stopped'
+};
+
+function transitionTo(newState) {
+    state.current = newState;
+    // Updates container class and all UI elements
+}
+```
+
+#### Debug Logging Usage
+Use the centralized debug logger instead of direct `error_log()`:
+```php
+// Before (pollutes logs in production)
+error_log('CoreBoost: Processing image: ' . $path);
+
+// After (respects WP_DEBUG)
+Context_Helper::debug_log('Processing image: ' . $path);
+
+// With custom prefix
+Context_Helper::debug_log('Migration completed', 'Migration');
+// Outputs: "CoreBoost Migration: Migration completed"
+```
+
+#### Elementor Skip Check Usage
+Use the centralized skip check instead of manual conditions:
+```php
+// Before (duplicated across many files)
+$elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field(wp_unslash($_GET['elementor-preview'])) : '';
+if (is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+    return;
+}
+
+// After (single line, cached)
+if (Context_Helper::should_skip_optimization()) {
+    return;
+}
+```
+
+---
+
 ## [3.0.6] - 2025-12-05
 
 ### 🎯 Major Update: Automatic Updates & Critical Fixes

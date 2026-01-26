@@ -44,6 +44,10 @@ coreboost.php.backup
 /TEST_RESULTS.md
 .phpunit.cache
 
+# Coverage reports
+/coverage
+/.nyc_output
+
 # Build files
 /build
 /dist

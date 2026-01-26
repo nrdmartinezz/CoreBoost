@@ -282,7 +282,7 @@ class Compression_Analytics {
      */
     public static function clear_analytics() {
         \delete_option(self::ANALYTICS_OPTION);
-        error_log("CoreBoost: Compression analytics cleared");
+        Context_Helper::debug_log("Compression analytics cleared");
     }
     
     /**

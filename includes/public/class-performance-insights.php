@@ -11,6 +11,8 @@
 
 namespace CoreBoost\PublicCore;
 
+use CoreBoost\Core\Context_Helper;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -145,7 +147,7 @@ class Performance_Insights {
 		$cleared = $this->analytics->cleanup_old_metrics();
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( "CoreBoost: Cleaned up $cleared old metric records" );
+			Context_Helper::debug_log( "Cleaned up $cleared old metric records" );
 		}
 	}
 

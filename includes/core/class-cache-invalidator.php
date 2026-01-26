@@ -81,7 +81,7 @@ class Cache_Invalidator {
             
             if ($old !== $new) {
                 $cache_invalidation_needed = true;
-                error_log("CoreBoost: Cache invalidation triggered by setting change: {$setting}");
+                Context_Helper::debug_log("Cache invalidation triggered by setting change: {$setting}");
                 break;
             }
         }
@@ -104,7 +104,7 @@ class Cache_Invalidator {
         
         if ($image_url) {
             Variant_Cache::delete_variants($image_url);
-            error_log("CoreBoost: Cache invalidated for edited image: {$image_url}");
+            Context_Helper::debug_log("Cache invalidated for edited image: {$image_url}");
         }
     }
     
@@ -120,7 +120,7 @@ class Cache_Invalidator {
         
         if ($image_url) {
             Variant_Cache::delete_variants($image_url);
-            error_log("CoreBoost: Cache invalidated for deleted image: {$image_url}");
+            Context_Helper::debug_log("Cache invalidated for deleted image: {$image_url}");
         }
     }
     
@@ -131,7 +131,7 @@ class Cache_Invalidator {
      */
     public static function handle_theme_switch() {
         self::invalidate_all();
-        error_log("CoreBoost: Cache invalidated due to theme switch");
+        Context_Helper::debug_log("Cache invalidated due to theme switch");
     }
     
     /**
@@ -141,7 +141,7 @@ class Cache_Invalidator {
      */
     public static function handle_plugin_change() {
         self::invalidate_all();
-        error_log("CoreBoost: Cache invalidated due to plugin change");
+        Context_Helper::debug_log("Cache invalidated due to plugin change");
     }
     
     /**
@@ -151,7 +151,7 @@ class Cache_Invalidator {
      */
     public static function invalidate_all() {
         $deleted = Variant_Cache::clear_all();
-        error_log("CoreBoost: Full cache invalidation completed ({$deleted} chunks deleted)");
+        Context_Helper::debug_log("Full cache invalidation completed ({$deleted} chunks deleted)");
         
         // Set flag to indicate cache was cleared
         \set_transient('coreboost_cache_cleared', time(), \HOUR_IN_SECONDS);
@@ -164,7 +164,7 @@ class Cache_Invalidator {
      */
     public static function invalidate_image($image_url) {
         Variant_Cache::delete_variants($image_url);
-        error_log("CoreBoost: Cache invalidated for image: {$image_url}");
+        Context_Helper::debug_log("Cache invalidated for image: {$image_url}");
     }
     
     /**

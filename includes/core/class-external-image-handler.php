@@ -15,6 +15,7 @@
 namespace CoreBoost\Core;
 
 use CoreBoost\PublicCore\Image_Format_Optimizer;
+use CoreBoost\Core\Context_Helper;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -106,13 +107,13 @@ class External_Image_Handler {
     public static function cache_external_image($external_url) {
         // Validate URL
         if (!filter_var($external_url, FILTER_VALIDATE_URL)) {
-            error_log("CoreBoost: Invalid external URL: {$external_url}");
+            Context_Helper::debug_log("Invalid external URL: {$external_url}");
             return null;
         }
         
         // Check if domain is trusted
         if (!self::is_trusted_domain($external_url)) {
-            error_log("CoreBoost: Untrusted domain for external image: {$external_url}");
+            Context_Helper::debug_log("Untrusted domain for external image: {$external_url}");
             return null;
         }
         
@@ -130,7 +131,7 @@ class External_Image_Handler {
         $cache_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-external';
         
         if (!\wp_mkdir_p($cache_dir)) {
-            error_log("CoreBoost: Failed to create external cache directory");
+            Context_Helper::debug_log('Failed to create external cache directory');
             return null;
         }
         
@@ -152,20 +153,20 @@ class External_Image_Handler {
         ));
         
         if (\is_wp_error($response)) {
-            error_log("CoreBoost: Failed to download external image: " . $response->get_error_message());
+            Context_Helper::debug_log('Failed to download external image: ' . $response->get_error_message());
             return null;
         }
         
         $body = \wp_remote_retrieve_body($response);
         if (empty($body)) {
-            error_log("CoreBoost: Empty response for external image: {$external_url}");
+            Context_Helper::debug_log("Empty response for external image: {$external_url}");
             return null;
         }
         
         // Save to local cache
         $saved = file_put_contents($local_path, $body);
         if ($saved === false) {
-            error_log("CoreBoost: Failed to save external image to cache");
+            Context_Helper::debug_log('Failed to save external image to cache');
             return null;
         }
         
@@ -173,11 +174,11 @@ class External_Image_Handler {
         $image_info = @getimagesize($local_path);
         if (!$image_info) {
             unlink($local_path);
-            error_log("CoreBoost: Downloaded file is not a valid image: {$external_url}");
+            Context_Helper::debug_log("Downloaded file is not a valid image: {$external_url}");
             return null;
         }
         
-        error_log("CoreBoost: Cached external image: {$external_url} -> {$local_path}");
+        Context_Helper::debug_log("Cached external image: {$external_url} -> {$local_path}");
         return $local_path;
     }
     
@@ -261,7 +262,7 @@ class External_Image_Handler {
             }
         }
         
-        error_log("CoreBoost: Cleaned up {$deleted} external images, freed " . Path_Helper::format_bytes($bytes_freed));
+        Context_Helper::debug_log("Cleaned up {$deleted} external images, freed " . Path_Helper::format_bytes($bytes_freed));
         
         return array(
             'deleted' => $deleted,

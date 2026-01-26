@@ -8,7 +8,7 @@
 
 namespace CoreBoost\PublicCore;
 
-// Prevent direct access
+use CoreBoost\Core\Context_Helper;// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -132,9 +132,8 @@ class Script_Optimizer {
      * Add resource hints for critical scripts
      */
     public function add_script_resource_hints() {
-        // Safety check: don't output on admin or preview contexts
-        $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field( wp_unslash( $_GET['elementor-preview'] ) ) : '';
-        if (!$this->options['enable_script_defer'] || is_admin() || wp_doing_ajax() || !empty($elementor_preview)) {
+        // Skip if disabled or in admin/AJAX/Elementor preview contexts
+        if (!$this->options['enable_script_defer'] || Context_Helper::should_skip_optimization()) {
             return;
         }
         
