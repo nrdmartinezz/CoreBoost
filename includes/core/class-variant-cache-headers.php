@@ -56,24 +56,42 @@ class Variant_Cache_Headers {
      *
      * Adds cache headers for AVIF and WebP files.
      *
+     * @param bool $force Force recreation even if file exists
      * @return bool True if created successfully
      */
-    public static function create_htaccess() {
+    public static function create_htaccess($force = false) {
         if (!function_exists('wp_upload_dir')) {
+            error_log("CoreBoost Cache Headers: wp_upload_dir not available");
             return false;
         }
         
         $upload_dir = \wp_upload_dir();
         $variants_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants';
+        $htaccess_file = $variants_dir . DIRECTORY_SEPARATOR . '.htaccess';
+        
+        error_log("CoreBoost Cache Headers: Starting .htaccess creation");
+        error_log("CoreBoost Cache Headers: Variants directory: {$variants_dir}");
+        error_log("CoreBoost Cache Headers: .htaccess path: {$htaccess_file}");
         
         // Create directory if it doesn't exist
         if (!is_dir($variants_dir)) {
+            error_log("CoreBoost Cache Headers: Directory doesn't exist, creating...");
             if (!\wp_mkdir_p($variants_dir)) {
+                error_log("CoreBoost Cache Headers: FAILED to create directory");
                 return false;
             }
+            error_log("CoreBoost Cache Headers: Directory created successfully");
+        } else {
+            error_log("CoreBoost Cache Headers: Directory already exists");
         }
         
-        $htaccess_file = $variants_dir . DIRECTORY_SEPARATOR . '.htaccess';
+        // Check if .htaccess already exists
+        if (!$force && file_exists($htaccess_file)) {
+            error_log("CoreBoost Cache Headers: .htaccess already exists (use force=true to overwrite)");
+            $existing_content = file_get_contents($htaccess_file);
+            error_log("CoreBoost Cache Headers: Existing content length: " . strlen($existing_content) . " bytes");
+            return true;
+        }
         
         // Get cache lifetime from settings
         $options = \get_option('coreboost_options', array());
@@ -81,18 +99,29 @@ class Variant_Cache_Headers {
             ? (int)$options['variant_cache_lifetime'] 
             : self::DEFAULT_CACHE_LIFETIME;
         
+        error_log("CoreBoost Cache Headers: Cache lifetime: {$cache_lifetime} seconds");
+        
         // Generate .htaccess content
         $htaccess_content = self::generate_htaccess_content($cache_lifetime);
+        error_log("CoreBoost Cache Headers: Generated content length: " . strlen($htaccess_content) . " bytes");
+        
+        // Check if directory is writable
+        if (!is_writable($variants_dir)) {
+            error_log("CoreBoost Cache Headers: FAILED - Directory is not writable");
+            return false;
+        }
         
         // Write .htaccess file
         $result = file_put_contents($htaccess_file, $htaccess_content);
         
         if ($result !== false) {
-            Context_Helper::debug_log("Created .htaccess for variants directory with {$cache_lifetime}s cache lifetime");
+            error_log("CoreBoost Cache Headers: SUCCESS - Created .htaccess ({$result} bytes written)");
+            error_log("CoreBoost Cache Headers: File exists check: " . (file_exists($htaccess_file) ? 'YES' : 'NO'));
+            error_log("CoreBoost Cache Headers: File permissions: " . substr(sprintf('%o', fileperms($htaccess_file)), -4));
             return true;
         }
         
-        Context_Helper::debug_log('Failed to create .htaccess for variants directory');
+        error_log("CoreBoost Cache Headers: FAILED - file_put_contents returned false");
         return false;
     }
     
@@ -110,38 +139,23 @@ class Variant_Cache_Headers {
 # Generated automatically - do not edit manually
 # Cache lifetime: {$cache_days} days ({$cache_lifetime} seconds)
 
-<IfModule mod_headers.c>
-    # Set cache headers for AVIF and WebP images
-    <FilesMatch "\.(avif|webp)$">
-        # Enable caching
-        Header set Cache-Control "public, max-age={$cache_lifetime}, immutable"
-        
-        # Set Expires header (for older browsers)
-        ExpiresActive On
-        ExpiresDefault "access plus {$cache_days} days"
-        
-        # Add ETag for cache validation
-        FileETag MTime Size
-        
-        # Disable Last-Modified (immutable files don't need it)
-        Header unset Last-Modified
-    </FilesMatch>
-</IfModule>
-
+# Enable expires module
 <IfModule mod_expires.c>
-    # Fallback expires rules if mod_headers not available
     ExpiresActive On
     ExpiresByType image/avif "access plus {$cache_days} days"
     ExpiresByType image/webp "access plus {$cache_days} days"
 </IfModule>
 
+# Set cache control headers
+<IfModule mod_headers.c>
+    <FilesMatch "\.(avif|webp)$">
+        Header set Cache-Control "public, max-age={$cache_lifetime}, immutable"
+        Header unset Last-Modified
+    </FilesMatch>
+</IfModule>
+
 # Prevent directory listing
 Options -Indexes
-
-# Allow access to image files only
-<FilesMatch "\.(avif|webp)$">
-    Require all granted
-</FilesMatch>
 
 HTACCESS;
     }
@@ -310,5 +324,117 @@ NGINX;
         }
         
         return round($days) . ' day' . ($days != 1 ? 's' : '');
+    }
+    
+    /**
+     * Debug cache headers status
+     *
+     * Returns comprehensive diagnostic information for troubleshooting.
+     * Call this to check if .htaccess is properly configured.
+     *
+     * @return array Diagnostic information
+     */
+    public static function debug_status() {
+        $info = array();
+        
+        // Check WordPress functions
+        $info['wordpress_loaded'] = function_exists('wp_upload_dir');
+        
+        if (!$info['wordpress_loaded']) {
+            $info['error'] = 'WordPress functions not available';
+            return $info;
+        }
+        
+        // Get paths
+        $upload_dir = \wp_upload_dir();
+        $variants_dir = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'coreboost-variants';
+        $htaccess_file = $variants_dir . DIRECTORY_SEPARATOR . '.htaccess';
+        
+        $info['variants_dir'] = $variants_dir;
+        $info['htaccess_file'] = $htaccess_file;
+        $info['variants_url'] = $upload_dir['baseurl'] . '/coreboost-variants';
+        
+        // Check directory
+        $info['dir_exists'] = is_dir($variants_dir);
+        $info['dir_writable'] = is_dir($variants_dir) && is_writable($variants_dir);
+        
+        // Check .htaccess file
+        $info['htaccess_exists'] = file_exists($htaccess_file);
+        
+        if ($info['htaccess_exists']) {
+            $content = file_get_contents($htaccess_file);
+            $info['htaccess_size'] = strlen($content);
+            $info['htaccess_readable'] = true;
+            $info['htaccess_content'] = $content;
+            
+            // Parse cache lifetime from content
+            if (preg_match('/max-age=(\d+)/', $content, $matches)) {
+                $info['current_max_age'] = (int)$matches[1];
+                $info['current_cache_days'] = round($info['current_max_age'] / 86400);
+            }
+        } else {
+            $info['htaccess_size'] = 0;
+            $info['htaccess_readable'] = false;
+        }
+        
+        // Get expected settings
+        $options = \get_option('coreboost_options', array());
+        $info['expected_cache_lifetime'] = isset($options['variant_cache_lifetime']) 
+            ? (int)$options['variant_cache_lifetime'] 
+            : self::DEFAULT_CACHE_LIFETIME;
+        $info['expected_cache_days'] = round($info['expected_cache_lifetime'] / 86400);
+        
+        // Check if settings match
+        $info['settings_match'] = false;
+        if ($info['htaccess_exists'] && isset($info['current_max_age'])) {
+            $info['settings_match'] = ($info['current_max_age'] === $info['expected_cache_lifetime']);
+        }
+        
+        // Count variant files (use recursive iterator to avoid glob issues)
+        if ($info['dir_exists']) {
+            try {
+                $avif_count = 0;
+                $webp_count = 0;
+                
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($variants_dir, \RecursiveDirectoryIterator::SKIP_DOTS),
+                    \RecursiveIteratorIterator::SELF_FIRST
+                );
+                
+                foreach ($iterator as $file) {
+                    if ($file->isFile()) {
+                        $ext = strtolower($file->getExtension());
+                        if ($ext === 'avif') $avif_count++;
+                        if ($ext === 'webp') $webp_count++;
+                    }
+                }
+                
+                $info['avif_count'] = $avif_count;
+                $info['webp_count'] = $webp_count;
+            } catch (\Exception $e) {
+                $info['avif_count'] = 0;
+                $info['webp_count'] = 0;
+                $info['file_count_error'] = $e->getMessage();
+            }
+        }
+        
+        // Check server type
+        $info['server_software'] = isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'Unknown';
+        $info['is_apache'] = (stripos($info['server_software'], 'apache') !== false);
+        $info['is_nginx'] = (stripos($info['server_software'], 'nginx') !== false);
+        
+        // Action needed
+        if (!$info['htaccess_exists']) {
+            $info['action_needed'] = 'create_htaccess';
+            $info['action_message'] = 'Run: \CoreBoost\Core\Variant_Cache_Headers::create_htaccess(true)';
+        } elseif (!$info['settings_match']) {
+            $info['action_needed'] = 'update_htaccess';
+            $info['action_message'] = 'Run: \CoreBoost\Core\Variant_Cache_Headers::create_htaccess(true)';
+        } else {
+            $info['action_needed'] = 'none';
+            $info['action_message'] = 'Cache headers properly configured';
+        }
+        
+        return $info;
     }
 }
