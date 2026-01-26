@@ -36,14 +36,19 @@ class Autoloader {
             return;
         }
         
+        // Skip if class already exists (e.g., mock loaded during testing)
+        if (class_exists($class_name, false)) {
+            return;
+        }
+        
         // Remove namespace prefix
-        $class_name = str_replace('CoreBoost\\', '', $class_name);
+        $class_name_path = str_replace('CoreBoost\\', '', $class_name);
         
         // Convert namespace separators to directory separators
-        $class_name = str_replace('\\', DIRECTORY_SEPARATOR, $class_name);
+        $class_name_path = str_replace('\\', DIRECTORY_SEPARATOR, $class_name_path);
         
         // Convert class name to filename (e.g., Admin_Settings -> class-admin-settings.php)
-        $class_parts = explode(DIRECTORY_SEPARATOR, $class_name);
+        $class_parts = explode(DIRECTORY_SEPARATOR, $class_name_path);
         $class_file = array_pop($class_parts);
         
         // Convert directory names to lowercase and handle special mappings
