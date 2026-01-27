@@ -49,6 +49,97 @@ class Variant_Cache_Headers {
         if (defined('COREBOOST_PLUGIN_FILE') && function_exists('register_activation_hook')) {
             \register_activation_hook(\COREBOOST_PLUGIN_FILE, array(__CLASS__, 'create_htaccess'));
         }
+        
+        // Proactive check: ensure .htaccess exists on every init (with daily transient to avoid overhead)
+        \add_action('init', array(__CLASS__, 'ensure_htaccess_on_init'), 99);
+        
+        // Register AJAX handler for admin regeneration
+        \add_action('wp_ajax_coreboost_regenerate_cache_headers', array(__CLASS__, 'ajax_regenerate_htaccess'));
+    }
+    
+    /**
+     * Ensure .htaccess exists on WordPress init
+     * 
+     * Runs daily check to verify .htaccess is present and current.
+     * Uses transient to avoid filesystem checks on every request.
+     */
+    public static function ensure_htaccess_on_init() {
+        // Skip if already checked today
+        if (\get_transient('coreboost_htaccess_verified')) {
+            return;
+        }
+        
+        // Verify .htaccess exists and is current
+        $status = self::verify_htaccess();
+        
+        if (!$status['exists'] || !$status['current']) {
+            $result = self::create_htaccess(!$status['exists']);
+            if ($result) {
+                error_log('CoreBoost: .htaccess cache headers created/updated automatically');
+                
+                // Try to purge LiteSpeed Cache if available
+                self::purge_litespeed_cache();
+            }
+        }
+        
+        // Set transient for 24 hours
+        \set_transient('coreboost_htaccess_verified', true, DAY_IN_SECONDS);
+    }
+    
+    /**
+     * AJAX handler for regenerating .htaccess from admin
+     */
+    public static function ajax_regenerate_htaccess() {
+        // Verify nonce and permissions
+        if (!\check_ajax_referer('coreboost_cache_headers', 'nonce', false)) {
+            \wp_send_json_error(array('message' => 'Invalid security token'));
+        }
+        
+        if (!\current_user_can('manage_options')) {
+            \wp_send_json_error(array('message' => 'Insufficient permissions'));
+        }
+        
+        // Force regenerate .htaccess
+        $result = self::create_htaccess(true);
+        
+        if ($result) {
+            // Clear the verification transient
+            \delete_transient('coreboost_htaccess_verified');
+            
+            // Purge LiteSpeed Cache
+            self::purge_litespeed_cache();
+            
+            \wp_send_json_success(array(
+                'message' => 'Cache headers regenerated successfully',
+                'status' => self::verify_htaccess()
+            ));
+        } else {
+            \wp_send_json_error(array(
+                'message' => 'Failed to create .htaccess file. Check directory permissions.',
+                'status' => self::verify_htaccess()
+            ));
+        }
+    }
+    
+    /**
+     * Purge LiteSpeed Cache if available
+     */
+    private static function purge_litespeed_cache() {
+        // LiteSpeed Cache plugin
+        if (class_exists('LiteSpeed_Cache_API')) {
+            \LiteSpeed_Cache_API::purge_all();
+            error_log('CoreBoost: Purged LiteSpeed Cache after .htaccess update');
+            return true;
+        }
+        
+        // LiteSpeed Cache (newer versions)
+        if (class_exists('\\LiteSpeed\\Purge')) {
+            \LiteSpeed\Purge::purge_all();
+            error_log('CoreBoost: Purged LiteSpeed Cache (v4+) after .htaccess update');
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -133,24 +224,40 @@ class Variant_Cache_Headers {
      */
     private static function generate_htaccess_content($cache_lifetime) {
         $cache_days = round($cache_lifetime / 86400);
+        $generated_date = date('Y-m-d H:i:s');
         
         return <<<HTACCESS
 # CoreBoost Image Variant Cache Headers
-# Generated automatically - do not edit manually
+# Generated: {$generated_date}
 # Cache lifetime: {$cache_days} days ({$cache_lifetime} seconds)
 
-# Enable expires module
+# Apache mod_expires
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/avif "access plus {$cache_days} days"
     ExpiresByType image/webp "access plus {$cache_days} days"
 </IfModule>
 
-# Set cache control headers
+# Apache mod_headers
 <IfModule mod_headers.c>
     <FilesMatch "\.(avif|webp)$">
         Header set Cache-Control "public, max-age={$cache_lifetime}, immutable"
         Header unset Last-Modified
+    </FilesMatch>
+</IfModule>
+
+# LiteSpeed Cache Support
+# LiteSpeed is Apache-compatible and supports these directives
+<IfModule LiteSpeed>
+    ExpiresActive On
+    ExpiresByType image/avif "access plus {$cache_days} days"
+    ExpiresByType image/webp "access plus {$cache_days} days"
+</IfModule>
+
+# LiteSpeed Cache headers (explicit)
+<IfModule Litespeed>
+    <FilesMatch "\.(avif|webp)$">
+        Header set Cache-Control "public, max-age={$cache_lifetime}, immutable"
     </FilesMatch>
 </IfModule>
 

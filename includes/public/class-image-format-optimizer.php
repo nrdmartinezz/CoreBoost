@@ -233,8 +233,14 @@ class Image_Format_Optimizer {
             
             // Create directory if needed
             $output_dir = dirname($output_path);
+            $dir_existed = is_dir($output_dir);
             if (!wp_mkdir_p($output_dir)) {
                 return null;
+            }
+            
+            // Fire action if directory was just created (triggers .htaccess creation)
+            if (!$dir_existed && is_dir($output_dir)) {
+                \do_action('coreboost_variants_dir_created');
             }
             
             // Ensure .htaccess exists for cache headers (one-time check per request)
@@ -320,8 +326,14 @@ class Image_Format_Optimizer {
             
             // Create directory if needed
             $output_dir = dirname($output_path);
+            $dir_existed = is_dir($output_dir);
             if (!wp_mkdir_p($output_dir)) {
                 return null;
+            }
+            
+            // Fire action if directory was just created (triggers .htaccess creation)
+            if (!$dir_existed && is_dir($output_dir)) {
+                \do_action('coreboost_variants_dir_created');
             }
             
             // Load source image based on file type

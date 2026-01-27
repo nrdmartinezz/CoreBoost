@@ -283,11 +283,17 @@ class Image_Optimizer {
                             $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
                         }
                         
+                        // Build additional attributes - add fetchpriority for LCP images
+                        $picture_attrs = array();
+                        if ($image_count <= $lazy_load_exclude_count) {
+                            $picture_attrs['fetchpriority'] = 'high';
+                        }
+                        
                         // Render picture tag
                         if (!empty($responsive_variants)) {
-                            return $this->format_optimizer->render_responsive_picture_tag($src_url, $alt, $classes, array(), $responsive_variants, $width);
+                            return $this->format_optimizer->render_responsive_picture_tag($src_url, $alt, $classes, $picture_attrs, $responsive_variants, $width);
                         } else {
-                            return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes);
+                            return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes, $picture_attrs);
                         }
                     } else {
                         if (defined('WP_DEBUG') && WP_DEBUG) {

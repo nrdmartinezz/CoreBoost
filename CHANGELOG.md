@@ -7,6 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.8] - 2025-01-27
+
+### 🚀 LCP Optimization & Browser Cache Headers
+
+This release addresses critical PageSpeed issues: LCP images now preload the optimized AVIF/WebP variants instead of originals, and browser cache headers are properly configured for converted images.
+
+### Added
+
+#### Hero Optimizer - Variant Preload Lookup
+- **LCP preload now uses converted image variants** instead of original URLs
+  - `output_preload_tag()` checks `Variant_Cache::get_variant()` for AVIF first, then WebP
+  - Outputs proper `type="image/avif"` or `type="image/webp"` attribute on preload link
+  - Falls back to original URL if no variants exist (graceful degradation)
+  - `output_responsive_preload_by_id()` also checks for converted variants per size
+- **Added `Variant_Cache` import** to `class-hero-optimizer.php`
+
+#### Proactive Cache Headers Creation
+- **New `ensure_htaccess_on_init()` method** in `Variant_Cache_Headers`
+  - Runs on WordPress `init` hook (priority 99)
+  - Uses daily transient (`coreboost_htaccess_verified`) to avoid filesystem checks every request
+  - Automatically creates/updates `.htaccess` if missing or outdated
+  - Purges LiteSpeed Cache after regeneration if plugin detected
+- **New `ajax_regenerate_htaccess()` AJAX handler** for admin UI button
+- **New `purge_litespeed_cache()` helper** supporting both LiteSpeed Cache API versions
+
+#### LiteSpeed Server Support
+- **Added LiteSpeed-specific directives** to `.htaccess` generation
+  - `<IfModule LiteSpeed>` block with proper Expires rules
+  - `<IfModule Litespeed>` block with Cache-Control headers
+  - Automatic cache purge after header regeneration
+
+#### Admin UI - Cache Headers Management
+- **New "Browser Cache Headers" section** in Image Variants admin page
+  - Server type detection (LiteSpeed/Apache/Nginx)
+  - `.htaccess` status indicator: ✓ Configured / ⚠ Outdated / ✗ Missing
+  - "Regenerate Cache Headers" button with AJAX feedback
+  - Nginx configuration snippet displayed for Nginx servers
+  - LiteSpeed cache purge notification
+
+#### fetchpriority Propagation
+- **Image Optimizer passes `fetchpriority="high"`** to picture tags for LCP images
+  - Images within `lazy_load_exclude_count` get fetchpriority attribute
+  - Attribute passed through `$attrs` array to `render_picture_tag()` and `render_responsive_picture_tag()`
+
+### Changed
+
+#### Action Hook Firing
+- **`coreboost_variants_dir_created` action now fires** when variant directories are created
+  - Added to both AVIF and WebP generation in `class-image-format-optimizer.php`
+  - Triggers `.htaccess` creation on fresh installs
+  - Only fires when directory is newly created (not on every generation)
+
+#### .htaccess Content
+- **Updated `generate_htaccess_content()`** with:
+  - Generated timestamp in header comment
+  - LiteSpeed compatibility blocks
+  - Maintains Apache mod_expires and mod_headers rules
+
+### Fixed
+
+- **LCP preload pointing to original image** - Now correctly preloads AVIF/WebP variants
+- **Missing browser cache headers** - `.htaccess` now proactively created on init
+- **fetchpriority not on picture element** - Now passed to inner `<img>` tag for LCP images
+- **`coreboost_variants_dir_created` never firing** - Action now triggered on directory creation
+
+### Developer Notes
+
+#### Variant Lookup Flow
+```php
+// Hero preload now checks for variants
+$avif_url = Variant_Cache::get_variant($image_url, 'avif');
+if ($avif_url) {
+    $preload_url = $avif_url;
+    $type_attr = ' type="image/avif"';
+} else {
+    $webp_url = Variant_Cache::get_variant($image_url, 'webp');
+    // ... fallback chain
+}
+```
+
+#### Cache Headers Verification
+```php
+// Daily check on init
+Variant_Cache_Headers::ensure_htaccess_on_init();
+// Manual regeneration via AJAX
+wp_ajax_coreboost_regenerate_cache_headers
+```
+
 ## [3.0.7] - 2025-01-26
 
 ### 🛠️ Code Quality & Architecture Improvements

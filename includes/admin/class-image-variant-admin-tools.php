@@ -275,6 +275,13 @@ class Image_Variant_Admin_Tools {
                 <p class="description">
                     <?php echo esc_html(__('Warning: Deletion actions will free storage but will require regeneration on next page view (on-demand mode).', 'coreboost')); ?>
                 </p>
+                
+                <hr style="margin: 20px 0;">
+                
+                <h3><?php echo esc_html(__('Browser Cache Headers', 'coreboost')); ?></h3>
+                
+                <?php $this->render_cache_headers_status(); ?>
+                
             </form>
         </div>
         
@@ -686,5 +693,119 @@ class Image_Variant_Admin_Tools {
             'total_entries' => $total_entries,
             'stats' => $stats,
         ));
+    }
+    
+    /**
+     * Render cache headers status section
+     *
+     * Displays .htaccess status and regenerate button for browser caching.
+     *
+     * @return void
+     */
+    private function render_cache_headers_status() {
+        // Check if Variant_Cache_Headers class exists
+        if (!class_exists('CoreBoost\\Core\\Variant_Cache_Headers')) {
+            echo '<p class="description">' . esc_html__('Cache headers management not available.', 'coreboost') . '</p>';
+            return;
+        }
+        
+        $status = \CoreBoost\Core\Variant_Cache_Headers::verify_htaccess();
+        
+        // Detect server type
+        $server_software = isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'Unknown';
+        $is_litespeed = stripos($server_software, 'litespeed') !== false;
+        $is_apache = stripos($server_software, 'apache') !== false;
+        $is_nginx = stripos($server_software, 'nginx') !== false;
+        
+        $server_type = 'Unknown';
+        if ($is_litespeed) {
+            $server_type = 'LiteSpeed (Apache-compatible ✓)';
+        } elseif ($is_apache) {
+            $server_type = 'Apache';
+        } elseif ($is_nginx) {
+            $server_type = 'Nginx (requires manual config)';
+        }
+        
+        ?>
+        <table class="coreboost-stats-table" style="margin-bottom: 15px;">
+            <tr>
+                <td><strong><?php echo esc_html__('Server Type', 'coreboost'); ?></strong></td>
+                <td><?php echo esc_html($server_type); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php echo esc_html__('.htaccess Status', 'coreboost'); ?></strong></td>
+                <td>
+                    <?php if ($status['exists'] && $status['current']) : ?>
+                        <span style="color: #46b450;">✓ <?php echo esc_html__('Configured and current', 'coreboost'); ?></span>
+                    <?php elseif ($status['exists']) : ?>
+                        <span style="color: #ffb900;">⚠ <?php echo esc_html__('Exists but outdated', 'coreboost'); ?></span>
+                    <?php else : ?>
+                        <span style="color: #dc3232;">✗ <?php echo esc_html__('Not configured', 'coreboost'); ?></span>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php if ($status['exists']) : ?>
+            <tr>
+                <td><strong><?php echo esc_html__('Location', 'coreboost'); ?></strong></td>
+                <td><code style="font-size: 11px;"><?php echo esc_html($status['path']); ?></code></td>
+            </tr>
+            <?php endif; ?>
+        </table>
+        
+        <button type="button" class="button button-secondary" onclick="coreboostRegenerateCacheHeaders()" id="coreboost-regen-headers-btn">
+            <?php echo esc_html__('Regenerate Cache Headers', 'coreboost'); ?>
+        </button>
+        
+        <span id="coreboost-headers-status" style="margin-left: 10px;"></span>
+        
+        <p class="description" style="margin-top: 10px;">
+            <?php echo esc_html__('This creates/updates the .htaccess file with proper browser cache headers for converted images (1 year cache).', 'coreboost'); ?>
+            <?php if ($is_litespeed) : ?>
+                <br><strong><?php echo esc_html__('LiteSpeed detected:', 'coreboost'); ?></strong> 
+                <?php echo esc_html__('Cache will be automatically purged after regeneration.', 'coreboost'); ?>
+            <?php endif; ?>
+        </p>
+        
+        <?php if ($is_nginx) : ?>
+        <div class="notice notice-warning inline" style="margin-top: 15px;">
+            <p><strong><?php echo esc_html__('Nginx Server Detected', 'coreboost'); ?></strong></p>
+            <p><?php echo esc_html__('Nginx does not support .htaccess files. You need to add cache headers manually to your nginx configuration:', 'coreboost'); ?></p>
+            <pre style="background: #f6f7f7; padding: 10px; overflow-x: auto; font-size: 11px;"><?php echo esc_html(\CoreBoost\Core\Variant_Cache_Headers::get_nginx_config()); ?></pre>
+        </div>
+        <?php endif; ?>
+        
+        <script>
+        function coreboostRegenerateCacheHeaders() {
+            var btn = document.getElementById('coreboost-regen-headers-btn');
+            var status = document.getElementById('coreboost-headers-status');
+            
+            btn.disabled = true;
+            btn.textContent = '<?php echo esc_js(__('Regenerating...', 'coreboost')); ?>';
+            status.textContent = '';
+            
+            var data = {
+                action: 'coreboost_regenerate_cache_headers',
+                nonce: '<?php echo esc_js(wp_create_nonce('coreboost_cache_headers')); ?>'
+            };
+            
+            jQuery.post(ajaxurl, data, function(response) {
+                btn.disabled = false;
+                btn.textContent = '<?php echo esc_js(__('Regenerate Cache Headers', 'coreboost')); ?>';
+                
+                if (response.success) {
+                    status.innerHTML = '<span style="color: #46b450;">✓ ' + response.data.message + '</span>';
+                    // Reload after short delay to show updated status
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    status.innerHTML = '<span style="color: #dc3232;">✗ ' + response.data.message + '</span>';
+                }
+            }).fail(function() {
+                btn.disabled = false;
+                btn.textContent = '<?php echo esc_js(__('Regenerate Cache Headers', 'coreboost')); ?>';
+                status.innerHTML = '<span style="color: #dc3232;">✗ <?php echo esc_js(__('Request failed', 'coreboost')); ?></span>';
+            });
+        }
+        </script>
+        <?php
     }
 }

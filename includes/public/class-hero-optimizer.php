@@ -9,6 +9,7 @@
 namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Context_Helper;
+use CoreBoost\Core\Variant_Cache;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -484,14 +485,43 @@ class Hero_Optimizer {
     }
     
     /**
-     * Output preload tag
+     * Output preload tag with optimized format lookup
+     * 
+     * Checks for existing AVIF/WebP variants and preloads those instead of original.
+     * Falls back to original URL if no converted variants exist.
+     * 
+     * @param string $image_url Original image URL
      */
     private function output_preload_tag($image_url) {
         if (empty($image_url)) {
             return;
         }
         
-        echo '<link rel="preload" href="' . esc_url($image_url) . '" as="image" fetchpriority="high">' . "\n";
+        // Check for optimized variants (AVIF first, then WebP)
+        $preload_url = $image_url;
+        $type_attr = '';
+        
+        if (class_exists('CoreBoost\\Core\\Variant_Cache')) {
+            // Try AVIF first (best compression)
+            $avif_url = Variant_Cache::get_variant($image_url, 'avif');
+            if ($avif_url) {
+                $preload_url = $avif_url;
+                $type_attr = ' type="image/avif"';
+                Context_Helper::debug_log('Hero preload using AVIF variant: ' . $avif_url);
+            } else {
+                // Try WebP fallback
+                $webp_url = Variant_Cache::get_variant($image_url, 'webp');
+                if ($webp_url) {
+                    $preload_url = $webp_url;
+                    $type_attr = ' type="image/webp"';
+                    Context_Helper::debug_log('Hero preload using WebP variant: ' . $webp_url);
+                } else {
+                    Context_Helper::debug_log('Hero preload using original (no variants found): ' . $image_url);
+                }
+            }
+        }
+        
+        echo '<link rel="preload" href="' . esc_url($preload_url) . '" as="image"' . $type_attr . ' fetchpriority="high">' . "\n";
     }
     
     private function output_responsive_preload($image_url) {
@@ -511,7 +541,25 @@ class Hero_Optimizer {
         foreach ($sizes as $size => $media_query) {
             $responsive_url = wp_get_attachment_image_url($image_id, $size);
             if ($responsive_url && $responsive_url !== $original_url) {
-                echo '<link rel="preload" href="' . esc_url($responsive_url) . '" as="image" media="' . $media_query . '">' . "\n";
+                // Check for optimized variants
+                $preload_url = $responsive_url;
+                $type_attr = '';
+                
+                if (class_exists('CoreBoost\\Core\\Variant_Cache')) {
+                    $avif_url = Variant_Cache::get_variant($responsive_url, 'avif');
+                    if ($avif_url) {
+                        $preload_url = $avif_url;
+                        $type_attr = ' type="image/avif"';
+                    } else {
+                        $webp_url = Variant_Cache::get_variant($responsive_url, 'webp');
+                        if ($webp_url) {
+                            $preload_url = $webp_url;
+                            $type_attr = ' type="image/webp"';
+                        }
+                    }
+                }
+                
+                echo '<link rel="preload" href="' . esc_url($preload_url) . '" as="image"' . $type_attr . ' media="' . $media_query . '">' . "\n";
             }
         }
     }
