@@ -50,6 +50,14 @@ class Resource_Remover {
     private static $youtube_detection_cache = null;
     
     /**
+     * First YouTube video fallback URL for hero preload
+     * Only the first (hero) video gets preloaded for LCP optimization
+     *
+     * @var string|null
+     */
+    private $youtube_fallback_preload_url = null;
+    
+    /**
      * Constructor
      *
      * @param array $options Plugin options
@@ -314,6 +322,17 @@ class Resource_Remover {
                             'fallback' => isset($settings['background_video_fallback']) ? $settings['background_video_fallback'] : ''
                         );
                         
+                        // Capture first fallback URL for hero preload (LCP optimization)
+                        if ($this->youtube_fallback_preload_url === null && !empty($settings['background_video_fallback'])) {
+                            $fallback = $settings['background_video_fallback'];
+                            // Elementor stores fallback as array with 'url' key or as string
+                            if (is_array($fallback) && !empty($fallback['url'])) {
+                                $this->youtube_fallback_preload_url = $fallback['url'];
+                            } elseif (is_string($fallback) && !empty($fallback)) {
+                                $this->youtube_fallback_preload_url = $fallback;
+                            }
+                        }
+                        
                         // Remove video settings to prevent immediate iframe creation
                         unset($settings['background_video_link']);
                         unset($settings['background_play_on_mobile']);
@@ -343,6 +362,34 @@ class Resource_Remover {
             },
             $html
         );
+        
+        // Inject preload link for hero video fallback image (LCP optimization)
+        if ($this->youtube_fallback_preload_url) {
+            $preload_url = $this->youtube_fallback_preload_url;
+            $type_attr = '';
+            
+            // Check for optimized variants (AVIF first, then WebP)
+            if (class_exists('CoreBoost\\Core\\Variant_Cache')) {
+                $avif_url = \CoreBoost\Core\Variant_Cache::get_variant($preload_url, 'avif');
+                if ($avif_url) {
+                    $preload_url = $avif_url;
+                    $type_attr = ' type="image/avif"';
+                } else {
+                    $webp_url = \CoreBoost\Core\Variant_Cache::get_variant($preload_url, 'webp');
+                    if ($webp_url) {
+                        $preload_url = $webp_url;
+                        $type_attr = ' type="image/webp"';
+                    }
+                }
+            }
+            
+            $preload_tag = '<link rel="preload" href="' . esc_url($preload_url) . '" as="image"' . $type_attr . ' fetchpriority="high">' . "\n";
+            $html = str_replace('</head>', $preload_tag . '</head>', $html);
+            
+            if (!empty($this->options['debug_mode'])) {
+                Context_Helper::debug_log('YouTube fallback preload injected: ' . $preload_url);
+            }
+        }
         
         // Add inline script to restore video backgrounds after page load
         // This triggers Elementor's video handler to recreate iframes after critical resources are loaded

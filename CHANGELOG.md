@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.9] - 2025-01-28
+
+### 🎬 YouTube Video Background LCP Fix
+
+This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTube video backgrounds. The video fallback image now gets properly preloaded with `fetchpriority="high"` for immediate browser discovery.
+
+### Added
+
+#### Smart YouTube Blocking - Hero Fallback Preload
+- **YouTube video fallback images now preloaded for LCP optimization**
+  - New `$youtube_fallback_preload_url` class property captures first video's fallback
+  - Injects `<link rel="preload" ... fetchpriority="high">` into `<head>` section
+  - Checks `Variant_Cache::get_variant()` for AVIF first, then WebP variants
+  - Outputs proper `type="image/avif"` or `type="image/webp"` attribute
+  - Only preloads first (hero) video fallback, not all videos on page
+  - Fixes PageSpeed "fetchpriority=high should be applied" warning for video backgrounds
+
+### Fixed
+- **LCP images in Elementor YouTube video backgrounds now discoverable from HTML immediately**
+  - Previously, CSS background-image fallbacks were not discoverable until CSS parsed
+  - Now preload link ensures browser fetches the image with high priority
+
 ## [3.0.8] - 2025-01-27
 
 ### 🚀 LCP Optimization & Browser Cache Headers
