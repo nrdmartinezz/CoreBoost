@@ -77,6 +77,11 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
   - Updated `get_url_exclusions` skip list to prevent deferring scripts with `wp` object dependencies
   - Fixes "wp is not defined" and "Unexpected token '<'" console errors
   - Fixes YouTube hero video backgrounds not loading
+- **Tag Manager body tags causing "Unexpected token '<'" error** - Fixed delayed body tags container
+  - Changed from `<div style='display:none'>` to `<script type='text/template'>` wrapper
+  - Prevents browser from parsing/executing content before delay timer fires
+  - Properly handles GTM noscript tags and other HTML content in body scripts
+  - Added script re-execution logic when injecting body tags into DOM
 
 ### Developer Notes
 

@@ -131,11 +131,12 @@ class Tag_Manager {
         if ($this->load_strategy === 'immediate') {
             echo "\n" . $this->options['tag_body_scripts'] . "\n";
         } else {
-            // For delayed strategies, wrap in a container
+            // For delayed strategies, wrap in a template script to prevent execution
+            // Using type='text/template' prevents browser from parsing content as JS/HTML
             echo "\n<!-- CoreBoost Body Tags (Delayed) -->\n";
-            echo "<div id='coreboost-body-tags' style='display:none;'>\n";
+            echo "<script id='coreboost-body-tags' type='text/template'>\n";
             echo $this->options['tag_body_scripts'] . "\n";
-            echo "</div>\n";
+            echo "</script>\n";
         }
     }
 
@@ -225,6 +226,26 @@ class Tag_Manager {
                     var bodyContent = bodyTags.textContent || bodyTags.innerText;
                     var bodyTemp = document.createElement('div');
                     bodyTemp.innerHTML = bodyContent;
+                    
+                    // Process script tags separately to ensure they execute
+                    var scripts = bodyTemp.querySelectorAll('script');
+                    scripts.forEach(function(oldScript) {
+                        var newScript = document.createElement('script');
+                        if (oldScript.src) {
+                            newScript.src = oldScript.src;
+                        }
+                        if (oldScript.innerHTML) {
+                            newScript.innerHTML = oldScript.innerHTML;
+                        }
+                        // Copy attributes
+                        for (var j = 0; j < oldScript.attributes.length; j++) {
+                            var attr = oldScript.attributes[j];
+                            if (attr.name !== 'src') {
+                                newScript.setAttribute(attr.name, attr.value);
+                            }
+                        }
+                        oldScript.parentNode.replaceChild(newScript, oldScript);
+                    });
                     
                     // Move all child nodes from the temporary container to the body
                     // This handles scripts, noscript, and any other elements
