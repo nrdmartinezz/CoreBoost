@@ -115,6 +115,8 @@ class Resource_Remover {
     
     /**
      * Block YouTube player resources from script tags
+     * Note: smart_youtube_blocking does NOT block scripts - it only defers iframe creation in HTML
+     * This allows the YouTube API to load so videos can be restored after page load
      */
     public function block_youtube_resources($tag, $handle, $src) {
         // Check if this is a YouTube resource
@@ -124,15 +126,9 @@ class Resource_Remover {
             return $tag;
         }
         
-        // Smart YouTube blocking - block all YouTube scripts if background videos detected
-        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
-            if ($this->should_block_youtube_resources()) {
-                if ($this->options['debug_mode']) {
-                    return "<!-- CoreBoost: Blocked YouTube script (background video detected) -->\n";
-                }
-                return '';
-            }
-        }
+        // NOTE: smart_youtube_blocking does NOT block YouTube scripts
+        // The YouTube API is required for Elementor to create video backgrounds
+        // We only defer the iframe creation via HTML modification, not script blocking
         
         // Legacy setting - block YouTube embed UI scripts independently
         if (isset($this->options['block_youtube_embed_ui']) && $this->options['block_youtube_embed_ui']) {
@@ -146,23 +142,15 @@ class Resource_Remover {
     
     /**
      * Block YouTube player resources from style tags
+     * Note: smart_youtube_blocking does NOT block styles - it only defers iframe creation
      */
     public function block_youtube_style_resources($html, $handle, $href, $media) {
-        // Smart YouTube blocking - only block if background videos detected
-        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
-            if (!$this->should_block_youtube_resources()) {
-                return $html;
-            }
-        }
+        // NOTE: smart_youtube_blocking does NOT block YouTube CSS
+        // We only defer iframe creation, not block resources
         
-        // Block YouTube player CSS
-        if ($this->options['block_youtube_player_css'] && strpos($href, 'www.youtube.com/s/player') !== false) {
-            return '';
-        }
-        
-        // Block YouTube CSS when smart blocking enabled and background videos detected
-        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
-            if (strpos($href, 'youtube.com') !== false || strpos($href, 'ytimg.com') !== false) {
+        // Legacy setting - block YouTube player CSS independently (separate from smart blocking)
+        if (isset($this->options['block_youtube_player_css']) && $this->options['block_youtube_player_css']) {
+            if (strpos($href, 'www.youtube.com/s/player') !== false) {
                 return '';
             }
         }
@@ -407,6 +395,8 @@ class Resource_Remover {
         var elements = document.querySelectorAll('[data-coreboost-deferred-youtube]');
         log('Found', elements.length, 'deferred YouTube elements');
         
+        if (elements.length === 0) return;
+        
         elements.forEach(function(element, index) {
             try {
                 var deferredData = JSON.parse(element.getAttribute('data-coreboost-deferred-youtube'));
@@ -440,54 +430,92 @@ class Resource_Remover {
                 // Remove deferred attribute
                 element.removeAttribute('data-coreboost-deferred-youtube');
                 
+                // Get the element's model ID for Elementor
+                var modelCid = element.getAttribute('data-model-cid');
+                var $element = jQuery(element);
+                var elementType = element.getAttribute('data-element_type');
+                
+                log('Element type:', elementType, 'Model CID:', modelCid);
+                
                 // Try multiple methods to reinitialize the video background
                 var reinitialized = false;
                 
-                // Method 1: Use Elementor's elementsHandler to run ready triggers (preferred)
-                if (window.elementorFrontend && window.elementorFrontend.elementsHandler && typeof window.elementorFrontend.elementsHandler.runReadyTrigger === 'function') {
-                    try {
-                        var $element = jQuery(element);
-                        window.elementorFrontend.elementsHandler.runReadyTrigger($element);
-                        log('Method 1 (runReadyTrigger) succeeded for element', index);
+                // Method 1: Direct YouTube iframe injection (most reliable)
+                // This bypasses Elementor's handler system entirely
+                try {
+                    var videoId = extractYouTubeId(deferredData.url);
+                    if (videoId) {
+                        var bgVideoContainer = element.querySelector('.elementor-background-video-container');
+                        if (!bgVideoContainer) {
+                            // Create the container if it doesn't exist
+                            bgVideoContainer = document.createElement('div');
+                            bgVideoContainer.className = 'elementor-background-video-container';
+                            var bgOverlay = element.querySelector('.elementor-background-overlay');
+                            if (bgOverlay) {
+                                bgOverlay.parentNode.insertBefore(bgVideoContainer, bgOverlay);
+                            } else {
+                                element.insertBefore(bgVideoContainer, element.firstChild);
+                            }
+                        }
+                        
+                        // Create YouTube iframe with proper parameters
+                        var iframe = document.createElement('iframe');
+                        iframe.className = 'elementor-background-video-embed';
+                        iframe.setAttribute('frameborder', '0');
+                        iframe.setAttribute('allowfullscreen', '1');
+                        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+                        
+                        // Build YouTube embed URL with autoplay, mute, loop settings
+                        var embedUrl = 'https://www.youtube.com/embed/' + videoId + '?';
+                        var params = [
+                            'autoplay=1',
+                            'controls=0',
+                            'mute=1',
+                            'loop=1',
+                            'playlist=' + videoId,
+                            'playsinline=1',
+                            'rel=0',
+                            'showinfo=0',
+                            'modestbranding=1',
+                            'enablejsapi=1',
+                            'origin=' + window.location.origin
+                        ];
+                        iframe.src = embedUrl + params.join('&');
+                        
+                        // Clear existing content and add iframe
+                        bgVideoContainer.innerHTML = '';
+                        bgVideoContainer.appendChild(iframe);
+                        
+                        log('Method 1 (Direct iframe injection) succeeded for element', index);
                         reinitialized = true;
-                    } catch (e) {
-                        log('Method 1 failed:', e.message);
                     }
+                } catch (e) {
+                    log('Method 1 failed:', e.message);
                 }
                 
-                // Method 2: Directly create the video background handler
-                if (!reinitialized && window.elementorFrontend && window.elementorFrontend.handlers) {
+                // Method 2: Use Elementor's elementsHandler to run ready triggers
+                if (!reinitialized && window.elementorFrontend && window.elementorFrontend.elementsHandler) {
                     try {
-                        var HandlerModule = window.elementorFrontend.handlers.Base;
-                        var BackgroundVideo = window.elementorFrontend.handlers.BackgroundVideo;
-                        if (BackgroundVideo) {
-                            new BackgroundVideo({ $element: jQuery(element) });
-                            log('Method 2 (BackgroundVideo handler) succeeded for element', index);
-                            reinitialized = true;
+                        if (typeof window.elementorFrontend.elementsHandler.runReadyTrigger === 'function') {
+                            window.elementorFrontend.elementsHandler.runReadyTrigger($element);
+                            log('Method 2 (runReadyTrigger) fired for element', index);
                         }
                     } catch (e) {
                         log('Method 2 failed:', e.message);
                     }
                 }
                 
-                // Method 3: Fire hook action as fallback
-                if (!reinitialized && window.elementorFrontend && window.elementorFrontend.hooks && window.elementorFrontend.hooks.doAction) {
+                // Method 3: Fire Elementor hook actions
+                if (window.elementorFrontend && window.elementorFrontend.hooks && window.elementorFrontend.hooks.doAction) {
                     try {
-                        window.elementorFrontend.hooks.doAction('frontend/element_ready/global', jQuery(element));
+                        // Fire the element ready hook
+                        window.elementorFrontend.hooks.doAction('frontend/element_ready/global', $element);
+                        if (elementType) {
+                            window.elementorFrontend.hooks.doAction('frontend/element_ready/' + elementType, $element);
+                        }
                         log('Method 3 (hooks.doAction) fired for element', index);
-                        reinitialized = true;
                     } catch (e) {
                         log('Method 3 failed:', e.message);
-                    }
-                }
-                
-                // Method 4: Trigger widget ready event
-                if (!reinitialized) {
-                    try {
-                        jQuery(element).trigger('elementor/frontend/element/ready');
-                        log('Method 4 (jQuery trigger) fired for element', index);
-                    } catch (e) {
-                        log('Method 4 failed:', e.message);
                     }
                 }
                 
@@ -497,6 +525,22 @@ class Resource_Remover {
         });
         
         log('Video restoration complete');
+    }
+    
+    // Helper function to extract YouTube video ID from various URL formats
+    function extractYouTubeId(url) {
+        if (!url) return null;
+        var patterns = [
+            /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+            /youtube\.com.*[?&]v=([a-zA-Z0-9_-]{11})/,
+            /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+            /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
+        ];
+        for (var i = 0; i < patterns.length; i++) {
+            var match = url.match(patterns[i]);
+            if (match && match[1]) return match[1];
+        }
+        return null;
     }
 })();
 </script>
