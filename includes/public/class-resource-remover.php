@@ -458,12 +458,19 @@ class Resource_Remover {
                             }
                         }
                         
+                        // Apply Elementor's background video container styles
+                        bgVideoContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 0; pointer-events: none;';
+                        
                         // Create YouTube iframe with proper parameters
                         var iframe = document.createElement('iframe');
                         iframe.className = 'elementor-background-video-embed';
                         iframe.setAttribute('frameborder', '0');
                         iframe.setAttribute('allowfullscreen', '1');
                         iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+                        
+                        // Apply Elementor's background video iframe styles (cover the container)
+                        // Uses the same scaling technique Elementor uses to ensure video covers without letterboxing
+                        iframe.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100vw; height: 100vh; min-width: 100%; min-height: 100%; object-fit: cover; pointer-events: none;';
                         
                         // Build YouTube embed URL with autoplay, mute, loop settings
                         var embedUrl = 'https://www.youtube.com/embed/' + videoId + '?';
@@ -485,6 +492,12 @@ class Resource_Remover {
                         // Clear existing content and add iframe
                         bgVideoContainer.innerHTML = '';
                         bgVideoContainer.appendChild(iframe);
+                        
+                        // Ensure parent section has proper positioning context
+                        var computedStyle = window.getComputedStyle(element);
+                        if (computedStyle.position === 'static') {
+                            element.style.position = 'relative';
+                        }
                         
                         log('Method 1 (Direct iframe injection) succeeded for element', index);
                         reinitialized = true;
