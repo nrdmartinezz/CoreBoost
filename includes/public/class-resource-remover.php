@@ -468,9 +468,26 @@ class Resource_Remover {
                         iframe.setAttribute('allowfullscreen', '1');
                         iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
                         
-                        // Apply Elementor's background video iframe styles (cover the container)
-                        // Uses the same scaling technique Elementor uses to ensure video covers without letterboxing
-                        iframe.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100vw; height: 100vh; min-width: 100%; min-height: 100%; object-fit: cover; pointer-events: none;';
+                        // Calculate dimensions to cover container (16:9 aspect ratio for YouTube)
+                        // This mimics Elementor's approach - scale iframe larger than container to eliminate black bars
+                        var containerWidth = bgVideoContainer.offsetWidth || element.offsetWidth;
+                        var containerHeight = bgVideoContainer.offsetHeight || element.offsetHeight;
+                        var videoAspectRatio = 16 / 9;
+                        var containerAspectRatio = containerWidth / containerHeight;
+                        
+                        var iframeWidth, iframeHeight;
+                        if (containerAspectRatio > videoAspectRatio) {
+                            // Container is wider than video - scale by width
+                            iframeWidth = containerWidth;
+                            iframeHeight = containerWidth / videoAspectRatio;
+                        } else {
+                            // Container is taller than video - scale by height
+                            iframeHeight = containerHeight;
+                            iframeWidth = containerHeight * videoAspectRatio;
+                        }
+                        
+                        // Apply styles with calculated dimensions, centered via transform
+                        iframe.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: ' + iframeWidth + 'px; height: ' + iframeHeight + 'px; pointer-events: none; border: 0;';
                         
                         // Build YouTube embed URL with autoplay, mute, loop settings
                         var embedUrl = 'https://www.youtube.com/embed/' + videoId + '?';
