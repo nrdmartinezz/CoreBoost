@@ -318,11 +318,12 @@ class Resource_Remover {
                     // Only defer if it's a YouTube video
                     if (strpos($video_url, 'youtube.com') !== false || strpos($video_url, 'youtu.be') !== false) {
                         
-                        // Store the video URL in a separate data attribute for later restoration
+                        // Store the video URL and ALL related settings for later restoration
                         $video_data = array(
                             'url' => $video_url,
                             'play_on_mobile' => isset($settings['background_play_on_mobile']) ? $settings['background_play_on_mobile'] : '',
-                            'play_once' => isset($settings['background_play_once']) ? $settings['background_play_once'] : ''
+                            'play_once' => isset($settings['background_play_once']) ? $settings['background_play_once'] : '',
+                            'fallback' => isset($settings['background_video_fallback']) ? $settings['background_video_fallback'] : ''
                         );
                         
                         // Remove video settings to prevent immediate iframe creation
@@ -360,54 +361,142 @@ class Resource_Remover {
         $script = <<<'SCRIPT'
 <script>
 (function() {
+    var DEBUG = false; // Set to true to see restoration logs
+    
+    function log() {
+        if (DEBUG) console.log.apply(console, ['[CoreBoost YouTube]'].concat(Array.prototype.slice.call(arguments)));
+    }
+    
     // Wait for Elementor to load and be ready
-    if (window.elementorFrontend && typeof window.elementorFrontend.isEditMode === 'function') {
-        // In editor mode, don't defer
+    if (window.elementorFrontend && typeof window.elementorFrontend.isEditMode === 'function' && window.elementorFrontend.isEditMode()) {
+        log('In editor mode, skipping video deferral');
         return;
+    }
+    
+    // Wait for Elementor frontend to be fully initialized before restoring videos
+    function waitForElementor(callback, maxWait) {
+        var waited = 0;
+        var interval = 100;
+        var check = setInterval(function() {
+            waited += interval;
+            if (window.elementorFrontend && window.elementorFrontend.elementsHandler) {
+                clearInterval(check);
+                log('Elementor ready after', waited, 'ms');
+                callback();
+            } else if (waited >= maxWait) {
+                clearInterval(check);
+                log('Elementor not ready after', maxWait, 'ms, attempting restoration anyway');
+                callback();
+            }
+        }, interval);
     }
     
     // Defer video restoration until after page interactive
     if ('requestIdleCallback' in window) {
         requestIdleCallback(function() {
-            restoreYouTubeDeferredVideos();
+            waitForElementor(restoreYouTubeDeferredVideos, 5000);
         }, { timeout: 5000 });
     } else {
-        // Fallback: defer by 3 seconds
-        setTimeout(restoreYouTubeDeferredVideos, 3000);
+        // Fallback: defer by 2 seconds then wait for Elementor
+        setTimeout(function() {
+            waitForElementor(restoreYouTubeDeferredVideos, 5000);
+        }, 2000);
     }
     
     function restoreYouTubeDeferredVideos() {
         var elements = document.querySelectorAll('[data-coreboost-deferred-youtube]');
-        elements.forEach(function(element) {
+        log('Found', elements.length, 'deferred YouTube elements');
+        
+        elements.forEach(function(element, index) {
             try {
                 var deferredData = JSON.parse(element.getAttribute('data-coreboost-deferred-youtube'));
-                if (!deferredData || !deferredData.url) return;
+                if (!deferredData || !deferredData.url) {
+                    log('Element', index, 'missing deferred data or URL');
+                    return;
+                }
                 
                 // Get current settings
                 var settingsAttr = element.getAttribute('data-settings');
-                if (!settingsAttr) return;
+                if (!settingsAttr) {
+                    log('Element', index, 'missing data-settings');
+                    return;
+                }
                 
                 var settings = JSON.parse(settingsAttr);
+                log('Restoring video for element', index, ':', deferredData.url);
                 
-                // Restore video settings
+                // Restore ALL video settings including fallback
                 settings.background_video_link = deferredData.url;
                 if (deferredData.play_on_mobile) settings.background_play_on_mobile = deferredData.play_on_mobile;
                 if (deferredData.play_once) settings.background_play_once = deferredData.play_once;
+                if (deferredData.fallback) {
+                    settings.background_video_fallback = deferredData.fallback;
+                    log('Restored fallback image:', deferredData.fallback.url || deferredData.fallback);
+                }
                 
-                // Update data-settings
+                // Update data-settings with restored video info
                 element.setAttribute('data-settings', JSON.stringify(settings));
                 
                 // Remove deferred attribute
                 element.removeAttribute('data-coreboost-deferred-youtube');
                 
-                // Trigger Elementor frontend to re-render this section
-                if (window.elementorFrontend && window.elementorFrontend.hooks && window.elementorFrontend.hooks.doAction) {
-                    window.elementorFrontend.hooks.doAction('elementor/frontend/element/render', element);
+                // Try multiple methods to reinitialize the video background
+                var reinitialized = false;
+                
+                // Method 1: Use Elementor's elementsHandler to run ready triggers (preferred)
+                if (window.elementorFrontend && window.elementorFrontend.elementsHandler && typeof window.elementorFrontend.elementsHandler.runReadyTrigger === 'function') {
+                    try {
+                        var $element = jQuery(element);
+                        window.elementorFrontend.elementsHandler.runReadyTrigger($element);
+                        log('Method 1 (runReadyTrigger) succeeded for element', index);
+                        reinitialized = true;
+                    } catch (e) {
+                        log('Method 1 failed:', e.message);
+                    }
                 }
+                
+                // Method 2: Directly create the video background handler
+                if (!reinitialized && window.elementorFrontend && window.elementorFrontend.handlers) {
+                    try {
+                        var HandlerModule = window.elementorFrontend.handlers.Base;
+                        var BackgroundVideo = window.elementorFrontend.handlers.BackgroundVideo;
+                        if (BackgroundVideo) {
+                            new BackgroundVideo({ $element: jQuery(element) });
+                            log('Method 2 (BackgroundVideo handler) succeeded for element', index);
+                            reinitialized = true;
+                        }
+                    } catch (e) {
+                        log('Method 2 failed:', e.message);
+                    }
+                }
+                
+                // Method 3: Fire hook action as fallback
+                if (!reinitialized && window.elementorFrontend && window.elementorFrontend.hooks && window.elementorFrontend.hooks.doAction) {
+                    try {
+                        window.elementorFrontend.hooks.doAction('frontend/element_ready/global', jQuery(element));
+                        log('Method 3 (hooks.doAction) fired for element', index);
+                        reinitialized = true;
+                    } catch (e) {
+                        log('Method 3 failed:', e.message);
+                    }
+                }
+                
+                // Method 4: Trigger widget ready event
+                if (!reinitialized) {
+                    try {
+                        jQuery(element).trigger('elementor/frontend/element/ready');
+                        log('Method 4 (jQuery trigger) fired for element', index);
+                    } catch (e) {
+                        log('Method 4 failed:', e.message);
+                    }
+                }
+                
             } catch (e) {
                 console.error('CoreBoost: Error restoring deferred YouTube video:', e);
             }
         });
+        
+        log('Video restoration complete');
     }
 })();
 </script>
