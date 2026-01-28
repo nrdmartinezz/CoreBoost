@@ -71,6 +71,12 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
 - **Missing browser cache headers** - `.htaccess` now proactively created on init
 - **fetchpriority not on picture element** - Now passed to inner `<img>` tag for LCP images
 - **`coreboost_variants_dir_created` never firing** - Action now triggered on directory creation
+- **Critical WordPress scripts incorrectly deferred** - Fixed `wp-i18n`, `wp-hooks`, and other core scripts being deferred
+  - Added 13 critical WP dist scripts to default exclusions in `Script_Exclusions`
+  - Updated `process_inline_script_callback` to exclude critical scripts with inline setup
+  - Updated `get_url_exclusions` skip list to prevent deferring scripts with `wp` object dependencies
+  - Fixes "wp is not defined" and "Unexpected token '<'" console errors
+  - Fixes YouTube hero video backgrounds not loading
 
 ### Developer Notes
 

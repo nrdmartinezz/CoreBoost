@@ -597,6 +597,15 @@ SCRIPT;
                 'jquery-ui-core',
                 'jquery-ui.min.js',
                 'wp-embed',
+                // Critical WordPress dist scripts with inline "after" setup
+                '/dist/i18n',
+                '/dist/hooks',
+                '/dist/dom-ready',
+                '/dist/url',
+                '/dist/api-fetch',
+                '/dist/data',
+                '/dist/element',
+                'wp-polyfill',
             )
         );
     }
@@ -623,6 +632,29 @@ SCRIPT;
             return $full_tag;
         }
         
+        // Exclude critical WordPress core scripts that have inline "after" setup scripts
+        // These MUST load synchronously or inline scripts referencing 'wp' will fail
+        $critical_wp_scripts = array(
+            '/wp-includes/js/dist/i18n',           // wp-i18n - defines wp.i18n
+            '/wp-includes/js/dist/hooks',          // wp-hooks - defines wp.hooks  
+            '/wp-includes/js/dist/dom-ready',      // wp-dom-ready
+            '/wp-includes/js/dist/url',            // wp-url
+            '/wp-includes/js/dist/api-fetch',      // wp-api-fetch
+            '/wp-includes/js/dist/data',           // wp-data
+            '/wp-includes/js/dist/element',        // wp-element
+            '/wp-includes/js/dist/components',     // wp-components
+            '/wp-includes/js/dist/blocks',         // wp-blocks
+            '/wp-includes/js/dist/editor',         // wp-editor
+            '/wp-includes/js/dist/block-editor',   // wp-block-editor
+            'wp-polyfill',                         // Polyfills
+        );
+        
+        foreach ($critical_wp_scripts as $critical_script) {
+            if (strpos($src, $critical_script) !== false) {
+                return $full_tag;
+            }
+        }
+        
         $should_defer = false;
         $use_async = false;
         
@@ -643,9 +675,24 @@ SCRIPT;
         elseif (strpos($src, '/jquery-ui/') !== false && strpos($src, 'core.min.js') === false) {
             $should_defer = true;
         }
-        // WordPress core dist scripts
+        // WordPress core dist scripts - ONLY defer non-critical ones
+        // Critical scripts (i18n, hooks, etc.) are excluded above
         elseif (strpos($src, '/wp-includes/js/dist/') !== false) {
-            $should_defer = true;
+            // Only defer these specific safe dist scripts
+            $safe_to_defer = array(
+                '/vendor/',           // Vendor bundles
+                '/format-library',    // Format library
+                '/nux',              // NUX (new user experience)
+                '/notices',          // Notices
+                '/viewport',         // Viewport
+                '/a11y',             // Accessibility
+            );
+            foreach ($safe_to_defer as $safe_script) {
+                if (strpos($src, $safe_script) !== false) {
+                    $should_defer = true;
+                    break;
+                }
+            }
         }
         // WooCommerce scripts
         elseif (strpos($src, '/woocommerce/') !== false) {

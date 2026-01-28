@@ -145,6 +145,18 @@ class Script_Exclusions {
             // WordPress core
             'wp-embed',
             'wp-api',
+            'wp-i18n',
+            'wp-hooks',
+            'wp-dom-ready',
+            'wp-url',
+            'wp-api-fetch',
+            'wp-data',
+            'wp-element',
+            'wp-components',
+            'wp-blocks',
+            'wp-editor',
+            'wp-block-editor',
+            'wp-polyfill',
             
             // Google Analytics (often breaks with delay)
             'google-analytics',
