@@ -168,6 +168,34 @@ if (!function_exists('wp_doing_ajax')) {
     }
 }
 
+if (!function_exists('do_action')) {
+    function do_action($hook_name, ...$args) {
+        // Mock implementation - does nothing in tests
+        return;
+    }
+}
+
+if (!function_exists('apply_filters')) {
+    function apply_filters($hook_name, $value, ...$args) {
+        // Mock implementation - returns value unchanged
+        return $value;
+    }
+}
+
+if (!function_exists('add_action')) {
+    function add_action($hook_name, $callback, $priority = 10, $accepted_args = 1) {
+        // Mock implementation - does nothing in tests
+        return true;
+    }
+}
+
+if (!function_exists('add_filter')) {
+    function add_filter($hook_name, $callback, $priority = 10, $accepted_args = 1) {
+        // Mock implementation - does nothing in tests
+        return true;
+    }
+}
+
 if (!class_exists('WP_Error')) {
     class WP_Error {
         private $error_message;
