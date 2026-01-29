@@ -142,6 +142,11 @@ class Image_Optimizer {
      * @return string Modified HTML with optimized images
      */
     public function optimize_images($html) {
+        // Safety check - skip in admin context
+        if (Context_Helper::should_skip_optimization()) {
+            return $html;
+        }
+        
         // Check if any image optimization is enabled
         if (!$this->is_optimization_enabled()) {
             return $html;
@@ -516,10 +521,17 @@ class Image_Optimizer {
      * @return string Optimized CSS with AVIF/WebP variants
      */
     private function process_css_background_images($css, &$replacements_made = 0) {
+        // Safety check - format_optimizer must exist
+        if (!$this->format_optimizer) {
+            return $css;
+        }
+        
+        $self = $this; // Capture $this for closure
+        
         // Match both background: and background-image: with url() patterns
         $css = preg_replace_callback(
             '/\b(background(?:-image)?)\s*:\s*([^;]*?)url\(["\']?([^"\')\s]+)["\']?\)([^;]*)/i',
-            function($matches) use (&$replacements_made) {
+            function($matches) use (&$replacements_made, $self) {
                 $property = $matches[1]; // background or background-image
                 $before_url = trim($matches[2]); // any values before url()
                 $original_url = $matches[3]; // the image URL
@@ -528,14 +540,14 @@ class Image_Optimizer {
                 Context_Helper::debug_log("Found CSS background: {$original_url}");
                 
                 // Check if should optimize this image
-                if (!$this->format_optimizer->should_optimize_image($original_url)) {
+                if (!$self->format_optimizer->should_optimize_image($original_url)) {
                     Context_Helper::debug_log('Image should not be optimized');
                     return $matches[0];
                 }
                 
                 // Check if variants exist
-                $avif_url = $this->format_optimizer->get_variant_from_cache($original_url, 'avif');
-                $webp_url = $this->format_optimizer->get_variant_from_cache($original_url, 'webp');
+                $avif_url = $self->format_optimizer->get_variant_from_cache($original_url, 'avif');
+                $webp_url = $self->format_optimizer->get_variant_from_cache($original_url, 'webp');
                 
                 Context_Helper::debug_log('AVIF variant: ' . ($avif_url ? $avif_url : 'NOT FOUND'));
                 Context_Helper::debug_log('WebP variant: ' . ($webp_url ? $webp_url : 'NOT FOUND'));
@@ -554,8 +566,8 @@ class Image_Optimizer {
                 $best_url = $avif_url ? $avif_url : ($webp_url ? $webp_url : $original_url);
                 
                 // Capture first background URL for hero preload (LCP optimization)
-                if ($this->hero_bg_preload_url === null) {
-                    $this->hero_bg_preload_url = $best_url;
+                if ($self->hero_bg_preload_url === null) {
+                    $self->hero_bg_preload_url = $best_url;
                     Context_Helper::debug_log('Captured hero background for preload: ' . $best_url);
                 }
                 
@@ -589,6 +601,11 @@ class Image_Optimizer {
      * @return string Modified HTML with injected CSS overrides
      */
     private function inject_css_overrides_inline($html) {
+        // Safety check - skip in admin context
+        if (Context_Helper::should_skip_optimization()) {
+            return $html;
+        }
+        
         $overrides = array();
         
         // Find all stylesheet links

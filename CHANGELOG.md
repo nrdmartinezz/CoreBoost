@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.9] - 2025-01-28
 
-### 🎬 YouTube Video Background LCP Fix
+### 🎬 YouTube Video Background & CSS Background LCP Fix
 
-This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTube video backgrounds. The video fallback image now gets properly preloaded with `fetchpriority="high"` for immediate browser discovery.
+This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTube video backgrounds and CSS background images. Hero background images now get properly preloaded with `fetchpriority="high"` for immediate browser discovery.
 
 ### Added
 
@@ -24,6 +24,14 @@ This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTu
   - Only preloads first (hero) video fallback, not all videos on page
   - Fixes PageSpeed "fetchpriority=high should be applied" warning for video backgrounds
 
+#### CSS Background Image Hero Preload
+- **First CSS background image now preloaded for LCP optimization**
+  - New `$hero_bg_preload_url` class property in `Image_Optimizer`
+  - Captures first optimized background URL during CSS processing
+  - Injects `<link rel="preload" ... fetchpriority="high">` into `<head>` section
+  - Automatically uses AVIF/WebP variant URL with proper `type` attribute
+  - Fixes LCP for Elementor sections using CSS background images
+
 ### Fixed
 - **LCP images in Elementor YouTube video backgrounds now discoverable from HTML immediately**
   - Previously, CSS background-image fallbacks were not discoverable until CSS parsed
@@ -31,6 +39,18 @@ This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTu
 - **Fixed closure scope issue preventing fallback URL capture**
   - Used `$self = $this` pattern to properly modify class property from within `preg_replace_callback` closure
   - Added explicit `isset($fallback['url'])` check for Elementor's media control data structure
+- **Fixed potential crash in CSS background optimizer when `format_optimizer` is null**
+  - Added null check at start of `process_css_background_images()` method
+  - Prevents fatal error when format conversion is disabled
+- **Fixed optimizations running in wp-admin/Elementor editor contexts**
+  - Added `Context_Helper::should_skip_optimization()` checks to `optimize_images()` and `inject_css_overrides_inline()`
+  - Enhanced `should_skip_optimization()` with additional checks:
+    - URL contains `/wp-admin` (catches customizer, Gutenberg iframe edge cases)
+    - `$_GET['action'] === 'elementor'` (Elementor editor action)
+    - `$_GET['elementor-preview']` (Elementor preview parameter)
+    - `$_GET['elementor_library']` (Elementor library templates)
+    - `$elementor->editor->is_edit_mode()` (Elementor's own edit mode detection)
+  - Prevents 520/522 server errors caused by optimizations running during admin/editor requests
 
 ## [3.0.8] - 2025-01-27
 

@@ -121,6 +121,40 @@ class Context_Helper {
             return true;
         }
         
+        // Skip if URL contains wp-admin (catches edge cases like customizer, Gutenberg iframe)
+        $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+        if (strpos($request_uri, '/wp-admin') !== false || strpos($request_uri, 'wp-admin') !== false) {
+            self::$should_skip = true;
+            return true;
+        }
+        
+        // Skip during Elementor editor mode (catches iframe context)
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['action']) && $_GET['action'] === 'elementor') {
+            self::$should_skip = true;
+            return true;
+        }
+        if (isset($_GET['elementor-preview'])) {
+            self::$should_skip = true;
+            return true;
+        }
+        // Skip Elementor editor iframe
+        if (isset($_GET['elementor_library'])) {
+            self::$should_skip = true;
+            return true;
+        }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        
+        // Skip if Elementor is in edit mode (via JavaScript globals set before PHP)
+        if (defined('ELEMENTOR_VERSION') && class_exists('\Elementor\Plugin')) {
+            $elementor = \Elementor\Plugin::instance();
+            // Check editor mode
+            if (isset($elementor->editor) && method_exists($elementor->editor, 'is_edit_mode') && $elementor->editor->is_edit_mode()) {
+                self::$should_skip = true;
+                return true;
+            }
+        }
+        
         self::$should_skip = false;
         return false;
     }
