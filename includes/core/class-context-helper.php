@@ -122,7 +122,8 @@ class Context_Helper {
         }
         
         // Skip if URL contains wp-admin (catches edge cases like customizer, Gutenberg iframe)
-        $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $request_uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
         if (strpos($request_uri, '/wp-admin') !== false || strpos($request_uri, 'wp-admin') !== false) {
             self::$should_skip = true;
             return true;
@@ -130,16 +131,16 @@ class Context_Helper {
         
         // Skip during Elementor editor mode (catches iframe context)
         // phpcs:disable WordPress.Security.NonceVerification.Recommended
-        if (isset($_GET['action']) && $_GET['action'] === 'elementor') {
+        if (filter_input(INPUT_GET, 'action', FILTER_SANITIZE_FULL_SPECIAL_CHARS) === 'elementor') {
             self::$should_skip = true;
             return true;
         }
-        if (isset($_GET['elementor-preview'])) {
+        if (filter_input(INPUT_GET, 'elementor-preview', FILTER_SANITIZE_FULL_SPECIAL_CHARS) !== null) {
             self::$should_skip = true;
             return true;
         }
         // Skip Elementor editor iframe
-        if (isset($_GET['elementor_library'])) {
+        if (filter_input(INPUT_GET, 'elementor_library', FILTER_SANITIZE_FULL_SPECIAL_CHARS) !== null) {
             self::$should_skip = true;
             return true;
         }
