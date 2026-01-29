@@ -689,6 +689,17 @@ class Image_Optimizer {
             
             $html = str_replace('</head>', $override_css . '</head>', $html);
             Context_Helper::debug_log('Injected ' . count($overrides) . ' CSS background image overrides');
+            
+            // Extract first background URL for hero preload if not already captured
+            // This handles the case when CSS is loaded from cache (process_css_background_images not called)
+            if ($this->hero_bg_preload_url === null) {
+                // Look for first url() in the overrides containing coreboost-variants (optimized images)
+                $combined_css = implode("\n", $overrides);
+                if (preg_match('/url\(["\']?(https?:\/\/[^"\')\s]+coreboost-variants[^"\')\s]+)["\']?\)/i', $combined_css, $url_match)) {
+                    $this->hero_bg_preload_url = $url_match[1];
+                    Context_Helper::debug_log('Extracted hero background from cached CSS: ' . $this->hero_bg_preload_url);
+                }
+            }
         }
         
         // Inject preload link for hero background image (LCP optimization)
