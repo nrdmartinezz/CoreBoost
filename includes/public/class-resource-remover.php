@@ -291,9 +291,10 @@ class Resource_Remover {
         // STRATEGY: Defer iframe creation by storing video URL in data attribute
         // Elementor will NOT create iframe if background_video_link is missing from data-settings
         // We'll use JavaScript to restore it after page load for deferred loading
+        $self = $this; // Capture $this for closure to modify class property
         $html = preg_replace_callback(
             '/data-settings=(["\'])([^"\']+)\1/i',
-            function($matches) {
+            function($matches) use ($self) {
                 $quote = $matches[1];
                 $encoded_json = $matches[2];
                 
@@ -323,13 +324,13 @@ class Resource_Remover {
                         );
                         
                         // Capture first fallback URL for hero preload (LCP optimization)
-                        if ($this->youtube_fallback_preload_url === null && !empty($settings['background_video_fallback'])) {
+                        if ($self->youtube_fallback_preload_url === null && isset($settings['background_video_fallback'])) {
                             $fallback = $settings['background_video_fallback'];
-                            // Elementor stores fallback as array with 'url' key or as string
-                            if (is_array($fallback) && !empty($fallback['url'])) {
-                                $this->youtube_fallback_preload_url = $fallback['url'];
+                            // Elementor stores fallback as array with 'url' and 'id' keys
+                            if (is_array($fallback) && isset($fallback['url']) && !empty($fallback['url'])) {
+                                $self->youtube_fallback_preload_url = $fallback['url'];
                             } elseif (is_string($fallback) && !empty($fallback)) {
-                                $this->youtube_fallback_preload_url = $fallback;
+                                $self->youtube_fallback_preload_url = $fallback;
                             }
                         }
                         

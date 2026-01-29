@@ -28,6 +28,9 @@ This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTu
 - **LCP images in Elementor YouTube video backgrounds now discoverable from HTML immediately**
   - Previously, CSS background-image fallbacks were not discoverable until CSS parsed
   - Now preload link ensures browser fetches the image with high priority
+- **Fixed closure scope issue preventing fallback URL capture**
+  - Used `$self = $this` pattern to properly modify class property from within `preg_replace_callback` closure
+  - Added explicit `isset($fallback['url'])` check for Elementor's media control data structure
 
 ## [3.0.8] - 2025-01-27
 
