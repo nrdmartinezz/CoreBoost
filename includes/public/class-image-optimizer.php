@@ -65,6 +65,14 @@ class Image_Optimizer {
     private $responsive_resizer;
     
     /**
+     * First CSS background image URL for hero preload
+     * Captured during CSS optimization for LCP preloading
+     *
+     * @var string|null
+     */
+    private $hero_bg_preload_url = null;
+    
+    /**
      * Pre-compiled regex patterns for performance
      * Compiled once in constructor, reused throughout lifecycle
      */
@@ -545,6 +553,12 @@ class Image_Optimizer {
                 // Use the best available format (AVIF > WebP > original)
                 $best_url = $avif_url ? $avif_url : ($webp_url ? $webp_url : $original_url);
                 
+                // Capture first background URL for hero preload (LCP optimization)
+                if ($this->hero_bg_preload_url === null) {
+                    $this->hero_bg_preload_url = $best_url;
+                    Context_Helper::debug_log('Captured hero background for preload: ' . $best_url);
+                }
+                
                 // Reconstruct the property with optimized URL
                 $output = $property . ': ';
                 if (!empty($before_url)) {
@@ -658,6 +672,21 @@ class Image_Optimizer {
             
             $html = str_replace('</head>', $override_css . '</head>', $html);
             Context_Helper::debug_log('Injected ' . count($overrides) . ' CSS background image overrides');
+        }
+        
+        // Inject preload link for hero background image (LCP optimization)
+        if ($this->hero_bg_preload_url) {
+            // Determine image type for preload
+            $type_attr = '';
+            if (strpos($this->hero_bg_preload_url, '.avif') !== false) {
+                $type_attr = ' type="image/avif"';
+            } elseif (strpos($this->hero_bg_preload_url, '.webp') !== false) {
+                $type_attr = ' type="image/webp"';
+            }
+            
+            $preload_tag = '<link rel="preload" href="' . esc_url($this->hero_bg_preload_url) . '" as="image"' . $type_attr . ' fetchpriority="high">' . "\n";
+            $html = str_replace('</head>', $preload_tag . '</head>', $html);
+            Context_Helper::debug_log('Injected hero background preload: ' . $this->hero_bg_preload_url);
         }
         
         return $html;
