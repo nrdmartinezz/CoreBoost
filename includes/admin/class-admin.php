@@ -122,16 +122,13 @@ class Admin {
             80
         );
         
-        // Add submenu pages
-        add_submenu_page(
-            'coreboost',
-            __('Dashboard', 'coreboost'),
-            __('Dashboard', 'coreboost'),
-            'manage_options',
-            'coreboost',
-            array($this, 'render_dashboard_page')
-        );
+        // Rename the auto-generated submenu from "CoreBoost" to "Dashboard"
+        global $submenu;
+        if (isset($submenu['coreboost'])) {
+            $submenu['coreboost'][0][0] = __('Dashboard', 'coreboost');
+        }
         
+        // Add submenu pages
         add_submenu_page(
             'coreboost',
             __('Optimizations', 'coreboost'),
