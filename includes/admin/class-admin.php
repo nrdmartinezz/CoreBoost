@@ -117,7 +117,7 @@ class Admin {
             __('CoreBoost', 'coreboost'),
             'manage_options',
             'coreboost',
-            array($this, 'render_overview_page'),
+            array($this, 'render_dashboard_page'),
             'dashicons-performance',
             80
         );
@@ -125,11 +125,11 @@ class Admin {
         // Add submenu pages
         add_submenu_page(
             'coreboost',
-            __('Overview', 'coreboost'),
-            __('Overview', 'coreboost'),
+            __('Dashboard', 'coreboost'),
+            __('Dashboard', 'coreboost'),
             'manage_options',
             'coreboost',
-            array($this, 'render_overview_page')
+            array($this, 'render_dashboard_page')
         );
         
         add_submenu_page(
@@ -179,11 +179,11 @@ class Admin {
     }
     
     /**
-     * Render Overview page
+     * Render Dashboard page
      */
-    public function render_overview_page() {
-        $overview_page = new Overview_Page($this->options);
-        $overview_page->render();
+    public function render_dashboard_page() {
+        $dashboard_page = new Overview_Page($this->options);
+        $dashboard_page->render();
     }
     
     /**

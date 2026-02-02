@@ -36,6 +36,64 @@ class Cache_Page {
      */
     public function __construct($options) {
         $this->options = $options;
+        
+        // Handle cache actions early to avoid headers already sent
+        add_action('admin_init', array($this, 'early_handle_cache_actions'), 5);
+    }
+    
+    /**
+     * Handle cache actions early (before headers sent)
+     */
+    public function early_handle_cache_actions() {
+        // Only run on our cache page
+        $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
+        if ($page !== 'coreboost-cache') {
+            return;
+        }
+        
+        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        
+        if (!$action || !$nonce) {
+            return;
+        }
+        
+        $redirect_args = array();
+        
+        switch ($action) {
+            case 'clear_all':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_all')) {
+                    Cache_Manager::flush_all_caches();
+                    $redirect_args['all_cleared'] = '1';
+                }
+                break;
+                
+            case 'clear_hero':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_hero')) {
+                    Cache_Manager::clear_hero_cache();
+                    $redirect_args['hero_cleared'] = '1';
+                }
+                break;
+                
+            case 'clear_video':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_video')) {
+                    Cache_Manager::clear_video_cache();
+                    $redirect_args['video_cleared'] = '1';
+                }
+                break;
+                
+            case 'clear_third_party':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_third_party')) {
+                    Cache_Manager::clear_third_party_caches();
+                    $redirect_args['third_party_cleared'] = '1';
+                }
+                break;
+        }
+        
+        if (!empty($redirect_args)) {
+            wp_safe_redirect(add_query_arg($redirect_args, remove_query_arg(array('action', '_wpnonce'))));
+            exit;
+        }
     }
     
     /**
@@ -284,52 +342,11 @@ class Cache_Page {
     }
     
     /**
-     * Handle cache actions
+     * Handle cache actions (legacy - now handled in early_handle_cache_actions)
      */
     private function handle_cache_actions() {
-        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
-        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
-        
-        if (!$action || !$nonce) {
-            return;
-        }
-        
-        $redirect_args = array();
-        
-        switch ($action) {
-            case 'clear_all':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_all')) {
-                    Cache_Manager::flush_all_caches();
-                    $redirect_args['all_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_hero':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_hero')) {
-                    Cache_Manager::clear_hero_cache();
-                    $redirect_args['hero_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_video':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_video')) {
-                    Cache_Manager::clear_video_cache();
-                    $redirect_args['video_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_third_party':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_third_party')) {
-                    Cache_Manager::clear_third_party_caches();
-                    $redirect_args['third_party_cleared'] = '1';
-                }
-                break;
-        }
-        
-        if (!empty($redirect_args)) {
-            wp_redirect(add_query_arg($redirect_args, remove_query_arg(array('action', '_wpnonce'))));
-            exit;
-        }
+        // Actions are now handled early via admin_init hook
+        // This method is kept for backwards compatibility
     }
     
     /**

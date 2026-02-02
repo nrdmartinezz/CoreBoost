@@ -125,6 +125,110 @@
 }
 
 /* ============================================
+   Dashboard Hero Section
+   ============================================ */
+.coreboost-hero-section {
+    background: linear-gradient(135deg, var(--cb-secondary) 0%, #1a3333 100%);
+    border-radius: var(--cb-border-radius-lg);
+    padding: 40px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--cb-shadow-lg);
+}
+
+.coreboost-hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 60%;
+    height: 200%;
+    background: radial-gradient(ellipse, var(--cb-primary) 0%, transparent 70%);
+    opacity: 0.1;
+    animation: cb-hero-pulse 4s ease-in-out infinite;
+}
+
+.coreboost-hero-section::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--cb-primary), var(--cb-accent), var(--cb-primary));
+    background-size: 200% 100%;
+    animation: cb-gradient-flow 3s ease infinite;
+}
+
+@keyframes cb-hero-pulse {
+    0%, 100% { opacity: 0.1; transform: scale(1); }
+    50% { opacity: 0.15; transform: scale(1.05); }
+}
+
+@keyframes cb-gradient-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.coreboost-hero-content {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.coreboost-hero-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--cb-border-radius-lg);
+    box-shadow: 0 8px 32px rgba(32, 201, 151, 0.3);
+    animation: cb-logo-float 3s ease-in-out infinite;
+    background: white;
+    padding: 8px;
+}
+
+.coreboost-hero-logo-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--cb-primary) 0%, var(--cb-primary-dark) 100%);
+}
+
+.coreboost-hero-logo-fallback .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: white;
+}
+
+@keyframes cb-logo-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.coreboost-hero-text h1 {
+    margin: 0 0 8px 0;
+    font-size: 36px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -1px;
+}
+
+.coreboost-hero-text h1 span {
+    color: var(--cb-primary);
+}
+
+.coreboost-hero-tagline {
+    margin: 0;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+}
+
+/* ============================================
    Navigation Tabs - Animated
    ============================================ */
 .coreboost-optimizations .nav-tab-wrapper,

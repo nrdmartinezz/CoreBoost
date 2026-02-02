@@ -42,18 +42,34 @@ class Overview_Page {
     }
     
     /**
-     * Render the overview page
+     * Render the dashboard page
      */
     public function render() {
         $this->handle_quick_actions();
         
+        $logo_path = COREBOOST_PLUGIN_DIR . 'assets/images/coreboost-logo.png';
+        $logo_url = COREBOOST_PLUGIN_URL . 'assets/images/coreboost-logo.png';
+        $has_logo = file_exists($logo_path);
+        
         ?>
-        <div class="wrap coreboost-overview">
-            <div class="coreboost-page-header">
-                <div class="coreboost-logo">
-                    <span class="dashicons dashicons-performance"></span>
+        <div class="wrap coreboost-dashboard">
+            <!-- Hero Section with Logo -->
+            <div class="coreboost-hero-section">
+                <div class="coreboost-hero-content">
+                    <?php if ($has_logo) : ?>
+                        <img src="<?php echo esc_url($logo_url); ?>" 
+                             alt="CoreBoost" 
+                             class="coreboost-hero-logo">
+                    <?php else : ?>
+                        <div class="coreboost-hero-logo coreboost-hero-logo-fallback">
+                            <span class="dashicons dashicons-performance"></span>
+                        </div>
+                    <?php endif; ?>
+                    <div class="coreboost-hero-text">
+                        <h1><?php _e('CoreBoost', 'coreboost'); ?> <span><?php _e('Dashboard', 'coreboost'); ?></span></h1>
+                        <p class="coreboost-hero-tagline"><?php _e('Supercharge your WordPress performance', 'coreboost'); ?></p>
+                    </div>
                 </div>
-                <h1><?php _e('CoreBoost', 'coreboost'); ?> <span><?php _e('Overview', 'coreboost'); ?></span></h1>
             </div>
             
             <?php $this->render_notices(); ?>
