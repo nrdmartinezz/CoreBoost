@@ -56,7 +56,8 @@ class Dashboard_UI {
 	 * @return void
 	 */
 	private function register_hooks() {
-		add_action( 'admin_menu', array( $this, 'register_dashboard_page' ) );
+		// Dashboard page is now registered in class-admin.php
+		// add_action( 'admin_menu', array( $this, 'register_dashboard_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_dashboard_assets' ) );
 		add_action( 'wp_ajax_coreboost_get_dashboard_data', array( $this, 'ajax_get_dashboard_data' ) );
 		add_action( 'wp_ajax_coreboost_export_analytics', array( $this, 'ajax_export_analytics' ) );
