@@ -69,9 +69,9 @@ class Settings_Page {
                 
                 <input type="hidden" name="current_tab" value="<?php echo esc_attr($active_tab); ?>">
                 
-                <div class="coreboost-settings-layout">
+                <div class="coreboost-settings-layout" style="display: grid !important; grid-template-columns: 1fr 300px !important; gap: 24px !important; align-items: start !important;">
                     <!-- Main Content Area -->
-                    <div class="coreboost-settings-main">
+                    <div class="coreboost-settings-main" style="min-width: 0;">
                         <?php if ($active_tab == 'media'): ?>
                             <?php $this->render_media_tab(); ?>
                         <?php elseif ($active_tab == 'performance'): ?>
@@ -82,7 +82,7 @@ class Settings_Page {
                     </div>
                     
                     <!-- Sticky Sidebar -->
-                    <div class="coreboost-settings-sidebar">
+                    <div class="coreboost-settings-sidebar" style="position: sticky; top: 46px; display: flex; flex-direction: column; gap: 16px;">
                         <div class="coreboost-sidebar-card">
                             <h3><span class="dashicons dashicons-saved"></span> <?php _e('Save Changes', 'coreboost'); ?></h3>
                             <p class="description"><?php _e('Click to save all your optimization settings.', 'coreboost'); ?></p>

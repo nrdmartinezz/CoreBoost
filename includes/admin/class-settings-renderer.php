@@ -86,7 +86,7 @@ class Settings_Renderer {
         echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Page-Specific Hero Images', 'coreboost') . '</h4>';
         echo '<p style="margin: 8px 0;">' . esc_html__('Enter your hero image URLs for specific pages in the "Page-Specific Images" field below. Format: one entry per line as page-slug|image-url', 'coreboost') . '</p>';
         echo '<code style="background: #fff; padding: 8px 12px; border-radius: 3px; display: block; margin: 10px 0; font-family: monospace; border: 1px solid #e0e0e0; overflow-x: auto;">home|/wp-content/uploads/2025/10/example.jpg</code>';
-        echo '<p style="margin: 8px 0 0 0;"><strong>' ;
+        echo '</div>';
     }
     
     /**
