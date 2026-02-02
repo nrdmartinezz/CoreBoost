@@ -47,9 +47,9 @@ class Admin_Bar {
         $wp_admin_bar->add_menu(array(
             'id'    => 'coreboost',
             'title' => __('CoreBoost', 'coreboost'),
-            'href'  => admin_url('options-general.php?page=coreboost'),
+            'href'  => admin_url('admin.php?page=coreboost'),
             'meta'  => array(
-                'title' => __('CoreBoost Settings', 'coreboost'),
+                'title' => __('CoreBoost Overview', 'coreboost'),
             ),
         ));
         
@@ -75,8 +75,22 @@ class Admin_Bar {
         $wp_admin_bar->add_menu(array(
             'parent' => 'coreboost',
             'id'     => 'coreboost-settings',
-            'title'  => __('Settings', 'coreboost'),
-            'href'   => admin_url('options-general.php?page=coreboost'),
+            'title'  => __('Optimizations', 'coreboost'),
+            'href'   => admin_url('admin.php?page=coreboost-optimizations'),
+        ));
+        
+        $wp_admin_bar->add_menu(array(
+            'parent' => 'coreboost',
+            'id'     => 'coreboost-cache-settings',
+            'title'  => __('Cache Settings', 'coreboost'),
+            'href'   => admin_url('admin.php?page=coreboost-cache'),
+        ));
+        
+        $wp_admin_bar->add_menu(array(
+            'parent' => 'coreboost',
+            'id'     => 'coreboost-database',
+            'title'  => __('Database', 'coreboost'),
+            'href'   => admin_url('admin.php?page=coreboost-database'),
         ));
         
         $wp_admin_bar->add_menu(array(

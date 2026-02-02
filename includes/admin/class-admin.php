@@ -111,13 +111,111 @@ class Admin {
      * Add admin menu
      */
     public function add_admin_menu() {
-        add_options_page(
+        // Add top-level menu page
+        add_menu_page(
             __('CoreBoost', 'coreboost'),
             __('CoreBoost', 'coreboost'),
             'manage_options',
             'coreboost',
+            array($this, 'render_overview_page'),
+            'dashicons-performance',
+            80
+        );
+        
+        // Add submenu pages
+        add_submenu_page(
+            'coreboost',
+            __('Overview', 'coreboost'),
+            __('Overview', 'coreboost'),
+            'manage_options',
+            'coreboost',
+            array($this, 'render_overview_page')
+        );
+        
+        add_submenu_page(
+            'coreboost',
+            __('Optimizations', 'coreboost'),
+            __('Optimizations', 'coreboost'),
+            'manage_options',
+            'coreboost-optimizations',
             array($this->settings_page, 'render_admin_page')
         );
+        
+        add_submenu_page(
+            'coreboost',
+            __('Cache', 'coreboost'),
+            __('Cache', 'coreboost'),
+            'manage_options',
+            'coreboost-cache',
+            array($this, 'render_cache_page')
+        );
+        
+        add_submenu_page(
+            'coreboost',
+            __('Database', 'coreboost'),
+            __('Database', 'coreboost'),
+            'manage_options',
+            'coreboost-database',
+            array($this, 'render_database_page')
+        );
+        
+        add_submenu_page(
+            'coreboost',
+            __('Account', 'coreboost'),
+            __('Account', 'coreboost'),
+            'manage_options',
+            'coreboost-account',
+            array($this, 'render_account_page')
+        );
+        
+        add_submenu_page(
+            'coreboost',
+            __('Report Issue', 'coreboost'),
+            __('Report Issue', 'coreboost'),
+            'manage_options',
+            'coreboost-report',
+            array($this, 'render_report_page')
+        );
+    }
+    
+    /**
+     * Render Overview page
+     */
+    public function render_overview_page() {
+        $overview_page = new Overview_Page($this->options);
+        $overview_page->render();
+    }
+    
+    /**
+     * Render Cache page
+     */
+    public function render_cache_page() {
+        $cache_page = new Cache_Page($this->options);
+        $cache_page->render();
+    }
+    
+    /**
+     * Render Database page
+     */
+    public function render_database_page() {
+        $database_page = new Database_Page($this->options);
+        $database_page->render();
+    }
+    
+    /**
+     * Render Account page
+     */
+    public function render_account_page() {
+        $account_page = new Account_Page($this->options);
+        $account_page->render();
+    }
+    
+    /**
+     * Render Report Issue page
+     */
+    public function render_report_page() {
+        $report_page = new Report_Page($this->options);
+        $report_page->render();
     }
     
     /**
@@ -126,6 +224,18 @@ class Admin {
      * @param string $hook Current admin page hook
      */
     public function enqueue_admin_scripts($hook) {
+        // Check if we're on a CoreBoost admin page
+        $coreboost_pages = array(
+            'toplevel_page_coreboost',
+            'coreboost_page_coreboost-optimizations',
+            'coreboost_page_coreboost-cache',
+            'coreboost_page_coreboost-database',
+            'coreboost_page_coreboost-account',
+            'coreboost_page_coreboost-report',
+            'settings_page_coreboost' // Legacy support
+        );
+        $is_coreboost_page = in_array($hook, $coreboost_pages);
+        
         // Enqueue on all pages for admin bar functionality
         if (is_admin_bar_showing()) {
             wp_enqueue_script('coreboost-admin', COREBOOST_PLUGIN_URL . 'assets/admin.js', array('jquery'), COREBOOST_VERSION, true);
@@ -138,8 +248,8 @@ class Admin {
             ));
         }
         
-        // Enqueue on settings page for enhanced functionality
-        if ($hook === 'settings_page_coreboost') {
+        // Enqueue on CoreBoost pages for enhanced functionality
+        if ($is_coreboost_page) {
             // Enqueue error logger first (other scripts may depend on it)
             wp_enqueue_script('coreboost-error-logger', COREBOOST_PLUGIN_URL . 'assets/error-logger.js', array(), COREBOOST_VERSION, true);
             
@@ -150,11 +260,11 @@ class Admin {
             wp_enqueue_script('coreboost-settings', COREBOOST_PLUGIN_URL . 'assets/settings.js', array('jquery'), COREBOOST_VERSION, true);
             wp_enqueue_style('coreboost-admin-style', COREBOOST_PLUGIN_URL . 'assets/admin.css', array(), COREBOOST_VERSION);
             
-            // Get current tab
-            $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'hero';
+            // Get current tab for optimizations page
+            $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'media';
             
-            // Enqueue bulk converter assets ONLY on images tab
-            if ($current_tab === 'images') {
+            // Enqueue bulk converter assets ONLY on media tab of optimizations page
+            if ($hook === 'coreboost_page_coreboost-optimizations' && $current_tab === 'media') {
                 wp_enqueue_script('coreboost-bulk-converter', COREBOOST_PLUGIN_URL . 'includes/admin/js/bulk-converter.js', array('coreboost-error-logger'), COREBOOST_VERSION, true);
                 wp_enqueue_style('coreboost-bulk-converter-style', COREBOOST_PLUGIN_URL . 'includes/admin/css/bulk-converter.css', array(), COREBOOST_VERSION);
                 

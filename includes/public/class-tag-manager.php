@@ -199,23 +199,38 @@ class Tag_Manager {
                     var headContent = headTags.textContent || headTags.innerText;
                     var headTemp = document.createElement('div');
                     headTemp.innerHTML = headContent;
-                    var headScripts = headTemp.getElementsByTagName('script');
-                    for (var i = 0; i < headScripts.length; i++) {
-                        var script = document.createElement('script');
-                        if (headScripts[i].src) {
-                            script.src = headScripts[i].src;
-                        }
-                        if (headScripts[i].innerHTML) {
-                            script.innerHTML = headScripts[i].innerHTML;
-                        }
-                        // Copy attributes
-                        for (var j = 0; j < headScripts[i].attributes.length; j++) {
-                            var attr = headScripts[i].attributes[j];
-                            if (attr.name !== 'src' && attr.name !== 'type') {
-                                script.setAttribute(attr.name, attr.value);
+                    
+                    // Process all child elements (scripts, links, styles, meta, etc.)
+                    while (headTemp.firstChild) {
+                        var node = headTemp.firstChild;
+                        if (node.nodeType === 1) { // Element node
+                            var tagName = node.tagName.toUpperCase();
+                            if (tagName === 'SCRIPT') {
+                                // Scripts need to be recreated to execute properly
+                                var script = document.createElement('script');
+                                if (node.src) {
+                                    script.src = node.src;
+                                }
+                                if (node.innerHTML) {
+                                    script.innerHTML = node.innerHTML;
+                                }
+                                // Copy attributes
+                                for (var j = 0; j < node.attributes.length; j++) {
+                                    var attr = node.attributes[j];
+                                    if (attr.name !== 'src' && attr.name !== 'type') {
+                                        script.setAttribute(attr.name, attr.value);
+                                    }
+                                }
+                                document.head.appendChild(script);
+                                headTemp.removeChild(node);
+                            } else {
+                                // For link, style, meta, etc. - append directly
+                                document.head.appendChild(node);
                             }
+                        } else {
+                            // Remove non-element nodes (text, comments)
+                            headTemp.removeChild(node);
                         }
-                        document.head.appendChild(script);
                     }
                     headTags.parentNode.removeChild(headTags);
                 }
