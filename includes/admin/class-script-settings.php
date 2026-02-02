@@ -94,7 +94,7 @@ class Script_Settings {
         ?>
         <p><?php esc_html_e('Control which scripts are excluded from deferring. This multi-layer system includes built-in patterns for common libraries and allows custom patterns.', 'coreboost'); ?></p>
         <div class="notice notice-info inline">
-            <p><strong>Ã°Å¸â€œâ€¹ Built-in Exclusion Patterns:</strong></p>
+            <p><strong>🚹 Built-in Exclusion Patterns:</strong></p>
             <p style="margin: 5px 0; font-size: 12px;">
                 jQuery (jquery, jquery-core, jquery-migrate, jquery-ui-*), WordPress core scripts, Google Analytics, Facebook SDK, Stripe/PayPal, Elementor, WooCommerce, Contact Form 7, Gravity Forms, WPForms, and many more.
             </p>
@@ -152,7 +152,7 @@ class Script_Settings {
         ?>
         <p><?php esc_html_e('Choose how enqueued scripts should load. Different strategies balance performance gains with functionality needs.', 'coreboost'); ?></p>
         <div class="notice notice-warning inline">
-            <p><strong>Ã¢Å¡Â Ã¯Â¸Â Note:</strong> <?php esc_html_e('These settings apply to scripts enqueued with wp_enqueue_script() that are not excluded. Use with testing to ensure all functionality works correctly.', 'coreboost'); ?></p>
+            <p><strong>⚠️ Note:</strong> <?php esc_html_e('These settings apply to scripts enqueued with wp_enqueue_script() that are not excluded. Use with testing to ensure all functionality works correctly.', 'coreboost'); ?></p>
         </div>
         <?php
     }

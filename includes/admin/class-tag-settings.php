@@ -93,7 +93,7 @@ class Tag_Settings {
         ?>
         <p>Add custom scripts and tags to your site. Tags can be placed in the <code>&lt;head&gt;</code>, at the top of <code>&lt;body&gt;</code>, or in the footer.</p>
         <div class="notice notice-info inline">
-            <p><strong>Ã°Å¸â€™Â¡ Common Use Cases:</strong></p>
+            <p><strong>💡 Common Use Cases:</strong></p>
             <ul style="margin-left: 20px; list-style: disc;">
                 <li><strong>Google Tag Manager:</strong> Add your GTM container snippet</li>
                 <li><strong>Google Analytics:</strong> Add GA4 tracking code</li>
@@ -103,7 +103,7 @@ class Tag_Settings {
             </ul>
         </div>
         <div class="notice notice-warning inline">
-            <p><strong>Ã¢Å¡Â Ã¯Â¸Â Important:</strong> Only paste script code you trust. Malicious code can compromise your site security.</p>
+            <p><strong>⚠️ Important:</strong> Only paste script code you trust. Malicious code can compromise your site security.</p>
         </div>
         <?php
     }

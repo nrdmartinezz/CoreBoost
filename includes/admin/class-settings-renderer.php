@@ -85,12 +85,8 @@ class Settings_Renderer {
         echo '<div style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 12px; margin: 15px 0; border-radius: 3px;">';
         echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Page-Specific Hero Images', 'coreboost') . '</h4>';
         echo '<p style="margin: 8px 0;">' . esc_html__('Enter your hero image URLs for specific pages in the "Page-Specific Images" field below. Format: one entry per line as page-slug|image-url', 'coreboost') . '</p>';
-        echo '<code style="background: #fff; padding: 8px 12px; border-radius: 3px; display: block; margin: 10px 0; font-family: monospace; border: 1px solid #e0e0e0; overflow-x: auto;">meet-dr-shafer|/wp-content/uploads/2025/10/image.jpg</code>';
-        echo '<p style="margin: 8px 0 0 0;"><strong>' . esc_html__('Examples:', 'coreboost') . '</strong></p>';
-        echo '<small style="color: #666;">' . esc_html__('home|/wp-content/uploads/hero-home.jpg', 'coreboost') . '<br>';
-        echo esc_html__('meet-dr-shafer|/wp-content/uploads/2025/10/dr-shafer.jpg', 'coreboost') . '<br>';
-        echo esc_html__('services|/wp-content/uploads/services-hero.jpg', 'coreboost') . '</small>';
-        echo '</div>';
+        echo '<code style="background: #fff; padding: 8px 12px; border-radius: 3px; display: block; margin: 10px 0; font-family: monospace; border: 1px solid #e0e0e0; overflow-x: auto;">home|/wp-content/uploads/2025/10/example.jpg</code>';
+        echo '<p style="margin: 8px 0 0 0;"><strong>' ;
     }
     
     /**

@@ -669,9 +669,9 @@ SCRIPT;
             
             if ($this->options['debug_mode']) {
                 if ($count > 0) {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€œ Removed inline script with ID: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline script with ID: {$id} -->\n";
                 } else {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€” Inline script ID not found: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline script ID not found: {$id} -->\n";
                 }
                 $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
             }
@@ -711,9 +711,9 @@ SCRIPT;
             
             if ($this->options['debug_mode']) {
                 if ($count > 0) {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€œ Removed inline style with ID: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline style with ID: {$id} -->\n";
                 } else {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€” Inline style ID not found: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline style ID not found: {$id} -->\n";
                 }
                 $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
             }
