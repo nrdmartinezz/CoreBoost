@@ -229,6 +229,170 @@
 }
 
 /* ============================================
+   Settings Page Two-Column Layout
+   ============================================ */
+.coreboost-settings-form {
+    margin-top: 20px;
+}
+
+.coreboost-settings-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 24px;
+    align-items: start;
+}
+
+.coreboost-settings-main {
+    min-width: 0;
+}
+
+/* Sticky Sidebar */
+.coreboost-settings-sidebar {
+    position: sticky;
+    top: 32px; /* Account for admin bar */
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+}
+
+.coreboost-sidebar-card {
+    background: var(--cb-white);
+    border-radius: var(--cb-border-radius-lg);
+    padding: 20px;
+    box-shadow: var(--cb-shadow-sm);
+    border: 1px solid var(--cb-border);
+    transition: all var(--cb-transition-base);
+}
+
+.coreboost-sidebar-card:hover {
+    box-shadow: var(--cb-shadow-md);
+}
+
+.coreboost-sidebar-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cb-secondary);
+}
+
+.coreboost-sidebar-card h3 .dashicons {
+    color: var(--cb-primary);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
+
+.coreboost-sidebar-card .description {
+    margin: 0 0 16px 0;
+    font-size: 13px;
+    color: var(--cb-text-muted);
+}
+
+.coreboost-sidebar-card input[type="submit"] {
+    width: 100%;
+    background: linear-gradient(135deg, var(--cb-primary) 0%, var(--cb-primary-dark) 100%) !important;
+    border: none !important;
+    border-radius: var(--cb-border-radius) !important;
+    padding: 14px 24px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: white !important;
+    cursor: pointer;
+    transition: all var(--cb-transition-base);
+    box-shadow: var(--cb-shadow-sm);
+}
+
+.coreboost-sidebar-card input[type="submit"]:hover {
+    background: linear-gradient(135deg, var(--cb-primary-light) 0%, var(--cb-primary) 100%) !important;
+    box-shadow: var(--cb-shadow-md), var(--cb-shadow-glow);
+    transform: translateY(-2px);
+}
+
+.coreboost-sidebar-info ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.coreboost-sidebar-info ul li {
+    position: relative;
+    padding: 8px 0 8px 20px;
+    font-size: 13px;
+    color: var(--cb-text-secondary);
+    border-bottom: 1px solid var(--cb-border);
+}
+
+.coreboost-sidebar-info ul li:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.coreboost-sidebar-info ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 8px;
+    height: 8px;
+    background: var(--cb-primary);
+    border-radius: 50%;
+}
+
+.coreboost-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--cb-bg-secondary);
+    border-radius: var(--cb-border-radius);
+    color: var(--cb-text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all var(--cb-transition-base);
+}
+
+.coreboost-sidebar-link:hover {
+    background: var(--cb-primary);
+    color: white;
+}
+
+.coreboost-sidebar-link .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Responsive: Stack on smaller screens */
+@media (max-width: 1200px) {
+    .coreboost-settings-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .coreboost-settings-sidebar {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        max-height: none;
+    }
+    
+    .coreboost-sidebar-card {
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .coreboost-sidebar-card:first-child {
+        flex: 2;
+        min-width: 100%;
+    }
+}
+
+/* ============================================
    Navigation Tabs - Animated
    ============================================ */
 .coreboost-optimizations .nav-tab-wrapper,

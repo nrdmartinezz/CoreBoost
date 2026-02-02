@@ -60,7 +60,7 @@ class Settings_Page {
             
             <?php $this->render_tabs($active_tab); ?>
             
-            <form method="post" action="options.php">
+            <form method="post" action="options.php" class="coreboost-settings-form">
                 <?php settings_fields('coreboost_options_group'); ?>
                 <?php wp_nonce_field('coreboost_bulk_converter', 'coreboost_nonce'); ?>
                 
@@ -69,15 +69,43 @@ class Settings_Page {
                 
                 <input type="hidden" name="current_tab" value="<?php echo esc_attr($active_tab); ?>">
                 
-                <?php if ($active_tab == 'media'): ?>
-                    <?php $this->render_media_tab(); ?>
-                <?php elseif ($active_tab == 'performance'): ?>
-                    <?php $this->render_performance_tab(); ?>
-                <?php elseif ($active_tab == 'advanced'): ?>
-                    <?php $this->render_advanced_tab(); ?>
-                <?php endif; ?>
-                
-                <?php submit_button(); ?>
+                <div class="coreboost-settings-layout">
+                    <!-- Main Content Area -->
+                    <div class="coreboost-settings-main">
+                        <?php if ($active_tab == 'media'): ?>
+                            <?php $this->render_media_tab(); ?>
+                        <?php elseif ($active_tab == 'performance'): ?>
+                            <?php $this->render_performance_tab(); ?>
+                        <?php elseif ($active_tab == 'advanced'): ?>
+                            <?php $this->render_advanced_tab(); ?>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Sticky Sidebar -->
+                    <div class="coreboost-settings-sidebar">
+                        <div class="coreboost-sidebar-card">
+                            <h3><span class="dashicons dashicons-saved"></span> <?php _e('Save Changes', 'coreboost'); ?></h3>
+                            <p class="description"><?php _e('Click to save all your optimization settings.', 'coreboost'); ?></p>
+                            <?php submit_button(__('Save Settings', 'coreboost'), 'primary', 'submit', false); ?>
+                        </div>
+                        
+                        <div class="coreboost-sidebar-card coreboost-sidebar-info">
+                            <h3><span class="dashicons dashicons-info-outline"></span> <?php _e('Quick Tips', 'coreboost'); ?></h3>
+                            <ul>
+                                <li><?php _e('Enable WebP for faster image loading', 'coreboost'); ?></li>
+                                <li><?php _e('Use lazy loading for below-fold images', 'coreboost'); ?></li>
+                                <li><?php _e('Clear cache after making changes', 'coreboost'); ?></li>
+                            </ul>
+                        </div>
+                        
+                        <div class="coreboost-sidebar-card coreboost-sidebar-support">
+                            <h3><span class="dashicons dashicons-sos"></span> <?php _e('Need Help?', 'coreboost'); ?></h3>
+                            <a href="<?php echo admin_url('admin.php?page=coreboost-report'); ?>" class="coreboost-sidebar-link">
+                                <span class="dashicons dashicons-flag"></span> <?php _e('Report an Issue', 'coreboost'); ?>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
         <?php
