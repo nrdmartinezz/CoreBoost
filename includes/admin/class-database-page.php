@@ -10,8 +10,6 @@
 
 namespace CoreBoost\Admin;
 
-use CoreBoost\Core\Compression_Analytics;
-use CoreBoost\Core\Variant_Cache;
 use CoreBoost\Core\Path_Helper;
 
 // Prevent direct access
@@ -32,27 +30,98 @@ class Database_Page {
     private $options;
     
     /**
-     * Maximum recommended variant cache chunks
-     *
-     * @var int
-     */
-    const RECOMMENDED_MAX_CHUNKS = 100;
-    
-    /**
      * Constructor
      *
      * @param array $options Plugin options
      */
     public function __construct($options) {
         $this->options = $options;
+        
+        // Handle cleanup actions early to avoid headers already sent
+        add_action('admin_init', array($this, 'early_handle_cleanup_actions'), 5);
+    }
+    
+    /**
+     * Handle cleanup actions early (before headers sent)
+     */
+    public function early_handle_cleanup_actions() {
+        // Only run on our database page
+        $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
+        if ($page !== 'coreboost-database') {
+            return;
+        }
+        
+        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        
+        if (!$action || !$nonce) {
+            return;
+        }
+        
+        global $wpdb;
+        $redirect_args = array();
+        
+        switch ($action) {
+            case 'clear_transients':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_transients')) {
+                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_coreboost_%'");
+                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_coreboost_%'");
+                    $redirect_args['transients_cleared'] = '1';
+                }
+                break;
+                
+            case 'clear_script_metrics':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_script_metrics')) {
+                    delete_option('coreboost_script_metrics');
+                    delete_option('coreboost_pattern_effectiveness');
+                    $redirect_args['metrics_cleared'] = '1';
+                }
+                break;
+                
+            case 'clear_backups':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_backups')) {
+                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_options_backup_%'");
+                    $redirect_args['backups_cleared'] = '1';
+                }
+                break;
+                
+            case 'clear_legacy_variants':
+                if (wp_verify_nonce($nonce, 'coreboost_clear_legacy_variants')) {
+                    // Delete variant files
+                    $upload_dir = wp_upload_dir();
+                    $variants_path = $upload_dir['basedir'] . '/coreboost-variants/';
+                    if (is_dir($variants_path)) {
+                        $this->recursive_delete($variants_path);
+                    }
+                    // Delete variant-related database entries
+                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_variant_cache_%'");
+                    delete_option('coreboost_compression_analytics');
+                    delete_option('coreboost_image_variant_audit_log');
+                    $redirect_args['legacy_variants_cleared'] = '1';
+                }
+                break;
+                
+            case 'full_reset':
+                if (wp_verify_nonce($nonce, 'coreboost_full_reset')) {
+                    // Clear everything except main options
+                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_%' AND option_name != 'coreboost_options' AND option_name != 'coreboost_version'");
+                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_coreboost_%'");
+                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_coreboost_%'");
+                    $redirect_args['full_reset'] = '1';
+                }
+                break;
+        }
+        
+        if (!empty($redirect_args)) {
+            wp_safe_redirect(add_query_arg($redirect_args, remove_query_arg(array('action', '_wpnonce'))));
+            exit;
+        }
     }
     
     /**
      * Render the database page
      */
     public function render() {
-        $this->handle_cleanup_actions();
-        
         ?>
         <div class="wrap coreboost-database">
             <div class="coreboost-page-header">
@@ -71,9 +140,6 @@ class Database_Page {
                     <?php $this->render_database_stats(); ?>
                 </div>
             </div>
-            
-            <!-- Variant Cache Warning -->
-            <?php $this->render_variant_cache_warning(); ?>
             
             <!-- Cleanup Actions -->
             <div class="coreboost-db-section">
@@ -111,34 +177,9 @@ class Database_Page {
     private function render_database_stats() {
         global $wpdb;
         
-        // Get variant cache stats
-        $variant_chunks = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_variant_cache_%'"
-        );
-        
-        // Get total variant entries
-        $variant_entries = 0;
-        $variant_data = $wpdb->get_results(
-            "SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_variant_cache_%'"
-        );
-        foreach ($variant_data as $row) {
-            $data = maybe_unserialize($row->option_value);
-            if (is_array($data)) {
-                $variant_entries += count($data);
-            }
-        }
-        
-        // Get compression analytics count
-        $compression_data = get_option('coreboost_compression_analytics', array());
-        $compression_entries = isset($compression_data['conversions']) ? count($compression_data['conversions']) : 0;
-        
         // Get script metrics count
         $script_metrics = get_option('coreboost_script_metrics', array());
         $script_entries = count($script_metrics);
-        
-        // Get audit log count
-        $audit_log = get_option('coreboost_image_variant_audit_log', array());
-        $audit_entries = count($audit_log);
         
         // Get transient count
         $transient_count = $wpdb->get_var(
@@ -151,30 +192,19 @@ class Database_Page {
         );
         $size_formatted = $total_size ? size_format($total_size) : '0 B';
         
+        // Check for leftover variant files
+        $upload_dir = wp_upload_dir();
+        $variants_path = $upload_dir['basedir'] . '/coreboost-variants/';
+        $variant_files_exist = is_dir($variants_path);
+        $variant_size = 0;
+        if ($variant_files_exist) {
+            $variant_size = $this->get_directory_size($variants_path);
+        }
+        
         ?>
-        <div class="coreboost-db-stat">
-            <div class="coreboost-db-stat-value"><?php echo esc_html($variant_entries); ?></div>
-            <div class="coreboost-db-stat-label"><?php _e('Variant Cache Entries', 'coreboost'); ?></div>
-        </div>
-        
-        <div class="coreboost-db-stat">
-            <div class="coreboost-db-stat-value"><?php echo esc_html($variant_chunks); ?></div>
-            <div class="coreboost-db-stat-label"><?php _e('Variant Cache Chunks', 'coreboost'); ?></div>
-        </div>
-        
-        <div class="coreboost-db-stat">
-            <div class="coreboost-db-stat-value"><?php echo esc_html($compression_entries); ?></div>
-            <div class="coreboost-db-stat-label"><?php _e('Compression Analytics', 'coreboost'); ?></div>
-        </div>
-        
         <div class="coreboost-db-stat">
             <div class="coreboost-db-stat-value"><?php echo esc_html($script_entries); ?></div>
             <div class="coreboost-db-stat-label"><?php _e('Script Metrics', 'coreboost'); ?></div>
-        </div>
-        
-        <div class="coreboost-db-stat">
-            <div class="coreboost-db-stat-value"><?php echo esc_html($audit_entries); ?></div>
-            <div class="coreboost-db-stat-label"><?php _e('Audit Log Entries', 'coreboost'); ?></div>
         </div>
         
         <div class="coreboost-db-stat">
@@ -186,91 +216,87 @@ class Database_Page {
             <div class="coreboost-db-stat-value"><?php echo esc_html($size_formatted); ?></div>
             <div class="coreboost-db-stat-label"><?php _e('Estimated DB Usage', 'coreboost'); ?></div>
         </div>
+        
+        <?php if ($variant_files_exist && $variant_size > 0): ?>
+        <div class="coreboost-db-stat" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+            <div class="coreboost-db-stat-value"><?php echo size_format($variant_size); ?></div>
+            <div class="coreboost-db-stat-label"><?php _e('Legacy Variant Files', 'coreboost'); ?></div>
+        </div>
+        <?php endif; ?>
         <?php
     }
     
     /**
-     * Render variant cache warning if approaching limit
+     * Get directory size recursively
+     *
+     * @param string $path Directory path
+     * @return int Size in bytes
      */
-    private function render_variant_cache_warning() {
-        global $wpdb;
+    private function get_directory_size($path) {
+        $size = 0;
+        if (!is_dir($path)) {
+            return $size;
+        }
         
-        $variant_chunks = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_variant_cache_%'"
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS)
         );
         
-        $max_chunks = isset($this->options['variant_cache_max_chunks']) 
-            ? intval($this->options['variant_cache_max_chunks']) 
-            : self::RECOMMENDED_MAX_CHUNKS;
-        
-        $auto_prune = !empty($this->options['variant_cache_auto_prune']);
-        
-        if ($variant_chunks >= ($max_chunks * 0.8)) {
-            $percentage = round(($variant_chunks / $max_chunks) * 100);
-            ?>
-            <div class="coreboost-warning-box">
-                <span class="dashicons dashicons-warning"></span>
-                <div class="coreboost-warning-content">
-                    <h4><?php _e('Variant Cache Approaching Limit', 'coreboost'); ?></h4>
-                    <p>
-                        <?php printf(
-                            __('Your variant cache is at %1$d%% capacity (%2$d of %3$d chunks). Consider clearing old entries or enabling auto-pruning.', 'coreboost'),
-                            $percentage,
-                            $variant_chunks,
-                            $max_chunks
-                        ); ?>
-                    </p>
-                    <?php if (!$auto_prune): ?>
-                        <p>
-                            <a href="#coreboost-auto-prune-setting" class="button button-small">
-                                <?php _e('Enable Auto-Pruning', 'coreboost'); ?>
-                            </a>
-                            <?php
-                            $clear_url = wp_nonce_url(
-                                admin_url('admin.php?page=coreboost-database&action=clear_variant_cache'),
-                                'coreboost_clear_variant_cache'
-                            );
-                            ?>
-                            <a href="<?php echo esc_url($clear_url); ?>" class="button button-small">
-                                <?php _e('Clear Variant Cache Now', 'coreboost'); ?>
-                            </a>
-                        </p>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php
+        foreach ($iterator as $file) {
+            $size += $file->getSize();
         }
+        
+        return $size;
     }
+    
+    /**
+     * Recursively delete a directory and its contents
+     *
+     * @param string $path Directory path
+     * @return bool Success
+     */
+    private function recursive_delete($path) {
+        if (!is_dir($path)) {
+            return false;
+        }
+        
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        
+        foreach ($files as $file) {
+            if ($file->isDir()) {
+                @rmdir($file->getRealPath());
+            } else {
+                @unlink($file->getRealPath());
+            }
+        }
+        
+        return @rmdir($path);
+    }
+    
+
     
     /**
      * Render cleanup actions
      */
     private function render_cleanup_actions() {
+        // Check for legacy variant files
+        $upload_dir = wp_upload_dir();
+        $variants_path = $upload_dir['basedir'] . '/coreboost-variants/';
+        $has_legacy_variants = is_dir($variants_path);
+        
         $actions = array(
             'clear_transients' => array(
                 'label' => __('Clear All Transients', 'coreboost'),
                 'description' => __('Delete all CoreBoost transient data', 'coreboost'),
                 'nonce' => 'coreboost_clear_transients',
             ),
-            'clear_variant_cache' => array(
-                'label' => __('Clear Variant Cache', 'coreboost'),
-                'description' => __('Clear image variant URL mappings (keeps files)', 'coreboost'),
-                'nonce' => 'coreboost_clear_variant_cache',
-            ),
-            'clear_analytics' => array(
-                'label' => __('Clear Analytics Data', 'coreboost'),
-                'description' => __('Reset compression analytics', 'coreboost'),
-                'nonce' => 'coreboost_clear_analytics',
-            ),
             'clear_script_metrics' => array(
                 'label' => __('Clear Script Metrics', 'coreboost'),
                 'description' => __('Reset script performance data', 'coreboost'),
                 'nonce' => 'coreboost_clear_script_metrics',
-            ),
-            'clear_audit_log' => array(
-                'label' => __('Clear Audit Log', 'coreboost'),
-                'description' => __('Delete variant audit log entries', 'coreboost'),
-                'nonce' => 'coreboost_clear_audit_log',
             ),
             'clear_backups' => array(
                 'label' => __('Clear Backup Options', 'coreboost'),
@@ -278,6 +304,15 @@ class Database_Page {
                 'nonce' => 'coreboost_clear_backups',
             ),
         );
+        
+        // Add legacy variant cleanup if files exist
+        if ($has_legacy_variants) {
+            $actions['clear_legacy_variants'] = array(
+                'label' => __('Clear Legacy Variant Files', 'coreboost'),
+                'description' => __('Delete the old coreboost-variants folder and related database entries', 'coreboost'),
+                'nonce' => 'coreboost_clear_legacy_variants',
+            );
+        }
         
         foreach ($actions as $action => $data) {
             $url = wp_nonce_url(
@@ -302,51 +337,13 @@ class Database_Page {
      * Render database settings
      */
     private function render_database_settings() {
-        $max_chunks = isset($this->options['variant_cache_max_chunks']) 
-            ? intval($this->options['variant_cache_max_chunks']) 
-            : self::RECOMMENDED_MAX_CHUNKS;
-        
-        $auto_prune = !empty($this->options['variant_cache_auto_prune']);
-        
         $retention_days = isset($this->options['analytics_retention_days']) 
             ? intval($this->options['analytics_retention_days']) 
             : 30;
         ?>
         <table class="coreboost-db-settings-table">
             <tr>
-                <th><label for="variant_cache_max_chunks"><?php _e('Variant Cache Max Chunks', 'coreboost'); ?></label></th>
-                <td>
-                    <input type="number" 
-                           id="variant_cache_max_chunks" 
-                           name="coreboost_options[variant_cache_max_chunks]" 
-                           value="<?php echo esc_attr($max_chunks); ?>" 
-                           min="10" 
-                           max="1000" 
-                           step="10">
-                    <p class="description">
-                        <?php _e('Maximum number of variant cache chunks before warning. Each chunk holds ~100 images.', 'coreboost'); ?>
-                    </p>
-                </td>
-            </tr>
-            <tr id="coreboost-auto-prune-setting">
-                <th><label for="variant_cache_auto_prune"><?php _e('Auto-Prune Variant Cache', 'coreboost'); ?></label></th>
-                <td>
-                    <label>
-                        <input type="checkbox" 
-                               id="variant_cache_auto_prune" 
-                               name="coreboost_options[variant_cache_auto_prune]" 
-                               value="1" 
-                               <?php checked($auto_prune); ?>>
-                        <?php _e('Automatically remove oldest chunks when limit is reached', 'coreboost'); ?>
-                    </label>
-                    <p class="description" style="color: #dc3232;">
-                        <strong><?php _e('Warning:', 'coreboost'); ?></strong>
-                        <?php _e('Enabling this may cause some images to temporarily lose their optimized variants until re-cached.', 'coreboost'); ?>
-                    </p>
-                </td>
-            </tr>
-            <tr>
-                <th><label for="analytics_retention_days"><?php _e('Analytics Retention', 'coreboost'); ?></label></th>
+                <th><label for="analytics_retention_days"><?php _e('Data Retention', 'coreboost'); ?></label></th>
                 <td>
                     <input type="number" 
                            id="analytics_retention_days" 
@@ -357,7 +354,7 @@ class Database_Page {
                            step="1">
                     <?php _e('days', 'coreboost'); ?>
                     <p class="description">
-                        <?php _e('How long to keep analytics and metrics data before automatic cleanup.', 'coreboost'); ?>
+                        <?php _e('How long to keep metrics and performance data before automatic cleanup.', 'coreboost'); ?>
                     </p>
                 </td>
             </tr>
@@ -387,79 +384,13 @@ class Database_Page {
     }
     
     /**
-     * Handle cleanup actions
+     * Handle cleanup actions (legacy - now handled in early_handle_cleanup_actions)
+     * 
+     * @deprecated 3.1.0 Actions are now handled via admin_init hook
      */
     private function handle_cleanup_actions() {
-        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
-        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
-        
-        if (!$action || !$nonce) {
-            return;
-        }
-        
-        global $wpdb;
-        $redirect_args = array();
-        
-        switch ($action) {
-            case 'clear_transients':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_transients')) {
-                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_coreboost_%'");
-                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_coreboost_%'");
-                    $redirect_args['transients_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_variant_cache':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_variant_cache')) {
-                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_variant_cache_%'");
-                    $redirect_args['variant_cache_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_analytics':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_analytics')) {
-                    delete_option('coreboost_compression_analytics');
-                    $redirect_args['analytics_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_script_metrics':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_script_metrics')) {
-                    delete_option('coreboost_script_metrics');
-                    delete_option('coreboost_pattern_effectiveness');
-                    $redirect_args['metrics_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_audit_log':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_audit_log')) {
-                    delete_option('coreboost_image_variant_audit_log');
-                    $redirect_args['audit_cleared'] = '1';
-                }
-                break;
-                
-            case 'clear_backups':
-                if (wp_verify_nonce($nonce, 'coreboost_clear_backups')) {
-                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_options_backup_%'");
-                    $redirect_args['backups_cleared'] = '1';
-                }
-                break;
-                
-            case 'full_reset':
-                if (wp_verify_nonce($nonce, 'coreboost_full_reset')) {
-                    // Clear everything except main options
-                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'coreboost_%' AND option_name != 'coreboost_options' AND option_name != 'coreboost_version'");
-                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_coreboost_%'");
-                    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_coreboost_%'");
-                    $redirect_args['full_reset'] = '1';
-                }
-                break;
-        }
-        
-        if (!empty($redirect_args)) {
-            wp_redirect(add_query_arg($redirect_args, remove_query_arg(array('action', '_wpnonce'))));
-            exit;
-        }
+        // Actions are now handled early via admin_init hook
+        // This method is kept for backwards compatibility
     }
     
     /**
@@ -468,12 +399,10 @@ class Database_Page {
     private function render_notices() {
         $notices = array(
             'transients_cleared' => __('All transients cleared successfully!', 'coreboost'),
-            'variant_cache_cleared' => __('Variant cache cleared successfully!', 'coreboost'),
-            'analytics_cleared' => __('Analytics data cleared successfully!', 'coreboost'),
             'metrics_cleared' => __('Script metrics cleared successfully!', 'coreboost'),
-            'audit_cleared' => __('Audit log cleared successfully!', 'coreboost'),
             'backups_cleared' => __('Backup options cleared successfully!', 'coreboost'),
             'full_reset' => __('Full database reset completed!', 'coreboost'),
+            'legacy_variants_cleared' => __('Legacy variant files and data cleared successfully!', 'coreboost'),
         );
         
         foreach ($notices as $key => $message) {

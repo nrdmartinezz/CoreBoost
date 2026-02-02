@@ -107,7 +107,7 @@ class Settings_Sanitizer {
             'hero' => isset($input['preload_method']) || isset($input['specific_pages']) || isset($input['enable_hero_preload_extraction']) || isset($input['hero_preload_cache_ttl']),
             'script' => isset($input['scripts_to_defer']) || isset($input['scripts_to_async']) || isset($input['exclude_scripts']),
             'css' => isset($input['styles_to_defer']) || isset($input['critical_css_global']) || isset($input['css_defer_method']),
-            'image' => isset($input['enable_image_optimization']) || isset($input['enable_lazy_loading']) || isset($input['add_width_height_attributes']) || isset($input['generate_aspect_ratio_css']) || isset($input['add_decoding_async']) || isset($input['enable_image_format_conversion']) || isset($input['avif_quality']) || isset($input['webp_quality']) || isset($input['cleanup_orphans_weekly']),
+            'image' => isset($input['enable_image_optimization']) || isset($input['enable_lazy_loading']) || isset($input['add_width_height_attributes']) || isset($input['generate_aspect_ratio_css']) || isset($input['add_decoding_async']),
             'advanced' => isset($input['unused_css_list']) || isset($input['unused_js_list']) || isset($input['inline_script_ids']) || isset($input['inline_style_ids']),
             'tag' => isset($input['tag_head_scripts']) || isset($input['tag_body_scripts']) || isset($input['tag_footer_scripts']) || isset($input['tag_load_strategy']),
             'script_advanced' => isset($input['enable_default_exclusions']) || isset($input['script_exclusion_patterns']) || isset($input['script_load_strategy']) || isset($input['script_custom_delay']),
@@ -175,18 +175,6 @@ class Settings_Sanitizer {
                 $sanitized[$field] = wp_strip_all_tags($input[$field]);
             }
         }
-        
-        // Sanitize integer fields with range validation
-        foreach ($field_types['integer'] as $field) {
-            if (isset($input[$field])) {
-                $value = absint($input[$field]);
-                // Clamp quality values between 75-95
-                if (in_array($field, array('avif_quality', 'webp_quality'))) {
-                    $value = max(75, min(95, $value));
-                }
-                $sanitized[$field] = $value;
-            }
-        }
     }
     
     /**
@@ -204,8 +192,7 @@ class Settings_Sanitizer {
                 'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
                 'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui',
                 'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes',
-                'generate_aspect_ratio_css', 'add_decoding_async', 'enable_responsive_image_resizing',
-                'enable_image_format_conversion', 'cleanup_orphans_weekly'
+                'generate_aspect_ratio_css', 'add_decoding_async'
             ),
             'textarea' => array(
                 'scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
@@ -213,9 +200,6 @@ class Settings_Sanitizer {
             ),
             'css' => array(
                 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'
-            ),
-            'integer' => array(
-                'avif_quality', 'webp_quality'
             )
         );
     }
@@ -233,7 +217,7 @@ class Settings_Sanitizer {
             'css' => array('enable_css_defer', 'enable_font_optimization', 'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts'),
             'hero' => array('enable_responsive_preload', 'enable_foreground_conversion', 'enable_hero_preload_extraction'),
             'advanced' => array('enable_caching', 'enable_unused_css_removal', 'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal', 'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui'),
-            'image' => array('enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async', 'enable_responsive_image_resizing', 'enable_image_format_conversion', 'cleanup_orphans_weekly')
+            'image' => array('enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async')
         );
         
         foreach ($field_map as $context => $fields) {

@@ -104,148 +104,19 @@ class Settings_Renderer {
     }
     
     /**
-     * Image section callback (includes Bulk Converter UI)
+     * Image section callback
      */
     public function image_section_callback() {
         echo '<p>' . esc_html__('Comprehensive image optimization to improve performance and prevent layout shifts. Lazy loading reduces initial page load by deferring off-screen images. Width/height attributes and aspect ratio CSS prevent Cumulative Layout Shift (CLS). Async decoding prevents render-blocking image decode operations.', 'coreboost') . '</p>';
         
-        // Check if image format conversion is enabled
-        $format_conversion_enabled = !empty($this->options['enable_image_format_conversion']);
-        
-        // Bulk Image Converter UI - wrapped in state container
-        echo '<div id="coreboost-bulk-converter" class="is-idle" style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 16px; margin: 20px 0; border-radius: 3px;">';
-        echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Bulk Image Converter', 'coreboost') . '</h4>';
-        
-        // Warning if format conversion is disabled
-        if (!$format_conversion_enabled) {
-            echo '<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-bottom: 15px; color: #856404;">';
-            echo '<p style="margin: 0;"><strong>⚠️ ' . esc_html__('Image Format Conversion Disabled', 'coreboost') . '</strong></p>';
-            echo '<p style="margin: 8px 0 0 0; font-size: 13px;">' . esc_html__('Enable "Generate AVIF/WebP Variants" below to use the bulk converter.', 'coreboost') . '</p>';
-            echo '</div>';
-        }
-        
-        // Status and info
-        echo '<div style="margin-bottom: 15px;">';
-        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Status:', 'coreboost') . '</strong> <span id="coreboost-bulk-status" class="coreboost-status coreboost-status--idle">Not started</span></p>';
-        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Images converted:', 'coreboost') . '</strong> <span id="coreboost-images-converted" style="font-weight: bold; color: #2196F3;">0</span> / <span id="coreboost-image-count">-</span></p>';
-        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Batch size:', 'coreboost') . '</strong> <span id="coreboost-batch-size">-</span></p>';
-        echo '<p style="margin: 8px 0;"><strong>' . esc_html__('Estimated time:', 'coreboost') . '</strong> <span id="coreboost-est-time">-</span></p>';
-        echo '</div>';
-        
-        $this->render_bulk_converter_stats();
-        $this->render_bulk_converter_controls($format_conversion_enabled);
-        
+        // Recommendation for Converter for Media
+        echo '<div style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 16px; margin: 20px 0; border-radius: 3px;">';
+        echo '<h4 style="margin-top: 0; color: #1976D2;">' . esc_html__('Need AVIF/WebP Image Conversion?', 'coreboost') . '</h4>';
+        echo '<p style="margin: 8px 0;">' . esc_html__('For converting your images to modern formats like AVIF and WebP, we recommend using a dedicated image conversion plugin:', 'coreboost') . '</p>';
+        echo '<p style="margin: 8px 0;"><strong><a href="https://wordpress.org/plugins/webp-converter-for-media/" target="_blank" rel="noopener">Converter for Media</a></strong> - ' . esc_html__('Free, fast, and reliable image format conversion with cloud processing options.', 'coreboost') . '</p>';
         echo '</div>';
     }
-    
-    /**
-     * Render bulk converter statistics dashboard
-     */
-    private function render_bulk_converter_stats() {
-        // Image Conversion Statistics Dashboard
-        echo '<div id="coreboost-stats-dashboard" style="margin: 20px 0;">';
-        echo '<h5 style="margin: 0 0 15px 0; color: #1976D2; font-size: 14px; font-weight: 600;">' . esc_html__('Image Conversion Statistics', 'coreboost') . '</h5>';
-        
-        // Storage folder path
-        $upload_dir = wp_upload_dir();
-        $variants_path = $upload_dir['basedir'] . '/coreboost-variants/';
-        echo '<p style="margin: 0 0 15px 0; font-size: 13px; color: #666;">';
-        echo '<strong>' . esc_html__('Storage Location:', 'coreboost') . '</strong> ';
-        echo '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px;">' . esc_html($variants_path) . '</code>';
-        echo '</p>';
-        
-        echo '<div class="coreboost-stats-grid">';
-        
-        // Converted stat card
-        echo '<div class="coreboost-stat-card stat-converted">';
-        echo '<div class="coreboost-circle-progress">';
-        echo '<svg width="80" height="80">';
-        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
-        echo '<circle class="circle-progress" id="circle-converted" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>';
-        echo '</svg>';
-        echo '<div class="circle-text" id="percent-converted">0%</div>';
-        echo '</div>';
-        echo '<div class="coreboost-stat-label">' . esc_html__('Converted', 'coreboost') . '</div>';
-        echo '<div class="coreboost-stat-number"><span id="count-converted">0</span> ' . esc_html__('images', 'coreboost') . '</div>';
-        echo '</div>';
-        
-        // Orphaned stat card
-        echo '<div class="coreboost-stat-card stat-orphaned">';
-        echo '<div class="coreboost-circle-progress">';
-        echo '<svg width="80" height="80">';
-        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
-        echo '<circle class="circle-progress" id="circle-orphaned" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>';
-        echo '</svg>';
-        echo '<div class="circle-text" id="percent-orphaned">0%</div>';
-        echo '</div>';
-        echo '<div class="coreboost-stat-label">' . esc_html__('Orphaned', 'coreboost') . '</div>';
-        echo '<div class="coreboost-stat-number"><span id="count-orphaned">0</span> ' . esc_html__('variants', 'coreboost') . '</div>';
-        echo '</div>';
-        
-        // Unconverted stat card
-        echo '<div class="coreboost-stat-card stat-unconverted">';
-        echo '<div class="coreboost-circle-progress">';
-        echo '<svg width="80" height="80">';
-        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
-        echo '<circle class="circle-progress" id="circle-unconverted" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>';
-        echo '</svg>';
-        echo '<div class="circle-text" id="percent-unconverted">100%</div>';
-        echo '</div>';
-        echo '<div class="coreboost-stat-label">' . esc_html__('Not Converted', 'coreboost') . '</div>';
-        echo '<div class="coreboost-stat-number"><span id="count-unconverted">0</span> ' . esc_html__('images', 'coreboost') . '</div>';
-        echo '</div>';
-        
-        // Total stat card
-        echo '<div class="coreboost-stat-card stat-total">';
-        echo '<div class="coreboost-circle-progress">';
-        echo '<svg width="80" height="80">';
-        echo '<circle class="circle-bg" cx="40" cy="40" r="36"></circle>';
-        echo '<circle class="circle-progress" id="circle-total" cx="40" cy="40" r="36" stroke-dasharray="226.19" stroke-dashoffset="0"></circle>';
-        echo '</svg>';
-        echo '<div class="circle-text" id="percent-total">100%</div>';
-        echo '</div>';
-        echo '<div class="coreboost-stat-label">' . esc_html__('Total Images', 'coreboost') . '</div>';
-        echo '<div class="coreboost-stat-number"><span id="count-total">0</span> ' . esc_html__('images', 'coreboost') . '</div>';
-        echo '</div>';
-        
-        echo '</div>'; // End stats-grid
-        echo '</div>'; // End stats-dashboard
-    }
-    
-    /**
-     * Render bulk converter control elements
-     *
-     * @param bool $format_conversion_enabled Whether format conversion is enabled
-     */
-    private function render_bulk_converter_controls($format_conversion_enabled) {
-        // Progress bar
-        echo '<div id="coreboost-progress-container" style="display: none; margin-bottom: 15px;">';
-        echo '<div style="background-color: #e0e0e0; border-radius: 4px; height: 24px; overflow: hidden; margin-bottom: 8px;">';
-        echo '<div id="coreboost-progress-bar" style="background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold;"></div>';
-        echo '</div>';
-        echo '<p style="margin: 8px 0; font-size: 13px;"><span id="coreboost-progress-text">Processing...</span></p>';
-        echo '<p style="margin: 4px 0; font-size: 12px; color: #666;"><span id="coreboost-time-elapsed">Elapsed: 0s</span> | <span id="coreboost-time-remaining">Remaining: calculating...</span></p>';
-        echo '</div>';
-        
-        // Error message
-        echo '<div id="coreboost-error-message" style="display: none; background-color: #ffebee; border-left: 4px solid #f44336; padding: 12px; margin-bottom: 15px; color: #c62828;">';
-        echo '<p style="margin: 0;" id="coreboost-error-text"></p>';
-        echo '</div>';
-        
-        // Success message
-        echo '<div id="coreboost-success-message" style="display: none; background-color: #e8f5e9; border-left: 4px solid #4CAF50; padding: 12px; margin-bottom: 15px; color: #2e7d32;">';
-        echo '<p style="margin: 0;" id="coreboost-success-text"></p>';
-        echo '</div>';
-        
-        // Buttons
-        echo '<div style="margin-top: 15px;">';
-        $button_disabled = !$format_conversion_enabled ? ' disabled' : '';
-        $button_title = !$format_conversion_enabled ? ' title="' . esc_attr__('Enable Image Format Conversion first', 'coreboost') . '"' : '';
-        echo '<button type="button" id="coreboost-start-bulk" class="button button-primary" style="background-color: #4CAF50; border-color: #4CAF50; margin-right: 10px;" data-format-enabled="' . ($format_conversion_enabled ? '1' : '0') . '"' . $button_disabled . $button_title . '>' . esc_html__('Start Conversion', 'coreboost') . '</button>';
-        echo '<button type="button" id="coreboost-stop-bulk" class="button" style="display: none; background-color: #f44336; border-color: #f44336; color: white;" disabled>' . esc_html__('Stop', 'coreboost') . '</button>';
-        echo '</div>';
-    }
-    
+
     /**
      * Advanced section callback
      */

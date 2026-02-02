@@ -157,11 +157,11 @@ jobs:
         test -d /tmp/wordpress/wp-content/plugins/coreboost/includes/public && echo "✅ includes/public/ exists"
         test -d /tmp/wordpress/wp-content/plugins/coreboost/includes/core && echo "✅ includes/core/ exists"
         
-        # Count PHP class files (should be 40+)
+        # Count PHP class files (should be 30+)
         CLASS_COUNT=$(find /tmp/wordpress/wp-content/plugins/coreboost/includes -name "*.php" | wc -l)
         echo "Found $CLASS_COUNT PHP class files"
-        if [ "$CLASS_COUNT" -lt 40 ]; then
-          echo "❌ ERROR: Expected at least 40 class files, found $CLASS_COUNT"
+        if [ "$CLASS_COUNT" -lt 30 ]; then
+          echo "❌ ERROR: Expected at least 30 class files, found $CLASS_COUNT"
           exit 1
         fi
         
@@ -234,8 +234,8 @@ jobs:
         # Count class files
         CLASS_COUNT=$(find includes -name "class-*.php" | wc -l)
         echo "Found $CLASS_COUNT class files"
-        if [ "$CLASS_COUNT" -lt 40 ]; then
-          echo "❌ ERROR: Expected at least 40 class files, found $CLASS_COUNT"
+        if [ "$CLASS_COUNT" -lt 30 ]; then
+          echo "❌ ERROR: Expected at least 30 class files, found $CLASS_COUNT"
           exit 1
         fi
         
@@ -244,10 +244,10 @@ jobs:
         test -f includes/class-loader.php && echo "✅ Loader class exists"
         test -f includes/class-autoloader.php && echo "✅ Autoloader class exists"
         
-        # Verify v3.0.0+ core classes
-        test -f includes/core/class-context-helper.php && echo "✅ Context_Helper class exists (v3.0.0)"
-        test -f includes/core/class-bulk-converter.php && echo "✅ Bulk_Converter class exists (v3.0.0)"
-        test -f includes/core/class-compression-analytics.php && echo "✅ Compression_Analytics class exists (v3.0.0)"
+        # Verify core classes
+        test -f includes/core/class-context-helper.php && echo "✅ Context_Helper class exists"
+        test -f includes/core/class-cache-manager.php && echo "✅ Cache_Manager class exists"
+        test -f includes/core/class-path-helper.php && echo "✅ Path_Helper class exists"
         
         echo "✅ File structure check passed"
 
@@ -486,8 +486,8 @@ jobs:
         # Count PHP files in ZIP
         PHP_COUNT=$(unzip -l coreboost-test-build.zip | grep "\.php$" | wc -l)
         echo "PHP files in ZIP: $PHP_COUNT"
-        if [ "$PHP_COUNT" -lt 44 ]; then
-          echo "❌ ERROR: Expected at least 44 PHP files (main + 43 classes), found $PHP_COUNT"
+        if [ "$PHP_COUNT" -lt 38 ]; then
+          echo "❌ ERROR: Expected at least 38 PHP files (main + classes), found $PHP_COUNT"
           exit 1
         fi
         

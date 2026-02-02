@@ -115,7 +115,7 @@ class Activator {
             'inline_script_ids' => '',
             'enable_inline_style_removal' => false,
             'inline_style_ids' => '',
-            // Image Optimization Settings (Phase 1)
+            // Image Optimization Settings
             'enable_image_optimization' => false,
             'enable_lazy_loading' => false,
             'add_width_height_attributes' => false,
@@ -123,11 +123,6 @@ class Activator {
             'add_decoding_async' => false,
             // YouTube blocking
             'smart_youtube_blocking' => false,
-            // Image Optimization Settings (Phase 2 - Format Optimization)
-            'enable_image_format_conversion' => false,
-            'avif_quality' => 85,
-            'webp_quality' => 85,
-            'cleanup_orphans_weekly' => true,
         );
     }
     

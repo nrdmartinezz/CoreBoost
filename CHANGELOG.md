@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2025-01-XX
+
+### 🎯 Streamlined Image Optimization
+
+This release removes the bulk image converter feature in favor of dedicated image conversion plugins. CoreBoost now focuses on what it does best: real-time tag-based optimizations.
+
+### Removed
+
+#### Bulk Image Converter Feature
+- **Removed all AVIF/WebP image variant generation** - The GD Library-based conversion was too slow for production use
+- **Deleted classes**:
+  - `Bulk_Image_Converter` - Admin bulk conversion interface
+  - `Image_Format_Optimizer` - AVIF/WebP conversion engine
+  - `Image_Variant_Lifecycle_Manager` - Variant file management
+  - `Image_Variant_Admin_Tools` - Admin variant tools
+  - `Image_Responsive_Resizer` - Responsive image resizing
+  - `Variant_Cache` - Variant URL caching
+  - `Variant_Cache_Headers` - Browser cache headers
+  - `Compression_Analytics` - Compression statistics
+  - `Cache_Warmer` - Proactive cache warming
+  - `Cache_Invalidator` - Cache invalidation
+  - `Cache_Consistency_Checker` - Cache integrity checks
+- **Removed settings**: `enable_image_format_conversion`, `avif_quality`, `webp_quality`, `cleanup_orphans_weekly`, `enable_responsive_image_resizing`
+- **Removed assets**: `bulk-converter.js`, `bulk-converter.css`
+
+### Changed
+
+#### Image Optimization Simplified
+- **Image Optimizer now focuses only on tag-based optimizations**:
+  - Lazy loading with native `loading="lazy"`
+  - Width/height attribute injection
+  - Aspect ratio calculation
+  - Decoding async attribute
+  - Fetchpriority for above-the-fold images
+- **Settings page now recommends "Converter for Media" plugin** for AVIF/WebP conversion
+  - Free WordPress plugin with cloud-based conversion
+  - Much faster than local GD Library processing
+  - Maintains same file URLs (no URL changes needed)
+
+#### Database Page Updates
+- Removed variant cache statistics and settings
+- Added "Legacy Variant Files" detection and cleanup for existing installations
+- Simplified cleanup actions to transients, script metrics, and backups
+
+### Fixed
+- **Fixed bulk converter tab detection** - Was checking wrong tab value
+- **Fixed blank admin page on cache clear** - Moved cache actions to `admin_init` hook
+- **Fixed settings page default tab** - Now correctly defaults to "General" tab
+- **Fixed admin.js missing localization** - Restored `coreboostAdmin` localization object
+
+### Migration Notes
+- Existing `coreboost-variants` folders can be cleaned up via Database → Clear Legacy Variant Files
+- If you were using AVIF/WebP conversion, install the recommended "Converter for Media" plugin
+- All tag-based image optimizations continue working without changes
+
+---
+
 ## [3.0.9] - 2025-01-28
 
 ### 🎬 YouTube Video Background & CSS Background LCP Fix

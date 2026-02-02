@@ -11,8 +11,6 @@
 namespace CoreBoost\Admin;
 
 use CoreBoost\Core\Cache_Manager;
-use CoreBoost\Core\Compression_Analytics;
-use CoreBoost\Core\Variant_Cache;
 use CoreBoost\PublicCore\Analytics_Engine;
 
 // Prevent direct access
@@ -39,14 +37,50 @@ class Overview_Page {
      */
     public function __construct($options) {
         $this->options = $options;
+        
+        // Handle cache actions early to avoid headers already sent
+        add_action('admin_init', array($this, 'early_handle_quick_actions'), 5);
+    }
+    
+    /**
+     * Handle quick actions early (before headers sent)
+     */
+    public function early_handle_quick_actions() {
+        // Only run on our dashboard page
+        $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS);
+        if ($page !== 'coreboost') {
+            return;
+        }
+        
+        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
+        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        
+        if (!$action || !$nonce) {
+            return;
+        }
+        
+        $redirect_args = array();
+        
+        if ($action === 'clear_all_caches' && wp_verify_nonce($nonce, 'coreboost_clear_all_caches')) {
+            Cache_Manager::flush_all_caches();
+            $redirect_args['cache_cleared'] = '1';
+        }
+        
+        if ($action === 'clear_hero_cache' && wp_verify_nonce($nonce, 'coreboost_clear_hero_cache')) {
+            Cache_Manager::clear_hero_cache();
+            $redirect_args['hero_cleared'] = '1';
+        }
+        
+        if (!empty($redirect_args)) {
+            wp_safe_redirect(add_query_arg($redirect_args, remove_query_arg(array('action', '_wpnonce'))));
+            exit;
+        }
     }
     
     /**
      * Render the dashboard page
      */
     public function render() {
-        $this->handle_quick_actions();
-        
         $logo_path = COREBOOST_PLUGIN_DIR . 'assets/images/coreboost-logo.png';
         $logo_url = COREBOOST_PLUGIN_URL . 'assets/images/coreboost-logo.png';
         $has_logo = file_exists($logo_path);
@@ -105,10 +139,6 @@ class Overview_Page {
      * Render analytics cards
      */
     private function render_analytics_cards() {
-        // Get compression analytics
-        $compression_stats = Compression_Analytics::get_aggregated_stats();
-        $total_saved = $compression_stats['total']['total_saved_formatted'] ?? '0 B';
-        
         // Get script analytics
         $analytics_engine = new Analytics_Engine($this->options, false);
         $dashboard_summary = $analytics_engine->get_dashboard_summary();
@@ -116,15 +146,17 @@ class Overview_Page {
         // Calculate metrics
         $scripts_optimized = $dashboard_summary['total_scripts'] ?? 0;
         $scripts_deferred = $scripts_optimized - ($dashboard_summary['scripts_excluded'] ?? 0);
-        $bytes_saved_mb = $dashboard_summary['bytes_saved_mb'] ?? 0;
+        
+        // Get image optimization metrics
+        $images_processed = get_transient('coreboost_images_processed') ?: 0;
         
         // Estimated load time improvement (rough calculation based on deferred scripts)
         $load_improvement = $scripts_deferred > 0 ? min($scripts_deferred * 50, 500) : 0;
         ?>
         <div class="coreboost-card-stat green">
-            <span class="dashicons dashicons-chart-area coreboost-card-icon"></span>
-            <div class="coreboost-card-value"><?php echo esc_html($total_saved); ?></div>
-            <div class="coreboost-card-label"><?php _e('File Size Reduction', 'coreboost'); ?></div>
+            <span class="dashicons dashicons-images-alt2 coreboost-card-icon"></span>
+            <div class="coreboost-card-value"><?php echo esc_html($images_processed); ?></div>
+            <div class="coreboost-card-label"><?php _e('Images Optimized', 'coreboost'); ?></div>
         </div>
         
         <div class="coreboost-card-stat blue">
@@ -155,7 +187,7 @@ class Overview_Page {
             'coreboost_clear_hero_cache'
         );
         
-        $pagespeed_url = 'https://pagespeed.web.dev/';
+        $pagespeed_url = 'https://pagespeed.web.dev/analysis?url=' . urlencode(home_url());
         ?>
         <a href="<?php echo esc_url($clear_cache_url); ?>" class="button button-primary">
             <span class="dashicons dashicons-trash"></span>
@@ -187,7 +219,6 @@ class Overview_Page {
             'enable_script_defer' => __('Script Deferring', 'coreboost'),
             'enable_css_defer' => __('CSS Deferring', 'coreboost'),
             'enable_image_optimization' => __('Image Optimization', 'coreboost'),
-            'enable_image_format_conversion' => __('AVIF/WebP Conversion', 'coreboost'),
             'enable_lazy_loading' => __('Lazy Loading', 'coreboost'),
             'enable_font_optimization' => __('Font Optimization', 'coreboost'),
             'enable_hero_preload_extraction' => __('Hero Preloading', 'coreboost'),
@@ -209,23 +240,13 @@ class Overview_Page {
     }
     
     /**
-     * Handle quick actions
+     * Handle quick actions (legacy - now handled in early_handle_quick_actions)
+     * 
+     * @deprecated 3.1.0 Actions are now handled via admin_init hook
      */
     private function handle_quick_actions() {
-        $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_SPECIAL_CHARS);
-        $nonce = filter_input(INPUT_GET, '_wpnonce', FILTER_SANITIZE_SPECIAL_CHARS);
-        
-        if ($action === 'clear_all_caches' && $nonce && wp_verify_nonce($nonce, 'coreboost_clear_all_caches')) {
-            Cache_Manager::flush_all_caches();
-            wp_redirect(add_query_arg('cache_cleared', '1', remove_query_arg(array('action', '_wpnonce'))));
-            exit;
-        }
-        
-        if ($action === 'clear_hero_cache' && $nonce && wp_verify_nonce($nonce, 'coreboost_clear_hero_cache')) {
-            Cache_Manager::clear_hero_cache();
-            wp_redirect(add_query_arg('hero_cleared', '1', remove_query_arg(array('action', '_wpnonce'))));
-            exit;
-        }
+        // Actions are now handled early via admin_init hook
+        // This method is kept for backwards compatibility
     }
     
     /**

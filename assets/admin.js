@@ -27,7 +27,7 @@ jQuery(document).ready(function($) {
                     
                     // Show success message if we're on the admin page
                     if ($('.wrap').length) {
-                        showNotice('success', response.data.message);
+                        showNotice('success', response.data.message || coreboost_ajax.cleared_text);
                     }
                     
                     // Reset text after 2 seconds
@@ -35,14 +35,26 @@ jQuery(document).ready(function($) {
                         $link.text(originalText);
                     }, 2000);
                 } else {
+                    var errorMsg = (response && response.data && response.data.message) 
+                        ? response.data.message 
+                        : coreboost_ajax.error_text;
                     $link.text(coreboost_ajax.error_text);
+                    
+                    // Show error message if we're on the admin page
+                    if ($('.wrap').length) {
+                        showNotice('error', errorMsg);
+                    }
+                    
                     setTimeout(function() {
                         $link.text(originalText);
                     }, 2000);
                 }
             },
             error: function(xhr, status, error) {
+                var errorMessage = coreboost_ajax.error_text;
+                
                 if (status === 'timeout') {
+                    errorMessage = 'Cache clear request timed out. Please try again.';
                     console.warn('CoreBoost: Cache clear request timed out after 30 seconds');
                     if (window.CoreBoostErrorLogger) {
                         window.CoreBoostErrorLogger.logError('ajax', 'clearCache', new Error('Request timeout'), {
@@ -51,6 +63,7 @@ jQuery(document).ready(function($) {
                         });
                     }
                 } else {
+                    errorMessage = 'Failed to clear cache. Please try again or report the issue.';
                     console.warn('CoreBoost: Cache clear failed:', error);
                     if (window.CoreBoostErrorLogger) {
                         window.CoreBoostErrorLogger.logError('ajax', 'clearCache', error, {
@@ -59,7 +72,14 @@ jQuery(document).ready(function($) {
                         });
                     }
                 }
+                
                 $link.text(coreboost_ajax.error_text);
+                
+                // Show error message if we're on the admin page
+                if ($('.wrap').length) {
+                    showNotice('error', errorMessage);
+                }
+                
                 setTimeout(function() {
                     $link.text(originalText);
                 }, 2000);

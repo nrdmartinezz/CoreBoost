@@ -239,8 +239,7 @@ class Settings_Page {
                 'preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 
                 'enable_hero_preload_extraction', 'hero_preload_cache_ttl', 'specific_pages', 'lazy_load_exclude_count',
                 'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes', 
-                'generate_aspect_ratio_css', 'add_decoding_async', 'enable_responsive_image_resizing', 
-                'enable_image_format_conversion', 'avif_quality', 'webp_quality', 'cleanup_orphans_weekly'
+                'generate_aspect_ratio_css', 'add_decoding_async'
             ),
             'performance' => array(
                 'enable_script_defer', 'scripts_to_defer', 'scripts_to_async', 'exclude_scripts',

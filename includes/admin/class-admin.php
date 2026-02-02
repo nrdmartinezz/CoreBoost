@@ -240,7 +240,7 @@ class Admin {
                 'ajax_url'      => admin_url('admin-ajax.php'),
                 'nonce'         => wp_create_nonce('coreboost_clear_cache_nonce'),
                 'clearing_text' => __('Clearing cache...', 'coreboost'),
-                'success_text'  => __('Cache cleared!', 'coreboost'),
+                'cleared_text'  => __('Cache cleared!', 'coreboost'),
                 'error_text'    => __('Error clearing cache', 'coreboost'),
             ));
         }
@@ -256,21 +256,6 @@ class Admin {
             
             wp_enqueue_script('coreboost-settings', COREBOOST_PLUGIN_URL . 'assets/settings.js', array('jquery'), COREBOOST_VERSION, true);
             wp_enqueue_style('coreboost-admin-style', COREBOOST_PLUGIN_URL . 'assets/admin.css', array(), COREBOOST_VERSION);
-            
-            // Get current tab for optimizations page
-            $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'media';
-            
-            // Enqueue bulk converter assets ONLY on media tab of optimizations page
-            if ($hook === 'coreboost_page_coreboost-optimizations' && $current_tab === 'media') {
-                wp_enqueue_script('coreboost-bulk-converter', COREBOOST_PLUGIN_URL . 'includes/admin/js/bulk-converter.js', array('coreboost-error-logger'), COREBOOST_VERSION, true);
-                wp_enqueue_style('coreboost-bulk-converter-style', COREBOOST_PLUGIN_URL . 'includes/admin/css/bulk-converter.css', array(), COREBOOST_VERSION);
-                
-                // Localize script to provide ajaxurl for bulk converter
-                wp_localize_script('coreboost-bulk-converter', 'coreBoostAdmin', array(
-                    'ajaxurl' => admin_url('admin-ajax.php'),
-                    'nonce' => wp_create_nonce('coreboost_bulk_converter'),
-                ));
-            }
         }
     }
     

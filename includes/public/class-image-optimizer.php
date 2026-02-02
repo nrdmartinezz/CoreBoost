@@ -44,35 +44,6 @@ class Image_Optimizer {
     private $loader;
     
     /**
-     * Image format optimizer instance
-     *
-     * @var Image_Format_Optimizer
-     */
-    private $format_optimizer;
-    
-    /**
-     * Image variant lifecycle manager instance
-     *
-     * @var Image_Variant_Lifecycle_Manager
-     */
-    private $lifecycle_manager;
-    
-    /**
-     * Image responsive resizer instance
-     *
-     * @var Image_Responsive_Resizer
-     */
-    private $responsive_resizer;
-    
-    /**
-     * First CSS background image URL for hero preload
-     * Captured during CSS optimization for LCP preloading
-     *
-     * @var string|null
-     */
-    private $hero_bg_preload_url = null;
-    
-    /**
      * Pre-compiled regex patterns for performance
      * Compiled once in constructor, reused throughout lifecycle
      */
@@ -102,20 +73,6 @@ class Image_Optimizer {
         $this->pattern_img_class = '/class=["\']([^"\']*)["\']/';
         $this->pattern_img_decoding = '/\s+decoding=/i';
         $this->pattern_img_alt = '/\s+alt=["\']?([^"\']*)["\']?/i';
-        
-        // Initialize Phase 2 components if format conversion enabled
-        if (!empty($options['enable_image_format_conversion'])) {
-            $this->format_optimizer = new Image_Format_Optimizer($options);
-            $this->lifecycle_manager = new Image_Variant_Lifecycle_Manager($options, $this->format_optimizer);
-            
-            // Initialize responsive resizer if enabled
-            if (!empty($options['enable_responsive_image_resizing'])) {
-                $this->responsive_resizer = new Image_Responsive_Resizer($options, $this->format_optimizer);
-            }
-            
-            // Register lifecycle hooks
-            $this->lifecycle_manager->register_hooks($loader);
-        }
         
         // Only register on frontend
         if (!is_admin()) {
@@ -162,12 +119,6 @@ class Image_Optimizer {
         $enable_dimensions = !empty($this->options['add_width_height_attributes']);
         $enable_aspect_ratio = !empty($this->options['generate_aspect_ratio_css']);
         $enable_decoding = !empty($this->options['add_decoding_async']);
-        $enable_format = !empty($this->options['enable_image_format_conversion']) && $this->format_optimizer;
-        
-        // Log format optimization status
-        if ($enable_format) {
-            Context_Helper::debug_log('Phase 2 format optimization enabled (single-pass mode)');
-        }
         
         // Single regex pass handles all optimizations
         $html = preg_replace_callback(
@@ -179,8 +130,7 @@ class Image_Optimizer {
                 $enable_lazy,
                 $enable_dimensions,
                 $enable_aspect_ratio,
-                $enable_decoding,
-                $enable_format
+                $enable_decoding
             ) {
                 $image_count++;
                 $attrs = $matches[1];
@@ -253,72 +203,7 @@ class Image_Optimizer {
                     $attrs = ' decoding="async"' . $attrs;
                 }
                 
-                // Apply format optimization (AVIF/WebP) if enabled
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    Context_Helper::debug_log('Format enabled: ' . ($enable_format ? 'YES' : 'NO'));
-                    Context_Helper::debug_log('Should optimize: ' . ($this->format_optimizer->should_optimize_image($src_url) ? 'YES' : 'NO'));
-                }
-                
-                if ($enable_format && $this->format_optimizer->should_optimize_image($src_url)) {
-                    if (defined('WP_DEBUG') && WP_DEBUG) {
-                        Context_Helper::debug_log("Processing image: {$src_url}", 'Image Optimizer');
-                    }
-                    
-                    // Check for variants
-                    $avif_url = $this->format_optimizer->get_variant_from_cache($src_url, 'avif');
-                    $webp_url = $this->format_optimizer->get_variant_from_cache($src_url, 'webp');
-                    
-                    if (defined('WP_DEBUG') && WP_DEBUG) {
-                        Context_Helper::debug_log('AVIF URL: ' . ($avif_url ?: 'NOT FOUND'), 'Image Optimizer');
-                        Context_Helper::debug_log('WebP URL: ' . ($webp_url ?: 'NOT FOUND'), 'Image Optimizer');
-                    }
-                    
-                    if ($avif_url || $webp_url) {
-                        if (defined('WP_DEBUG') && WP_DEBUG) {
-                            Context_Helper::debug_log('Variants found! Rendering picture tag', 'Image Optimizer');
-                        }
-                        
-                        // Extract alt and classes for picture tag
-                        $alt_match = [];
-                        $alt = preg_match($this->pattern_img_alt, $attrs, $alt_match) ? $alt_match[1] : '';
-                        
-                        $class_match = [];
-                        $classes = preg_match($this->pattern_img_class, $attrs, $class_match) ? $class_match[1] : '';
-                        
-                        // Generate responsive variants if needed (on-demand generation)
-                        if ($this->responsive_resizer && $width && $height) {
-                            $this->responsive_resizer->generate_variants_if_needed($src_url, $width, $height);
-                        }
-                        
-                        // Check for responsive variants
-                        $responsive_variants = array();
-                        if ($this->responsive_resizer) {
-                            $responsive_variants = $this->responsive_resizer->get_available_responsive_variants($src_url);
-                        }
-                        
-                        // Build additional attributes - add fetchpriority for LCP images
-                        $picture_attrs = array();
-                        if ($image_count <= $lazy_load_exclude_count) {
-                            $picture_attrs['fetchpriority'] = 'high';
-                        }
-                        
-                        // Render picture tag
-                        if (!empty($responsive_variants)) {
-                            return $this->format_optimizer->render_responsive_picture_tag($src_url, $alt, $classes, $picture_attrs, $responsive_variants, $width);
-                        } else {
-                            return $this->format_optimizer->render_picture_tag($src_url, $alt, $classes, $picture_attrs);
-                        }
-                    } else {
-                        if (defined('WP_DEBUG') && WP_DEBUG) {
-                            Context_Helper::debug_log("No variants found for {$original_src} - serving original image", 'Image Optimizer');
-                        }
-                    }
-                }
-                
                 // Return optimized img tag
-                if (defined('WP_DEBUG') && WP_DEBUG && strpos($attrs, '1000_F_507464080') !== false) {
-                    Context_Helper::debug_log('Returning regular img tag for: ' . substr($attrs, 0, 100));
-                }
                 return '<img ' . $attrs . '>';
             },
             $html
@@ -334,37 +219,20 @@ class Image_Optimizer {
             $html = str_replace('</head>', $css . '</head>', $html);
         }
         
-        // Detect and queue oversized images for responsive resizing (if enabled)
-        if ($enable_format && $this->responsive_resizer) {
-            $this->responsive_resizer->detect_and_queue_oversized_images($html);
-        }
-        
-        // Process CSS background images (if format optimization enabled)
-        if ($enable_format) {
-            $html = $this->optimize_css_background_images($html);
-            $html = $this->inject_css_overrides_inline($html);
-        }
-        
         return $html;
     }
     
     /**
      * Check if any image optimization is enabled
      *
-     * Returns true if either Phase 1 or Phase 2 optimizations are active.
-     *
      * @return bool
      */
     private function is_optimization_enabled() {
-        $phase1_enabled = !empty($this->options['enable_image_optimization'])
+        return !empty($this->options['enable_image_optimization'])
             && (!empty($this->options['enable_lazy_loading'])
                 || !empty($this->options['add_width_height_attributes'])
                 || !empty($this->options['generate_aspect_ratio_css'])
                 || !empty($this->options['add_decoding_async']));
-        
-        $phase2_enabled = !empty($this->options['enable_image_format_conversion']);
-        
-        return $phase1_enabled || $phase2_enabled;
     }
     
     /**
@@ -395,53 +263,6 @@ class Image_Optimizer {
     }
     
     /**
-     * Get original image URL from potentially resized image URL
-     *
-     * Uses WordPress attachment functions to reliably find original image.
-     * Falls back to regex stripping for non-attachment images.
-     *
-     * @param string $image_url Image URL (may include WP size suffix)
-     * @return string Original image URL without size suffix
-     */
-    private function get_original_image_url($image_url) {
-        // Try WordPress attachment lookup first (most reliable)
-        $attachment_id = attachment_url_to_postid($image_url);
-        
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            Context_Helper::debug_log("Input URL: {$image_url}", 'get_original_image_url');
-            Context_Helper::debug_log('Attachment ID: ' . ($attachment_id ?: 'NOT FOUND'), 'get_original_image_url');
-        }
-        
-        if ($attachment_id) {
-            // Get original file path
-            $original_path = get_attached_file($attachment_id);
-            
-            if ($original_path && file_exists($original_path)) {
-                // Check for -scaled version (WP 5.3+)
-                if (function_exists('wp_get_original_image_path')) {
-                    $unscaled_path = wp_get_original_image_path($attachment_id);
-                    if ($unscaled_path && file_exists($unscaled_path)) {
-                        $original_path = $unscaled_path;
-                    }
-                }
-                
-                return Path_Helper::path_to_url($original_path);
-            }
-        }
-        
-        // Fallback: Strip WordPress size suffix with regex (for non-attachment images)
-        // Pattern: image-300x200.jpg -> image.jpg
-        // Pattern: image-300x200-scaled.jpg -> image.jpg
-        $stripped = preg_replace('/-\d+x\d+(-scaled)?(\.(jpg|jpeg|png|gif|webp))$/i', '$2', $image_url);
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-            Context_Helper::debug_log("Regex stripped: {$stripped}", 'get_original_image_url');
-            Context_Helper::debug_log('Final result: ' . (($stripped !== $image_url) ? $stripped : $image_url), 'get_original_image_url');
-        }
-                // If regex didn't match (no size suffix), return original URL
-        return ($stripped !== $image_url) ? $stripped : $image_url;
-    }
-    
-    /**
      * Convert image URL to local file path
      * Used by single-pass optimizer
      *
@@ -465,258 +286,5 @@ class Image_Optimizer {
         }
         
         return $url;
-    }
-    
-    /**
-     * Optimize CSS background images with modern formats
-     *
-     * Replaces background-image: url() with optimized AVIF/WebP variants.
-     * Uses CSS @supports rule for progressive enhancement.
-     *
-     * @param string $html HTML content
-     * @return string Modified HTML with optimized background images
-     */
-    private function optimize_css_background_images($html) {
-        $replacements_made = 0;
-        
-        // Count style tags and attributes
-        $style_tag_count = preg_match_all('/<style[^>]*>.*?<\/style>/is', $html);
-        $style_attr_count = preg_match_all('/style=["\'][^"\']*["\']/', $html);
-        Context_Helper::debug_log("Found {$style_tag_count} <style> tags and {$style_attr_count} style attributes");
-        
-        // Find inline style tags
-        $html = preg_replace_callback(
-            '/<style[^>]*>(.*?)<\/style>/is',
-            function($matches) use (&$replacements_made) {
-                $css = $matches[1];
-                Context_Helper::debug_log('Processing <style> tag with ' . strlen($css) . ' characters');
-                $optimized_css = $this->process_css_background_images($css, $replacements_made);
-                return '<style' . (strpos($matches[0], ' ') !== false ? substr($matches[0], 6, strpos($matches[0], '>') - 6) : '') . '>' . $optimized_css . '</style>';
-            },
-            $html
-        );
-        
-        // Find inline style attributes with background or background-image
-        $html = preg_replace_callback(
-            '/style=["\']([^"\']*background[^"\']*)["\']/',
-            function($matches) use (&$replacements_made) {
-                $style = $matches[1];
-                Context_Helper::debug_log('Processing style attribute: ' . substr($style, 0, 100));
-                $optimized_style = $this->process_css_background_images($style, $replacements_made);
-                return 'style="' . esc_attr($optimized_style) . '"';
-            },
-            $html
-        );
-        
-        // Debug logging
-        Context_Helper::debug_log("Total CSS background images optimized: {$replacements_made}");
-        
-        return $html;
-    }
-    
-    /**
-     * Process CSS to replace background-image URLs with optimized variants
-     *
-     * @param string $css CSS content
-     * @return string Optimized CSS with AVIF/WebP variants
-     */
-    private function process_css_background_images($css, &$replacements_made = 0) {
-        // Safety check - format_optimizer must exist
-        if (!$this->format_optimizer) {
-            return $css;
-        }
-        
-        $self = $this; // Capture $this for closure
-        
-        // Match both background: and background-image: with url() patterns
-        $css = preg_replace_callback(
-            '/\b(background(?:-image)?)\s*:\s*([^;]*?)url\(["\']?([^"\')\s]+)["\']?\)([^;]*)/i',
-            function($matches) use (&$replacements_made, $self) {
-                $property = $matches[1]; // background or background-image
-                $before_url = trim($matches[2]); // any values before url()
-                $original_url = $matches[3]; // the image URL
-                $after_url = $matches[4]; // any values after url() (position, size, etc)
-                
-                Context_Helper::debug_log("Found CSS background: {$original_url}");
-                
-                // Check if should optimize this image
-                if (!$self->format_optimizer->should_optimize_image($original_url)) {
-                    Context_Helper::debug_log('Image should not be optimized');
-                    return $matches[0];
-                }
-                
-                // Check if variants exist
-                $avif_url = $self->format_optimizer->get_variant_from_cache($original_url, 'avif');
-                $webp_url = $self->format_optimizer->get_variant_from_cache($original_url, 'webp');
-                
-                Context_Helper::debug_log('AVIF variant: ' . ($avif_url ? $avif_url : 'NOT FOUND'));
-                Context_Helper::debug_log('WebP variant: ' . ($webp_url ? $webp_url : 'NOT FOUND'));
-                
-                // If no variants found, return original
-                if (!$avif_url && !$webp_url) {
-                    Context_Helper::debug_log('No variants found, keeping original');
-                    return $matches[0];
-                }
-                
-                $replacements_made++;
-                Context_Helper::debug_log('Replacing background with optimized variants');
-                
-                // Build progressive enhancement CSS
-                // Use the best available format (AVIF > WebP > original)
-                $best_url = $avif_url ? $avif_url : ($webp_url ? $webp_url : $original_url);
-                
-                // Capture first background URL for hero preload (LCP optimization)
-                if ($self->hero_bg_preload_url === null) {
-                    $self->hero_bg_preload_url = $best_url;
-                    Context_Helper::debug_log('Captured hero background for preload: ' . $best_url);
-                }
-                
-                // Reconstruct the property with optimized URL
-                $output = $property . ': ';
-                if (!empty($before_url)) {
-                    $output .= $before_url . ' ';
-                }
-                $output .= 'url(' . esc_url($best_url) . ')';
-                if (!empty($after_url)) {
-                    $output .= $after_url;
-                }
-                
-                return $output;
-            },
-            $css
-        );
-        
-        return $css;
-    }
-    
-    /**
-     * Intercept CSS file requests and add inline overrides
-     * Since external CSS files are served directly by the web server,
-     * we inject inline <style> overrides with optimized background images
-    /**
-     * Inject inline CSS overrides for external stylesheet background images
-     * Parses <link> tags in HTML, reads referenced CSS files, and injects optimized overrides
-     *
-     * @param string $html HTML content
-     * @return string Modified HTML with injected CSS overrides
-     */
-    private function inject_css_overrides_inline($html) {
-        // Safety check - skip in admin context
-        if (Context_Helper::should_skip_optimization()) {
-            return $html;
-        }
-        
-        $overrides = array();
-        
-        // Find all stylesheet links
-        if (!preg_match_all('/<link[^>]*rel=["\']stylesheet["\'][^>]*>/i', $html, $link_matches)) {
-            return $html;
-        }
-        
-        Context_Helper::debug_log('Found ' . count($link_matches[0]) . ' stylesheet links');
-        
-        foreach ($link_matches[0] as $link_tag) {
-            // Extract href
-            if (!preg_match('/href=["\']([^"\']+)["\']/', $link_tag, $href_match)) {
-                continue;
-            }
-            
-            $css_url = $href_match[1];
-            
-            // Only process local CSS files
-            if (strpos($css_url, home_url()) !== 0 && strpos($css_url, '/') === 0) {
-                $css_url = home_url() . $css_url;
-            } elseif (strpos($css_url, 'http') !== 0) {
-                continue; // Skip external or invalid URLs
-            }
-            
-            // Remove query strings from URL FIRST, before path conversion
-            $css_url_clean = preg_replace('/\?.*$/', '', $css_url);
-            
-            // Convert URL to path
-            $css_path = str_replace(home_url(), ABSPATH, $css_url_clean);
-            $css_path = str_replace('/', DIRECTORY_SEPARATOR, $css_path);
-            
-            if (!file_exists($css_path)) {
-                Context_Helper::debug_log("CSS file NOT FOUND - URL: {$css_url} | Path: {$css_path}");
-                continue;
-            }
-            
-            // Check cache first (24 hour expiration)
-            $cache_key = 'coreboost_css_bg_' . md5($css_url_clean . filemtime($css_path));
-            $cached_override = get_transient($cache_key);
-            
-            if ($cached_override !== false) {
-                $overrides[] = $cached_override;
-                Context_Helper::debug_log('Using cached CSS background optimizations for: ' . basename($css_path));
-                continue;
-            }
-            
-            Context_Helper::debug_log("Reading CSS file: {$css_path}");
-            
-            // Read CSS file
-            $css_content = file_get_contents($css_path);
-            if ($css_content === false) {
-                continue;
-            }
-            
-            // Process CSS to find and optimize background images
-            // Instead of trying to extract selectors from complex/minified CSS,
-            // we'll just replace URLs directly and inject the full CSS as override
-            $replacements_made = 0;
-            $optimized_css = $this->process_css_background_images($css_content, $replacements_made);
-            
-            if ($replacements_made > 0) {
-                // Wrap in a comment to identify the source file
-                $override_block = "/* CoreBoost optimized backgrounds from: " . basename($css_path) . " */\n" . $optimized_css;
-                
-                // Cache the result (24 hours)
-                set_transient($cache_key, $override_block, DAY_IN_SECONDS);
-                
-                $overrides[] = $override_block;
-                Context_Helper::debug_log("Optimized {$replacements_made} background images in: " . basename($css_path));
-            } else {
-                Context_Helper::debug_log('No optimizable background images found in: ' . basename($css_path));
-            }
-        }
-        
-        // Inject override styles before </head>
-        if (!empty($overrides)) {
-            $override_css = "\n<style id=\"coreboost-bg-overrides\">\n";
-            $override_css .= "/* CoreBoost: Optimized background images (" . count($overrides) . " rules) */\n";
-            $override_css .= implode("\n", $overrides);
-            $override_css .= "\n</style>\n";
-            
-            $html = str_replace('</head>', $override_css . '</head>', $html);
-            Context_Helper::debug_log('Injected ' . count($overrides) . ' CSS background image overrides');
-            
-            // Extract first background URL for hero preload if not already captured
-            // This handles the case when CSS is loaded from cache (process_css_background_images not called)
-            if ($this->hero_bg_preload_url === null) {
-                // Look for first url() in the overrides containing coreboost-variants (optimized images)
-                $combined_css = implode("\n", $overrides);
-                if (preg_match('/url\(["\']?(https?:\/\/[^"\')\s]+coreboost-variants[^"\')\s]+)["\']?\)/i', $combined_css, $url_match)) {
-                    $this->hero_bg_preload_url = $url_match[1];
-                    Context_Helper::debug_log('Extracted hero background from cached CSS: ' . $this->hero_bg_preload_url);
-                }
-            }
-        }
-        
-        // Inject preload link for hero background image (LCP optimization)
-        if ($this->hero_bg_preload_url) {
-            // Determine image type for preload
-            $type_attr = '';
-            if (strpos($this->hero_bg_preload_url, '.avif') !== false) {
-                $type_attr = ' type="image/avif"';
-            } elseif (strpos($this->hero_bg_preload_url, '.webp') !== false) {
-                $type_attr = ' type="image/webp"';
-            }
-            
-            $preload_tag = '<link rel="preload" href="' . esc_url($this->hero_bg_preload_url) . '" as="image"' . $type_attr . ' fetchpriority="high">' . "\n";
-            $html = str_replace('</head>', $preload_tag . '</head>', $html);
-            Context_Helper::debug_log('Injected hero background preload: ' . $this->hero_bg_preload_url);
-        }
-        
-        return $html;
     }
 }

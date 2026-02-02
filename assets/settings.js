@@ -13,7 +13,7 @@ jQuery(document).ready(function($) {
     });
     
     // Add current tab as hidden field to preserve tab state after form submission
-    var currentTab = new URLSearchParams(window.location.search).get('tab') || 'hero';
+    var currentTab = new URLSearchParams(window.location.search).get('tab') || 'media';
     $('form').append('<input type="hidden" name="current_tab" value="' + currentTab + '">');
     
     // Redirect to same tab after form submission
