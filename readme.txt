@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,15 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.1.1 =
+* Added: New card-based UI for hero preload method selection with visual cards and tooltips
+* Added: Migration notice system to guide users to review updated settings
+* Added: Filter hook `coreboost_detect_hero_image` for custom page builder support
+* Added: URL hash navigation to auto-expand settings sections
+* Changed: Consolidated 6 hero preload methods into 4 clear options (Automatic, CSS Class, Video Hero, Disabled)
+* Changed: Improved hero class detection now matches `.hero-image`, `.lcp-image`, `.hero-foreground-image`, `.heroimg`
+* Fixed: Potential undefined index error in foreground image detection
 
 = 3.1.0 =
 * Removed: Bulk image converter feature (AVIF/WebP variant generation)

@@ -2,6 +2,12 @@ jQuery(document).ready(function($) {
     // Initialize CoreBoost Admin UI
     initCoreboostUI();
     
+    // Initialize card selector and tooltips
+    initCardSelector();
+    
+    // Initialize migration notice dismiss
+    initMigrationNotice();
+    
     // Handle admin bar cache clearing
     $('.coreboost-clear-cache-link').on('click', function(e) {
         e.preventDefault();
@@ -345,5 +351,201 @@ function initCollapsibleSections() {
             }, index * 50);
         });
         localStorage.setItem('coreboost_section_states', JSON.stringify(sectionStates));
+    });
+    
+    // Handle hash navigation to auto-expand sections
+    handleHashNavigation();
+}
+
+/**
+ * Handle URL hash navigation to auto-expand sections
+ */
+function handleHashNavigation() {
+    var $ = jQuery;
+    var hash = window.location.hash;
+    
+    if (hash) {
+        var sectionId = hash.replace('#', '');
+        var $section = $('.coreboost-collapsible-section[data-section="' + sectionId + '"]');
+        
+        if ($section.length && $section.hasClass('collapsed')) {
+            $section.removeClass('collapsed');
+            var $content = $section.find('.coreboost-section-content');
+            $content.css('display', 'block');
+            
+            // Scroll to section after a brief delay
+            setTimeout(function() {
+                $section[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }
+}
+
+/**
+ * Initialize card selector functionality
+ */
+function initCardSelector() {
+    var $ = jQuery;
+    
+    // Card click handler - select the card
+    $(document).on('click', '.coreboost-method-card', function(e) {
+        // Don't trigger if clicking the info button
+        if ($(e.target).closest('.coreboost-info-trigger').length) {
+            return;
+        }
+        
+        var $card = $(this);
+        var $selector = $card.closest('.coreboost-card-selector');
+        var $radio = $card.find('.coreboost-card-radio');
+        
+        // Update selection
+        $selector.find('.coreboost-method-card').removeClass('selected');
+        $card.addClass('selected');
+        $radio.prop('checked', true).trigger('change');
+    });
+    
+    // Keyboard navigation for cards
+    $(document).on('keydown', '.coreboost-card-radio', function(e) {
+        var $radio = $(this);
+        var $card = $radio.closest('.coreboost-method-card');
+        var $selector = $card.closest('.coreboost-card-selector');
+        var $cards = $selector.find('.coreboost-method-card');
+        var currentIndex = $cards.index($card);
+        var newIndex = -1;
+        
+        switch(e.keyCode) {
+            case 37: // Left arrow
+            case 38: // Up arrow
+                newIndex = currentIndex > 0 ? currentIndex - 1 : $cards.length - 1;
+                break;
+            case 39: // Right arrow
+            case 40: // Down arrow
+                newIndex = currentIndex < $cards.length - 1 ? currentIndex + 1 : 0;
+                break;
+            default:
+                return;
+        }
+        
+        if (newIndex >= 0) {
+            e.preventDefault();
+            var $newCard = $cards.eq(newIndex);
+            $newCard.find('.coreboost-card-radio').focus().trigger('click');
+        }
+    });
+    
+    // Initialize tooltips
+    initTooltips();
+}
+
+/**
+ * Initialize tooltip functionality
+ */
+function initTooltips() {
+    var $ = jQuery;
+    var activeTooltip = null;
+    
+    // Show tooltip on hover/focus
+    $(document).on('mouseenter focus', '.coreboost-info-trigger', function(e) {
+        e.stopPropagation();
+        var $trigger = $(this);
+        var $tooltip = $trigger.siblings('.coreboost-tooltip');
+        
+        showTooltip($trigger, $tooltip);
+    });
+    
+    // Hide tooltip on mouseleave/blur
+    $(document).on('mouseleave blur', '.coreboost-info-trigger', function(e) {
+        var $trigger = $(this);
+        var $tooltip = $trigger.siblings('.coreboost-tooltip');
+        
+        // Delay hide to allow moving mouse to tooltip
+        setTimeout(function() {
+            if (!$tooltip.is(':hover') && !$trigger.is(':hover') && !$trigger.is(':focus')) {
+                hideTooltip($trigger, $tooltip);
+            }
+        }, 100);
+    });
+    
+    // Keep tooltip visible when hovering over it
+    $(document).on('mouseleave', '.coreboost-tooltip', function() {
+        var $tooltip = $(this);
+        var $trigger = $tooltip.siblings('.coreboost-info-trigger');
+        
+        if (!$trigger.is(':hover') && !$trigger.is(':focus')) {
+            hideTooltip($trigger, $tooltip);
+        }
+    });
+    
+    // Toggle tooltip on click (for mobile/touch)
+    $(document).on('click', '.coreboost-info-trigger', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var $trigger = $(this);
+        var $tooltip = $trigger.siblings('.coreboost-tooltip');
+        
+        if ($tooltip.hasClass('visible')) {
+            hideTooltip($trigger, $tooltip);
+        } else {
+            // Hide any other visible tooltips
+            $('.coreboost-tooltip.visible').each(function() {
+                var $other = $(this);
+                hideTooltip($other.siblings('.coreboost-info-trigger'), $other);
+            });
+            showTooltip($trigger, $tooltip);
+        }
+    });
+    
+    // Close tooltip on Escape key
+    $(document).on('keydown', function(e) {
+        if (e.keyCode === 27) { // Escape
+            $('.coreboost-tooltip.visible').each(function() {
+                var $tooltip = $(this);
+                hideTooltip($tooltip.siblings('.coreboost-info-trigger'), $tooltip);
+            });
+        }
+    });
+    
+    // Close tooltip when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.coreboost-info-trigger, .coreboost-tooltip').length) {
+            $('.coreboost-tooltip.visible').each(function() {
+                var $tooltip = $(this);
+                hideTooltip($tooltip.siblings('.coreboost-info-trigger'), $tooltip);
+            });
+        }
+    });
+    
+    function showTooltip($trigger, $tooltip) {
+        $trigger.attr('aria-expanded', 'true');
+        $tooltip.attr('aria-hidden', 'false').addClass('visible');
+    }
+    
+    function hideTooltip($trigger, $tooltip) {
+        $trigger.attr('aria-expanded', 'false');
+        $tooltip.attr('aria-hidden', 'true').removeClass('visible');
+    }
+}
+
+/**
+ * Initialize migration notice dismiss functionality
+ */
+function initMigrationNotice() {
+    var $ = jQuery;
+    
+    $(document).on('click', '.coreboost-migration-notice .notice-dismiss', function() {
+        var $notice = $(this).closest('.coreboost-migration-notice');
+        var noticeId = $notice.data('notice-id');
+        
+        // Send AJAX request to dismiss permanently
+        $.ajax({
+            url: coreboost_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'coreboost_dismiss_notice',
+                notice_id: noticeId,
+                nonce: coreboost_ajax.nonce
+            }
+        });
     });
 }

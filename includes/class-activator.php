@@ -82,7 +82,7 @@ class Activator {
      */
     private static function get_default_options() {
         return array(
-            'preload_method' => 'elementor_data',
+            'preload_method' => 'automatic',
             'enable_script_defer' => false,
             'enable_css_defer' => false,
             'enable_foreground_conversion' => false,

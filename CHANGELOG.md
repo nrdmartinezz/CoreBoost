@@ -5,7 +5,91 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.1.1] - 2026-02-02
+
+### 🎯 Simplified Hero Preload Settings with Modern UI
+
+This release consolidates the 6 hero preload methods into 4 clear, easy-to-understand options with a new card-based settings UI. Improved tooltips and accessibility make configuration simpler than ever.
+
+### Added
+
+#### New Card Selector UI for Hero Preload Method
+
+- **Modern card-based selection interface** replaces dropdown selector
+  - Visual cards with icons for each preload method
+  - Short excerpt descriptions visible at a glance
+  - Info bubble tooltips with detailed explanations on hover/focus/click
+  - Full keyboard navigation support (arrow keys)
+  - Proper ARIA attributes for screen reader accessibility
+  - Responsive design adapts to mobile screens
+
+#### Migration Notice System
+
+- **Dismissible admin notice** guides users to review new settings after upgrade
+  - Styled notification with "Review Settings" button
+  - Links directly to Hero Images section with auto-expand
+  - AJAX dismissal stored in user meta (per-user)
+  - Only shown to administrators
+
+#### Extensibility Hook for Hero Detection
+
+- **New filter `coreboost_detect_hero_image`** allows themes/plugins to provide hero image URL
+  - Runs before automatic detection
+  - Enables support for custom page builders
+  - Example: `add_filter('coreboost_detect_hero_image', function($url, $post) { return $custom_url; }, 10, 2);`
+
+#### URL Hash Navigation
+
+- **Auto-expand sections from URL hash** (e.g., `#hero` opens Hero section)
+  - Smooth scroll to target section
+  - Works with migration notice "Review Settings" link
+
+### Changed
+
+#### Consolidated Hero Preload Methods (6 → 4)
+
+- **Automatic** (formerly: auto_elementor, featured_fallback, smart_detection, advanced_cached)
+
+  - Smart detection from Elementor data with caching
+  - Checks page-specific manual overrides first
+  - Falls back to featured image
+  - Recommended for most sites
+- **CSS Class** (formerly: css_class_based)
+
+  - Now matches `.hero-image`, `.lcp-image`, `.hero-foreground-image`, `.heroimg`
+  - For precise manual control over which image to preload
+- **Video Hero** (formerly: video_fallback)
+
+  - Optimized for YouTube/Vimeo video background sections
+  - Preloads Elementor's configured fallback image first
+  - Falls back to YouTube thumbnail extraction
+  - Coordinates with Smart YouTube Blocking for optimal LCP
+- **Disabled** - No hero preloading
+
+#### Backwards Compatibility
+
+- Old preload method values automatically migrated to new values
+- Legacy method names still work internally for existing configurations
+- No action required from users - settings are preserved
+
+### Fixed
+
+- **Fixed potential undefined index error** in `find_hero_foreground_image()` when checking `widgetType`
+
+### Migration Notes
+
+- Existing preload method settings are automatically migrated:
+  - `auto_elementor` → `automatic`
+  - `featured_fallback` → `automatic`
+  - `smart_detection` → `automatic`
+  - `advanced_cached` → `automatic`
+  - `css_class_based` → `css_class`
+  - `video_fallback` → `video_hero`
+  - `elementor_data` → `automatic`
+- Hero cache is cleared during migration to ensure fresh detection
+- Dismiss the admin notice after reviewing your settings
+
+---
 
 ## [3.1.0] - 2025-01-XX
 
@@ -16,6 +100,7 @@ This release removes the bulk image converter feature in favor of dedicated imag
 ### Removed
 
 #### Bulk Image Converter Feature
+
 - **Removed all AVIF/WebP image variant generation** - The GD Library-based conversion was too slow for production use
 - **Deleted classes**:
   - `Bulk_Image_Converter` - Admin bulk conversion interface
@@ -35,6 +120,7 @@ This release removes the bulk image converter feature in favor of dedicated imag
 ### Changed
 
 #### Image Optimization Simplified
+
 - **Image Optimizer now focuses only on tag-based optimizations**:
   - Lazy loading with native `loading="lazy"`
   - Width/height attribute injection
@@ -47,17 +133,20 @@ This release removes the bulk image converter feature in favor of dedicated imag
   - Maintains same file URLs (no URL changes needed)
 
 #### Database Page Updates
+
 - Removed variant cache statistics and settings
 - Added "Legacy Variant Files" detection and cleanup for existing installations
 - Simplified cleanup actions to transients, script metrics, and backups
 
 ### Fixed
+
 - **Fixed bulk converter tab detection** - Was checking wrong tab value
 - **Fixed blank admin page on cache clear** - Moved cache actions to `admin_init` hook
 - **Fixed settings page default tab** - Now correctly defaults to "General" tab
 - **Fixed admin.js missing localization** - Restored `coreboostAdmin` localization object
 
 ### Migration Notes
+
 - Existing `coreboost-variants` folders can be cleaned up via Database → Clear Legacy Variant Files
 - If you were using AVIF/WebP conversion, install the recommended "Converter for Media" plugin
 - All tag-based image optimizations continue working without changes
@@ -73,6 +162,7 @@ This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTu
 ### Added
 
 #### Smart YouTube Blocking - Hero Fallback Preload
+
 - **YouTube video fallback images now preloaded for LCP optimization**
   - New `$youtube_fallback_preload_url` class property captures first video's fallback
   - Injects `<link rel="preload" ... fetchpriority="high">` into `<head>` section
@@ -82,6 +172,7 @@ This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTu
   - Fixes PageSpeed "fetchpriority=high should be applied" warning for video backgrounds
 
 #### CSS Background Image Hero Preload
+
 - **First CSS background image now preloaded for LCP optimization**
   - New `$hero_bg_preload_url` class property in `Image_Optimizer`
   - Captures first optimized background URL during CSS processing
@@ -90,6 +181,7 @@ This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTu
   - Fixes LCP for Elementor sections using CSS background images
 
 ### Fixed
+
 - **LCP images in Elementor YouTube video backgrounds now discoverable from HTML immediately**
   - Previously, CSS background-image fallbacks were not discoverable until CSS parsed
   - Now preload link ensures browser fetches the image with high priority
@@ -118,6 +210,7 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
 ### Added
 
 #### Hero Optimizer - Variant Preload Lookup
+
 - **LCP preload now uses converted image variants** instead of original URLs
   - `output_preload_tag()` checks `Variant_Cache::get_variant()` for AVIF first, then WebP
   - Outputs proper `type="image/avif"` or `type="image/webp"` attribute on preload link
@@ -126,6 +219,7 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
 - **Added `Variant_Cache` import** to `class-hero-optimizer.php`
 
 #### Proactive Cache Headers Creation
+
 - **New `ensure_htaccess_on_init()` method** in `Variant_Cache_Headers`
   - Runs on WordPress `init` hook (priority 99)
   - Uses daily transient (`coreboost_htaccess_verified`) to avoid filesystem checks every request
@@ -135,12 +229,14 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
 - **New `purge_litespeed_cache()` helper** supporting both LiteSpeed Cache API versions
 
 #### LiteSpeed Server Support
+
 - **Added LiteSpeed-specific directives** to `.htaccess` generation
   - `<IfModule LiteSpeed>` block with proper Expires rules
   - `<IfModule Litespeed>` block with Cache-Control headers
   - Automatic cache purge after header regeneration
 
 #### Admin UI - Cache Headers Management
+
 - **New "Browser Cache Headers" section** in Image Variants admin page
   - Server type detection (LiteSpeed/Apache/Nginx)
   - `.htaccess` status indicator: ✓ Configured / ⚠ Outdated / ✗ Missing
@@ -149,6 +245,7 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
   - LiteSpeed cache purge notification
 
 #### fetchpriority Propagation
+
 - **Image Optimizer passes `fetchpriority="high"`** to picture tags for LCP images
   - Images within `lazy_load_exclude_count` get fetchpriority attribute
   - Attribute passed through `$attrs` array to `render_picture_tag()` and `render_responsive_picture_tag()`
@@ -156,12 +253,14 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
 ### Changed
 
 #### Action Hook Firing
+
 - **`coreboost_variants_dir_created` action now fires** when variant directories are created
   - Added to both AVIF and WebP generation in `class-image-format-optimizer.php`
   - Triggers `.htaccess` creation on fresh installs
   - Only fires when directory is newly created (not on every generation)
 
 #### .htaccess Content
+
 - **Updated `generate_htaccess_content()`** with:
   - Generated timestamp in header comment
   - LiteSpeed compatibility blocks
@@ -188,6 +287,7 @@ This release addresses critical PageSpeed issues: LCP images now preload the opt
 ### Developer Notes
 
 #### Variant Lookup Flow
+
 ```php
 // Hero preload now checks for variants
 $avif_url = Variant_Cache::get_variant($image_url, 'avif');
@@ -201,6 +301,7 @@ if ($avif_url) {
 ```
 
 #### Cache Headers Verification
+
 ```php
 // Daily check on init
 Variant_Cache_Headers::ensure_htaccess_on_init();
@@ -217,6 +318,7 @@ This release focuses on code quality, DRY principles, and eliminating debug log 
 ### Changed
 
 #### Bulk Converter UI State Machine
+
 - **Refactored bulk converter JavaScript** to use state machine pattern
   - Added `STATES` constant object: `IDLE`, `SCANNING`, `PROCESSING`, `COMPLETE`, `ERROR`, `STOPPED`
   - Implemented `transitionTo(newState)` function as single source of truth for UI state
@@ -231,6 +333,7 @@ This release focuses on code quality, DRY principles, and eliminating debug log 
   - Status elements now use `.coreboost-status--idle`, `.coreboost-status--processing` classes
 
 #### Centralized Debug Logging System
+
 - **Enhanced `Context_Helper` class** with standardized debug methods
   - Added `is_debug_mode()` static method checking `WP_DEBUG` constant
   - Added `debug_log($message, $prefix = 'CoreBoost')` static method
@@ -242,6 +345,7 @@ This release focuses on code quality, DRY principles, and eliminating debug log 
   - Consistent log message formatting with optional prefix parameter
 
 #### Elementor Preview Check Consolidation
+
 - **Migrated all manual Elementor checks** to `Context_Helper::should_skip_optimization()`
   - Removed ~40 lines of duplicated code across 5 files
   - Files updated: `class-tag-manager.php`, `class-video-facade.php`, `class-script-optimizer.php`, `class-css-optimizer.php`, `class-resource-remover.php`
@@ -251,12 +355,14 @@ This release focuses on code quality, DRY principles, and eliminating debug log 
 ### Fixed
 
 #### Duplicate Option Key
+
 - **Removed duplicate `lazy_load_exclude_count`** from `get_default_options()` in `class-coreboost.php`
   - Option was defined twice (lines ~366 and ~423) causing potential initialization issues
 
 ### Removed
 
 #### Deprecated Code Cleanup
+
 - **Deleted `class-debug-helper.php`** from `includes/core/`
   - File was deprecated since v2.5.1 with empty methods
   - No references existed in codebase
@@ -265,7 +371,9 @@ This release focuses on code quality, DRY principles, and eliminating debug log 
 ### Developer Notes
 
 #### State Machine Pattern
+
 The bulk converter now uses a proper state machine for UI management:
+
 ```javascript
 const STATES = {
     IDLE: 'idle',
@@ -283,7 +391,9 @@ function transitionTo(newState) {
 ```
 
 #### Debug Logging Usage
+
 Use the centralized debug logger instead of direct `error_log()`:
+
 ```php
 // Before (pollutes logs in production)
 error_log('CoreBoost: Processing image: ' . $path);
@@ -297,7 +407,9 @@ Context_Helper::debug_log('Migration completed', 'Migration');
 ```
 
 #### Elementor Skip Check Usage
+
 Use the centralized skip check instead of manual conditions:
+
 ```php
 // Before (duplicated across many files)
 $elementor_preview = isset($_GET['elementor-preview']) ? sanitize_text_field(wp_unslash($_GET['elementor-preview'])) : '';
@@ -322,6 +434,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
 ### Added
 
 #### Automatic Update System
+
 - **GitHub-based automatic updates** via Plugin Update Checker library
 - **Private repository support** with GitHub token authentication
   - Set `COREBOOST_GITHUB_TOKEN` in `wp-config.php` for private repos
@@ -342,6 +455,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
   - Removes `/coreboost-variants/` upload directory
 
 #### Error Tracking & Logging
+
 - **Centralized error logger** (`assets/error-logger.js`)
   - Tracks async operation errors
   - Logs to browser console and WordPress debug log
@@ -355,6 +469,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
 ### Fixed
 
 #### Critical Async & Promise Errors
+
 - **Fixed async listener message channel closure** error: `"(index):1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received"`
   - Added `AbortController` with 2-minute timeout for batch processing
   - Added 1-minute timeout for image scanning
@@ -370,12 +485,14 @@ This release introduces automatic GitHub-based updates, fixes critical async err
   - Error recovery with 2-second delays after failures
 
 #### Namespace & Class Loading Errors
+
 - **Fixed "Class CoreBoost\PublicCore\Context_Helper not found" fatal errors**
   - Added missing `use CoreBoost\Core\Context_Helper;` to `class-hero-optimizer.php`
   - Added missing import to `class-font-optimizer.php`
   - Added missing import to `class-admin.php`
 
 #### GTM & Tag Management
+
 - **Fixed GTM body tag syntax error**
   - Corrected noscript/script tag structure (noscript should not wrap script tags)
   - Fixed in GTM Manager output
@@ -385,6 +502,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
   - Added GTM settings fields to settings registry
 
 #### Image Optimization & Bulk Conversion
+
 - **Fixed regex compilation error** in Image Optimizer causing `preg_match(): Compilation failed`
   - Corrected alt attribute pattern from `/\s+alt=["']?([^"']*)["'/i` to `/\s+alt=["']?([^"']*)["']?/i` (missing closing `]` in character class)
   - Pre-compiled 7 regex patterns for performance
@@ -403,6 +521,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
 ### Improved
 
 #### Performance Optimizations
+
 - **Pre-compiled regex patterns** across multiple classes
   - `class-image-optimizer.php`: 7 patterns (src, width, height, loading, class, decoding, alt)
   - `class-hero-optimizer.php`: 6 video URL patterns (YouTube short/watch/embed, Vimeo, video files)
@@ -410,6 +529,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
   - Significant reduction in CPU cycles and memory usage
 
 #### Code Quality & Architecture
+
 - **Enhanced deactivation cleanup**
   - Now properly unschedules `coreboost_cleanup_orphaned_variants` cron job
   - Prevents orphaned scheduled events from accumulating
@@ -420,6 +540,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
   - Detailed error logging throughout migration process
 
 #### Developer Experience
+
 - **Automatic release workflow** (`.github/workflows/release.yml`)
   - Runs `composer install --no-dev --optimize-autoloader`
   - Includes vendor dependencies in release ZIP
@@ -433,40 +554,48 @@ This release introduces automatic GitHub-based updates, fixes critical async err
 ### Dependencies
 
 **New:**
+
 - `yahnis-elsts/plugin-update-checker` ^5.6 - GitHub-based automatic updates
 
 **Updated:**
+
 - None
 
 ### Files Modified
 
 **Core System:**
+
 - `coreboost.php` - Version 3.0.6, GitHub update checker initialization
 - `includes/class-activator.php` - Version tracking, migration triggering, option backup system
 - `includes/class-deactivator.php` - Added cron job cleanup
 - `uninstall.php` - **NEW** - Complete data removal on plugin deletion
 
 **Migration & Updates:**
+
 - `includes/core/class-migration.php` - **NEW** - Version-specific migration system with v2.0.2, v2.5.0, v3.0.0 handlers
 - `.github/workflows/release.yml` - Enhanced with composer install and vendor directory inclusion
 - `UPDATE_SYSTEM.md` - **NEW** - Comprehensive update system documentation
 
 **Error Handling:**
+
 - `assets/error-logger.js` - **NEW** - Centralized error tracking and logging
 - `includes/admin/class-admin.php` - Added `ajax_log_error()` endpoint, Context_Helper import
 - `assets/admin.js` - Added 30-second timeout handling, error logging integration
 
 **Bulk Image Conversion:**
+
 - `includes/admin/js/bulk-converter.js` - AbortController timeouts, comprehensive error logging
 - `includes/admin/class-bulk-image-converter.php` - Windows path normalization, extensive debugging logs
 
 **Optimization Classes:**
+
 - `includes/public/class-image-optimizer.php` - Fixed regex compilation error, pre-compiled 7 patterns
 - `includes/public/class-hero-optimizer.php` - Pre-compiled 6 video URL patterns, Context_Helper import
 - `includes/public/class-font-optimizer.php` - Added Context_Helper import
 - `includes/public/class-gtm-manager.php` - Fixed async listener return value issues
 
 **Admin Interface:**
+
 - `includes/admin/class-settings-page.php` - Added GTM tab between Custom Tags and Advanced
 - `includes/admin/class-settings-registry.php` - Registered GTM settings section and fields
 - `includes/admin/class-gtm-settings.php` - Pre-compiled GTM ID validation pattern
@@ -494,12 +623,14 @@ This release introduces automatic GitHub-based updates, fixes critical async err
 ### Migration Notes
 
 **Upgrading from v3.0.0-3.0.5:**
+
 - No database changes required
 - Automatic cache clearing on upgrade
 - All settings preserved
 - Update takes < 5 seconds
 
 **Upgrading from v2.x:**
+
 - Automatic migration runs on first activation
 - GTM settings converted to generic tag settings (if applicable)
 - Analytics options initialized with safe defaults
@@ -508,6 +639,7 @@ This release introduces automatic GitHub-based updates, fixes critical async err
 - Check WordPress debug.log for migration details
 
 **Upgrading from v1.x:**
+
 - Not supported - please upgrade to v2.x first, then v3.0.6
 
 ### Upgrade Path
@@ -555,12 +687,14 @@ CoreBoost 3.0.0 represents a fundamental architectural transformation focusing o
 ### Phase 2: Single-Pass HTML Processing (Complete)
 
 **Major Performance Breakthrough**
+
 - **Consolidated 5 HTML passes into 1 unified pass** for image optimization
 - **40-60% reduction** in image optimization overhead
 - **Eliminated 4 redundant HTML document traversals** per page load
 - **Single `preg_replace_callback`** processes all image optimizations simultaneously
 
 **Removed Obsolete Code**
+
 - Removed 5 deprecated methods totaling **260 lines**:
   - `apply_format_optimization()` - Now part of unified callback
   - `add_lazy_loading()` - Now part of unified callback
@@ -569,9 +703,11 @@ CoreBoost 3.0.0 represents a fundamental architectural transformation focusing o
   - `add_decoding_async()` - Now part of unified callback
 
 **Files Modified**
+
 - `class-image-optimizer.php`: 836 lines → **576 lines** (-260 lines, -31%)
 
 **Performance Impact**
+
 - Before: 5 separate regex operations, 5 full HTML scans
 - After: 1 unified regex operation, 1 HTML scan
 - Result: Massive reduction in CPU cycles and memory usage
@@ -581,6 +717,7 @@ CoreBoost 3.0.0 represents a fundamental architectural transformation focusing o
 #### Task 1: Regex Pattern Pre-compilation
 
 **Eliminated Runtime Regex Compilation**
+
 - **14 regex patterns** pre-compiled across 3 files
 - **~1000+ regex compilations eliminated** per page load
 - Patterns compiled once in constructor, stored as class properties
@@ -588,17 +725,20 @@ CoreBoost 3.0.0 represents a fundamental architectural transformation focusing o
 **Files Enhanced**
 
 **1. class-image-optimizer.php**
+
 - 7 pre-compiled patterns: `src`, `width`, `height`, `loading`, `class`, `decoding`, `alt`
 - Patterns initialized in constructor
 - Used throughout unified callback for maximum efficiency
 
 **2. class-hero-optimizer.php**
+
 - 6 pre-compiled video URL patterns
 - YouTube patterns: short URL, watch URL, embed URL, fallback
 - Vimeo pattern, video file extension pattern
 - Optimized hot path functions: `extract_youtube_thumbnail_url()`, `extract_vimeo_thumbnail_url()`, `detect_video_type()`
 
 **3. class-gtm-settings.php**
+
 - 1 pattern constant: `PATTERN_GTM_ID`
 - Used in GTM container ID validation
 - Cleaner code structure with class constant
@@ -606,6 +746,7 @@ CoreBoost 3.0.0 represents a fundamental architectural transformation focusing o
 #### Task 2: Settings Class Refactoring (Facade Pattern)
 
 **Architectural Transformation**
+
 - Transformed **611-line God Object** into **4 focused classes**
 - Applied **Single Responsibility Principle** throughout
 - Implemented **Facade Pattern** for orchestration
@@ -614,6 +755,7 @@ CoreBoost 3.0.0 represents a fundamental architectural transformation focusing o
 **New Architecture**
 
 **1. class-settings.php** (611 → **95 lines**, -516 lines)
+
 ```
 Role: Facade/Orchestrator
 Methods: 3 (constructor, register_settings, sanitize_options)
@@ -622,6 +764,7 @@ Pattern: Facade
 ```
 
 **2. class-settings-registry.php** (NEW - **270 lines**)
+
 ```
 Role: Field Registration
 Methods: 14 (11 registration + 3 accessors)
@@ -631,6 +774,7 @@ Responsibility: WordPress Settings API registration
 ```
 
 **3. class-settings-renderer.php** (NEW - **365 lines**)
+
 ```
 Role: UI Rendering & Display
 Methods: 15+ callback methods
@@ -640,6 +784,7 @@ Responsibility: All admin UI rendering logic
 ```
 
 **4. class-settings-sanitizer.php** (NEW - **266 lines**)
+
 ```
 Role: Input Validation & Sanitization
 Methods: 6 sanitization methods
@@ -649,6 +794,7 @@ Responsibility: All input validation and sanitization
 ```
 
 **Architecture Benefits**
+
 - ✅ **Maintainability**: Each class has one clear responsibility
 - ✅ **Testability**: Smaller, focused classes easier to unit test
 - ✅ **Extensibility**: New features can be added to specific classes
@@ -658,12 +804,14 @@ Responsibility: All input validation and sanitization
 ### Performance Metrics
 
 **Image Optimization**
+
 - HTML traversals: 5 passes → 1 pass (**80% reduction**)
 - Processing time: **40-60% faster**
 - Memory usage: Significantly reduced
 - Regex operations: **~1000+ compilations eliminated** per page
 
 **Code Quality**
+
 - Lines removed: 776 lines (obsolete code)
 - Lines added: 901 lines (better organized)
 - Net organization: +125 lines across 7 files
@@ -673,13 +821,16 @@ Responsibility: All input validation and sanitization
 ### Files Modified
 
 **Phase 2 (1 file)**
+
 - `includes/public/class-image-optimizer.php` (836 → 576 lines)
 
 **Phase 3 Task 1 (2 files)**
+
 - `includes/public/class-hero-optimizer.php` (839 lines, +6 patterns)
 - `includes/admin/class-gtm-settings.php` (318 lines, +1 pattern)
 
 **Phase 3 Task 2 (4 files)**
+
 - `includes/admin/class-settings.php` (611 → 95 lines)
 - `includes/admin/class-settings-registry.php` (NEW - 270 lines)
 - `includes/admin/class-settings-renderer.php` (NEW - 365 lines)
@@ -705,6 +856,7 @@ No migration required. All existing settings, configurations, and customizations
 ### Technical Summary
 
 **Total Impact**
+
 - 7 files modified/created
 - 776 lines of obsolete code removed
 - 901 lines of organized code added
@@ -716,6 +868,7 @@ No migration required. All existing settings, configurations, and customizations
 - 84% code reduction in Settings facade
 
 **Architecture Evolution**
+
 - From: Monolithic methods and God Objects
 - To: Single Responsibility Principle and Facade Pattern
 - Result: Maintainable, testable, performant codebase
@@ -729,6 +882,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 ### Phase 1: Script Exclusion Foundation (Complete)
 
 **Added**
+
 - Multi-layer script exclusion system with 5 distinct layers:
   - **Layer 1**: Built-in default exclusions (jQuery, core dependencies, critical libraries)
   - **Layer 2**: User-configured exclusions via admin interface
@@ -740,6 +894,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 - New class: `class-script-exclusions.php` (352 lines)
 
 **Features**
+
 - jQuery and core WordPress scripts auto-excluded
 - User patterns merge without removing defaults
 - External filter hooks allow plugin/theme overrides
@@ -748,6 +903,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 ### Phase 2: Load Strategies & Smart Loading (Complete)
 
 **Added**
+
 - 6 intelligent script loading strategies:
   - **Balanced**: 3s delay + user interaction fallback (default)
   - **Aggressive**: 5s delay for maximum performance
@@ -760,6 +916,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 - Intelligent trigger system with event debouncing
 
 **Features**
+
 - Admin UI for strategy selection
 - Per-script override capabilities
 - Event coordination system
@@ -768,6 +925,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 ### Phase 3: Advanced Pattern Matching (Complete)
 
 **Added**
+
 - Regex-based pattern matching for flexible script selection
 - 10+ built-in optimization profiles:
   - **Analytics**: Google Analytics, Hotjar, Mixpanel, etc.
@@ -780,6 +938,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 - Pattern validation and error handling
 
 **Features**
+
 - Support for version patterns (e.g., `/jquery-[0-9.]+/`)
 - Support for URL patterns (e.g., `/cdn\.example\.com/`)
 - Regex pattern compilation and caching for performance
@@ -789,6 +948,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 ### Phase 4: Resource Prioritization & Preload Hints (Complete)
 
 **Added**
+
 - Advanced event hijacking system with trigger detection:
   - 5 primary event types (DOMContentLoaded, window.load, custom triggers)
   - User interaction events (mousedown, touchstart, scroll)
@@ -802,6 +962,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 - New class: `class-event-hijacker.php` with comprehensive event management
 
 **Features**
+
 - Event listener capture and replay system
 - Event queue management with FIFO ordering
 - Cross-origin resource detection
@@ -811,6 +972,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 ### Phase 5: Analytics, Dashboard & A/B Testing (Complete)
 
 **Added**
+
 - Comprehensive analytics engine for performance tracking:
   - Script-level metrics (size, load time, exclusion status)
   - Pattern effectiveness tracking (bytes saved, scripts affected)
@@ -838,6 +1000,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
   - `coreboost_ab_tests` - A/B test results and recommendations
 
 **Features**
+
 - Real-time performance tracking
 - Automatic pattern effectiveness analysis
 - Smart recommendations for optimization
@@ -849,6 +1012,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 ### Cross-Phase Integration
 
 **Complete System Architecture**
+
 - Phase 1 defaults apply to all phases
 - Phase 2 strategies respect Phase 1 exclusions
 - Phase 3 patterns extend Phase 1 layers
@@ -856,6 +1020,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 - Phase 5 analytics track all phases
 
 **New Files Added (12 total)**
+
 - `includes/public/class-script-exclusions.php` (352 lines)
 - `includes/public/class-pattern-matcher.php` (280+ lines)
 - `includes/public/class-event-hijacker.php` (320+ lines)
@@ -867,6 +1032,7 @@ CoreBoost 2.5.0 represents a comprehensive overhaul of the script optimization s
 - And 4 additional supporting files
 
 **Documentation Added (15 total)**
+
 - Comprehensive phase documentation
 - API reference guide
 - Deployment guide
@@ -981,21 +1147,22 @@ No migration needed. All existing configurations automatically work with 2.5.0. 
 ### Features
 
 - **Facade Component** - Custom lightweight HTML/CSS/JS facade
+
   - 16x16 play button overlay
   - Hover effects for better UX
   - Responsive 16:9 aspect ratio
   - Keyboard accessible (ARIA labels)
   - Mobile-friendly touch targets
-
 - **Video Detection** - Scans Elementor data for video widgets
+
   - Extracts YouTube/Vimeo URLs from settings
   - Limits to above-the-fold (first 3 sections)
   - Supports direct URLs and Elementor format
   - Preserves video titles and metadata
-
 - **Lazy Iframe Loading** - Creates iframe on demand
+
   - YouTube: Uses embed.youtube.com endpoint
-  - Vimeo: Uses player.vimeo.com endpoint  
+  - Vimeo: Uses player.vimeo.com endpoint
   - Auto-plays when user clicks facade
   - Preloads vendor script on interaction
 
@@ -1168,14 +1335,15 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Added
 
 - **Google Tag Manager Management**: Complete GTM integration with async/defer loading strategies
+
   - Smart conflict detection - automatically detects existing GTM implementations (plugins, themes, hardcoded)
   - Safety-first approach - always defers to existing implementations to prevent site breakage
   - Six load strategies: Immediate, Balanced (3s - default), Aggressive (5s), User Interaction, Browser Idle, Custom delay
   - Container validation with GTM-XXXXXXX format checking
   - New "GTM & Tracking" admin tab with intuitive interface
   - Re-scan functionality with cache clearing
-
 - **GTM Core Classes** (3 new classes):
+
   - `GTM_Detector`: Three-layer detection system - scans plugins (GTM4WP, Site Kit, MonsterInsights), theme files, and output buffer for existing GTM
   - `GTM_Manager`: Frontend GTM loader with configurable delay strategies and JavaScript delay controllers
   - `GTM_Settings`: Admin settings interface with real-time conflict reporting and container ID validation
@@ -1223,24 +1391,25 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Added
 
 - **New Infrastructure Classes**:
+
   - `Autoloader`: PSR-4 autoloader with kebab-case file naming
   - `Loader`: Centralized hook management system
   - `Activator`/`Deactivator`: Clean activation/deactivation handlers
   - `CoreBoost`: Main orchestrator with singleton pattern and dependency injection
-
 - **New Core Utility Classes**:
+
   - `Config`: Centralized configuration management
   - `Cache_Manager`: Unified cache operations (hero cache, third-party caches)
   - `Debug_Helper`: Debug comment output utility
   - `Field_Renderer`: Reusable form field rendering
-
 - **New Admin Classes**:
+
   - `Admin`: Admin area coordinator
   - `Settings`: Settings registration and sanitization
   - `Settings_Page`: Admin page HTML rendering with tabs
   - `Admin_Bar`: WordPress admin bar menu integration
-
 - **New Frontend Optimizer Classes**:
+
   - `Hero_Optimizer`: LCP optimization and hero image preloading (5 methods)
   - `Script_Optimizer`: JavaScript defer/async with jQuery dependency detection
   - `CSS_Optimizer`: CSS deferring, critical CSS output, pattern matching
@@ -1267,11 +1436,12 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Improved
 
 - **Enhanced Unused Resource Removal**: Changed from `wp_print_scripts`/`wp_print_styles` to `wp_enqueue_scripts` hook at `PHP_INT_MAX` priority
+
   - Now catches scripts/styles enqueued late in the process (e.g., via theme functions.php)
   - Ensures removal runs after ALL other enqueue operations complete
   - Fixes issue where scripts added via `wp_enqueue_scripts` hook weren't being removed
-
 - **Comprehensive Debug Logging**: Enhanced debug output for unused resource removal
+
   - Shows total number of handles being processed
   - Displays which handles were successfully removed (✓)
   - Identifies handles that weren't found (✗) with explanation
@@ -1283,12 +1453,13 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Added
 
 - **Unused CSS/JS Removal**: Manual control to dequeue and deregister specific resource handles
+
   - New "Remove Unused CSS" option with textarea for CSS handles (one per line)
   - New "Remove Unused JavaScript" option with textarea for JS handles (one per line)
   - Uses `wp_dequeue_style()`, `wp_deregister_style()`, `wp_dequeue_script()`, `wp_deregister_script()`
   - Debug mode shows which resources were removed in HTML comments
-  
 - **YouTube Player Resource Blocking**: Targeted optimization for background videos
+
   - "Block YouTube Player CSS" option prevents `www.youtube.com/s/player` CSS from loading
   - "Block YouTube Embed UI" option blocks `youtube.com/yts/` scripts
   - Useful for autoplay background videos that don't need player controls
@@ -1305,12 +1476,12 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Improved
 
 - **jQuery Dependency Protection**: Enhanced script deferring to automatically detect jQuery dependencies
+
   - Checks WordPress's `$wp_scripts` dependency graph for jQuery dependencies
   - Forces `defer` (not `async`) for any script that depends on jQuery
   - Protects Elementor and other jQuery-dependent plugins from loading before jQuery
   - Prevents jQuery errors even if scripts are mistakenly added to async list
   - Better debug messages showing when scripts are deferred due to jQuery dependency
-
 - **Advanced Tab Description**: Updated section description to mention unused resource removal functionality
 
 ### Planned Features
@@ -1321,7 +1492,6 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 - Integration with popular caching plugins
 - Automatic critical CSS generation
 - Performance monitoring dashboard
-
 
 ## [1.1.0] - 2024-11-26
 
@@ -1337,17 +1507,18 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Added
 
 - **Async Script Loading Support**: New async attribute support for independent scripts
+
   - Scripts can now be configured to load with `async` (independent) or `defer` (dependent)
   - New admin field "Scripts to Load Async" for specifying independent scripts
   - Pre-configured defaults: YouTube iframe API, iframe-api
   - Dramatically reduces critical request chain by enabling parallel script execution
-  
 - **Script Resource Hints**: jQuery preloading for faster dependency loading
+
   - Automatically preloads jQuery with `fetchpriority="high"`
   - Preloads jQuery migrate with lower priority
   - Ensures critical dependency scripts load as fast as possible
-  
 - **Inline Script Detection**: Output buffer processing for hardcoded script tags
+
   - Detects and optimizes scripts not registered via `wp_enqueue_script()`
   - Automatically applies async to YouTube iframe API (independent script)
   - Applies defer to Elementor, jQuery UI, WordPress dist, WooCommerce scripts
@@ -1357,11 +1528,12 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Fixed
 
 - **YouTube API Render-Blocking**: YouTube iframe API now loads asynchronously
+
   - Prevents YouTube API from blocking page render (saves 400-1,431ms)
   - Works for both enqueued and hardcoded YouTube script tags
   - Independent script execution (no dependencies on other scripts)
-  
 - **Critical Request Chain**: Reduced maximum critical path latency by 70-80%
+
   - Previous: 2,438ms maximum critical path (15 scripts loading serially)
   - After: ~400-600ms (scripts download in parallel)
   - Eliminates network waterfall congestion on main thread
@@ -1370,18 +1542,19 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Changed
 
 - **Enhanced defer_scripts() Method**: Now intelligently chooses between async and defer
+
   - Checks `scripts_to_async` list for independent scripts → applies `async`
   - Checks `scripts_to_defer` list for dependent scripts → applies `defer`
   - Maintains backward compatibility with existing defer configuration
   - Updated debug comments to show async vs defer decisions
-  
 - **Updated Admin UI**: Script optimization section enhanced with async guidance
+
   - Script section description now explains async vs defer differences
   - "Scripts to Defer" field clarified for jQuery-dependent scripts
   - New "Scripts to Load Async" field with examples (youtube-iframe-api, google-analytics, facebook-pixel)
   - "Exclude Scripts" field updated with guidance to keep jQuery excluded
-  
 - **Output Buffer Enhancement**: process_inline_css renamed to process_inline_assets
+
   - Now processes both CSS and JavaScript in single pass
   - Conditional processing based on enable_css_defer and enable_script_defer settings
   - More efficient HTML output processing
@@ -1394,19 +1567,19 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 - **Main Thread Congestion**: Eliminated sequential script processing bottleneck
 - **Core Web Vitals**: Significant improvements to TBT (Total Blocking Time) and TTI (Time to Interactive)
 
-
 ## [1.0.6] - 2024-11-26
 
 ### Added
 
 - **Enhanced Inline CSS Detection**: Output buffer processing to catch hardcoded/inline CSS that bypasses WordPress enqueue system
+
   - Automatically detects and defers Elementor Pro CSS (motion-fx, sticky, etc.)
   - Detects and defers custom theme CSS files (custom-*.css pattern)
   - Handles Widget and animation CSS (widget-*, fadeIn, swiper)
   - Processes uploaded CSS files in wp-content/uploads
   - Pattern matching for plugin CSS (WooCommerce, Contact Form 7, etc.)
-  
 - **Frontend Cache Clearing**: Working admin bar "Clear Cache" button
+
   - Proper nonce-based URL instead of dummy # link
   - Frontend cache clearing handler with security checks
   - Visual success notification with auto-dismiss
@@ -1416,11 +1589,12 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Fixed
 
 - **Critical Request Chain Optimization**: Reduced render-blocking CSS from hardcoded link tags
+
   - Fixes Elementor Pro motion-fx.min.css render-blocking (reduces 200-400ms)
   - Fixes custom CSS files render-blocking (custom-apple-webkit.min.css, etc.)
   - Eliminates critical path latency from inline stylesheets
-  
 - **Admin Bar Cache Clear Bug**: Fixed non-functional cache clear button
+
   - Button previously just added # to URL without clearing cache
   - Now properly clears CoreBoost cache from frontend
   - Shows confirmation message to user
@@ -1443,17 +1617,18 @@ Well, v2.0.0 is where we finally open the doors, flip on the lights, and add som
 ### Added
 
 - **Google Fonts Optimization**: Automatic preconnect and deferred loading for Google Fonts
+
   - Adds `preconnect` links to fonts.googleapis.com and fonts.gstatic.com
   - Converts font stylesheets to use preload with onload handler
   - Automatic `display=swap` parameter addition
   - Debug comments for font optimization tracking
-  
 - **Adobe Fonts (Typekit) Optimization**: Full support for Adobe Fonts
+
   - Preconnect to use.typekit.net
   - Deferred loading with preload method
   - Compatible with both use.typekit.net and fonts.adobe.com URLs
-  
 - **Font Optimization Settings**: New configuration options in CSS tab
+
   - Enable/disable font optimization
   - Separate toggles for Google Fonts and Adobe Fonts
   - Automatic display=swap enforcement option

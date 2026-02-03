@@ -1542,6 +1542,260 @@
 }
 
 /* ============================================
+   Card Selector Component
+   ============================================ */
+.coreboost-card-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 8px 0;
+}
+
+.coreboost-method-card {
+    flex: 1 1 200px;
+    max-width: 240px;
+    min-width: 180px;
+    background: var(--cb-bg-primary);
+    border: 2px solid var(--cb-border-color);
+    border-radius: var(--cb-border-radius);
+    padding: 16px;
+    cursor: pointer;
+    transition: all var(--cb-transition-base);
+    position: relative;
+}
+
+.coreboost-method-card:hover {
+    border-color: var(--cb-primary-light);
+    box-shadow: var(--cb-shadow-md);
+    transform: translateY(-2px);
+}
+
+.coreboost-method-card.selected {
+    border-color: var(--cb-primary);
+    background: rgba(32, 201, 151, 0.05);
+    box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.15);
+}
+
+.coreboost-method-card.selected::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    height: 4px;
+    background: var(--cb-primary);
+    border-radius: var(--cb-border-radius) var(--cb-border-radius) 0 0;
+}
+
+.coreboost-card-radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.coreboost-card-radio:focus-visible + .coreboost-card-content {
+    outline: 2px solid var(--cb-primary);
+    outline-offset: 2px;
+    border-radius: var(--cb-border-radius-sm);
+}
+
+.coreboost-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.coreboost-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--cb-bg-secondary);
+    border-radius: var(--cb-border-radius-sm);
+    margin-bottom: 4px;
+    transition: all var(--cb-transition-base);
+}
+
+.coreboost-method-card.selected .coreboost-card-icon {
+    background: var(--cb-primary);
+}
+
+.coreboost-card-icon .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--cb-secondary);
+    transition: color var(--cb-transition-base);
+}
+
+.coreboost-method-card.selected .coreboost-card-icon .dashicons {
+    color: white;
+}
+
+.coreboost-card-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cb-text-primary);
+    line-height: 1.3;
+}
+
+.coreboost-card-excerpt {
+    font-size: 12px;
+    color: var(--cb-text-muted);
+    line-height: 1.4;
+}
+
+/* Info Trigger Button */
+.coreboost-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--cb-text-muted);
+    transition: color var(--cb-transition-fast);
+    flex-shrink: 0;
+}
+
+.coreboost-info-trigger:hover,
+.coreboost-info-trigger:focus {
+    color: var(--cb-primary);
+}
+
+.coreboost-info-trigger .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Tooltip Styles */
+.coreboost-tooltip {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    max-width: 90vw;
+    background: var(--cb-secondary);
+    color: white;
+    padding: 14px 16px;
+    border-radius: var(--cb-border-radius);
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: var(--cb-shadow-lg);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--cb-transition-fast), visibility var(--cb-transition-fast);
+    pointer-events: none;
+}
+
+.coreboost-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.coreboost-tooltip-content {
+    text-align: left;
+}
+
+.coreboost-tooltip-content strong {
+    color: var(--cb-primary-light);
+}
+
+.coreboost-tooltip-content code {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--cb-accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.coreboost-tooltip-arrow {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--cb-secondary);
+}
+
+/* Migration Notice Styles */
+.coreboost-migration-notice {
+    background: linear-gradient(135deg, rgba(32, 201, 151, 0.08) 0%, rgba(32, 201, 151, 0.02) 100%);
+    border-left-color: var(--cb-primary) !important;
+    padding: 16px 20px !important;
+}
+
+.coreboost-migration-notice .notice-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.coreboost-migration-notice .notice-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--cb-primary);
+    border-radius: var(--cb-border-radius-sm);
+    flex-shrink: 0;
+}
+
+.coreboost-migration-notice .notice-icon .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: white;
+}
+
+.coreboost-migration-notice .notice-text {
+    flex: 1;
+    min-width: 200px;
+}
+
+.coreboost-migration-notice .notice-text strong {
+    color: var(--cb-secondary);
+    font-size: 14px;
+}
+
+.coreboost-migration-notice .notice-text p {
+    margin: 4px 0 0 0;
+    color: var(--cb-text-secondary);
+    font-size: 13px;
+}
+
+.coreboost-migration-notice .button-primary {
+    background: var(--cb-primary) !important;
+    border-color: var(--cb-primary-dark) !important;
+    color: white !important;
+    text-decoration: none;
+    padding: 6px 16px;
+    font-weight: 500;
+}
+
+.coreboost-migration-notice .button-primary:hover {
+    background: var(--cb-primary-dark) !important;
+}
+
+/* ============================================
    Responsive Design
    ============================================ */
 @media (max-width: 1200px) {
@@ -1608,6 +1862,34 @@
     
     .coreboost-db-stats {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Card selector responsive */
+    .coreboost-card-selector {
+        flex-direction: column;
+    }
+    
+    .coreboost-method-card {
+        max-width: none;
+        flex: 1 1 auto;
+    }
+    
+    .coreboost-tooltip {
+        left: 0;
+        right: 0;
+        transform: none;
+        width: auto;
+        max-width: none;
+    }
+    
+    .coreboost-tooltip-arrow {
+        left: 30px;
+        transform: none;
+    }
+    
+    .coreboost-migration-notice .notice-content {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 

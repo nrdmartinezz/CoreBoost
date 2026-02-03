@@ -5,7 +5,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-5.0%2B-blue.svg)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/Version-1.0.0-orange.svg)](https://github.com/nrdmartinezz/CoreBoost/releases)
+[![Version](https://img.shields.io/badge/Version-3.1.1-orange.svg)](https://github.com/nrdmartinezz/CoreBoost/releases)
 
 CoreBoost is a comprehensive WordPress performance optimization plugin designed to dramatically improve your site's Core Web Vitals, particularly Largest Contentful Paint (LCP), through advanced CSS/JS optimization, critical CSS inlining, and intelligent image loading strategies.
 

@@ -43,6 +43,10 @@ class Migration {
             self::migrate_to_3_0_0();
         }
         
+        if (version_compare($from_version, '3.1.0', '<')) {
+            self::migrate_to_3_1_0();
+        }
+        
         // Always merge defaults with existing options to add new settings
         self::merge_option_defaults();
         
@@ -168,6 +172,48 @@ class Migration {
     }
     
     /**
+     * Migrate to version 3.1.0
+     * - Consolidate hero preload methods from 6 to 4
+     * - Set migration notice flag for admin notification
+     */
+    private static function migrate_to_3_1_0() {
+        Context_Helper::debug_log('Migrating to 3.1.0', 'Migration');
+        
+        $options = get_option('coreboost_options', array());
+        
+        // Map old preload methods to new consolidated methods
+        $method_mapping = array(
+            'auto_elementor'    => 'automatic',
+            'featured_fallback' => 'automatic',
+            'smart_detection'   => 'automatic',
+            'advanced_cached'   => 'automatic',
+            'css_class_based'   => 'css_class',
+            'video_fallback'    => 'video_hero',
+            'disabled'          => 'disabled',
+            // Legacy values
+            'elementor_data'    => 'automatic',
+        );
+        
+        if (isset($options['preload_method'])) {
+            $old_method = $options['preload_method'];
+            if (isset($method_mapping[$old_method])) {
+                $options['preload_method'] = $method_mapping[$old_method];
+                Context_Helper::debug_log('Migrated preload_method from ' . $old_method . ' to ' . $options['preload_method'], 'Migration');
+            }
+        }
+        
+        update_option('coreboost_options', $options);
+        
+        // Set flag to show migration notice to admins
+        update_option('coreboost_show_migration_notice_3_1_0', true);
+        
+        // Clear hero cache since methods changed
+        global $wpdb;
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_coreboost_hero_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_coreboost_hero_%'");
+    }
+    
+    /**
      * Merge default options with existing options
      * Adds any new settings while preserving existing values
      */
@@ -220,7 +266,7 @@ class Migration {
      */
     private static function get_default_options() {
         return array(
-            'preload_method' => 'elementor_data',
+            'preload_method' => 'automatic',
             'enable_script_defer' => false,
             'enable_css_defer' => false,
             'enable_foreground_conversion' => false,

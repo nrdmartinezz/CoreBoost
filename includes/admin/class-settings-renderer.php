@@ -128,17 +128,41 @@ class Settings_Renderer {
      * Preload method field callback
      */
     public function preload_method_callback() {
-        $value = isset($this->options['preload_method']) ? $this->options['preload_method'] : 'auto_elementor';
-        $methods = array(
-            'auto_elementor' => __('Auto-detect from Elementor Data', 'coreboost'),
-            'featured_fallback' => __('Featured Image with Fallback', 'coreboost'),
-            'smart_detection' => __('Smart Detection with Manual Override', 'coreboost'),
-            'advanced_cached' => __('Advanced with Caching', 'coreboost'),
-            'css_class_based' => __('CSS Class-Based Detection', 'coreboost'),
-            'disabled' => __('Disabled', 'coreboost')
+        $value = isset($this->options['preload_method']) ? $this->options['preload_method'] : 'automatic';
+        
+        // Consolidated preload methods with card configuration
+        $cards = array(
+            array(
+                'key' => 'automatic',
+                'title' => __('Automatic', 'coreboost'),
+                'icon' => 'dashicons-visibility',
+                'excerpt' => __('Smart detection from page builder data', 'coreboost'),
+                'tooltip' => __('<strong>Recommended for most sites.</strong><br><br>Automatically scans Elementor data to find hero background images. Uses caching for optimal performance.<br><br><strong>Best for:</strong> Sites using Elementor with background images in hero sections.<br><br><strong>How it works:</strong> Recursively searches the first few elements of your page builder data to locate the primary hero image.', 'coreboost'),
+            ),
+            array(
+                'key' => 'css_class',
+                'title' => __('CSS Class', 'coreboost'),
+                'icon' => 'dashicons-editor-code',
+                'excerpt' => __('Target images with specific CSS classes', 'coreboost'),
+                'tooltip' => __('<strong>For precise manual control.</strong><br><br>Add the class <code>hero-image</code> or <code>lcp-image</code> to any Elementor image widget you want preloaded.<br><br><strong>Best for:</strong> Sites where automatic detection doesn\'t work correctly, or when you need to preload a specific foreground image.<br><br><strong>How it works:</strong> Searches for image widgets with matching CSS classes and preloads the first match.', 'coreboost'),
+            ),
+            array(
+                'key' => 'video_hero',
+                'title' => __('Video Hero', 'coreboost'),
+                'icon' => 'dashicons-video-alt3',
+                'excerpt' => __('Optimized for video background sections', 'coreboost'),
+                'tooltip' => __('<strong>For video background hero sections.</strong><br><br>Preloads the fallback thumbnail image while deferring YouTube/Vimeo video loading until after page load.<br><br><strong>Best for:</strong> Sites with YouTube or Vimeo video backgrounds in the hero section.<br><br><strong>How it works:</strong> Extracts the video thumbnail URL (or Elementor\'s fallback image) and preloads it for fast LCP while the actual video loads later.', 'coreboost'),
+            ),
+            array(
+                'key' => 'disabled',
+                'title' => __('Disabled', 'coreboost'),
+                'icon' => 'dashicons-dismiss',
+                'excerpt' => __('No hero preloading', 'coreboost'),
+                'tooltip' => __('<strong>Turn off hero preloading.</strong><br><br>Use this if another plugin handles hero image optimization, or if you\'re experiencing conflicts.<br><br><strong>Note:</strong> Disabling this may negatively impact your LCP (Largest Contentful Paint) score.', 'coreboost'),
+            ),
         );
         
-        Field_Renderer::render_select('preload_method', $value, $methods, 'auto_elementor', __('Choose how hero images should be detected and preloaded.', 'coreboost'));
+        Field_Renderer::render_card_selector('preload_method', $value, $cards);
     }
     
     /**

@@ -103,8 +103,14 @@ class Admin {
         // AJAX error logging
         $this->loader->add_action('wp_ajax_coreboost_log_error', $this, 'ajax_log_error');
         
+        // AJAX notice dismissal
+        $this->loader->add_action('wp_ajax_coreboost_dismiss_notice', $this, 'ajax_dismiss_notice');
+        
         // Frontend cache clearing handler
         $this->loader->add_action('init', $this, 'handle_frontend_cache_clear');
+        
+        // Migration notice
+        $this->loader->add_action('admin_notices', $this, 'show_migration_notice');
     }
     
     /**
@@ -472,5 +478,71 @@ class Admin {
         }
         
         wp_send_json_success(['logged' => true]);
+    }
+    
+    /**
+     * Show migration notice for v3.1.0 preload method changes
+     */
+    public function show_migration_notice() {
+        // Check if notice should be shown
+        if (!get_option('coreboost_show_migration_notice_3_1_0')) {
+            return;
+        }
+        
+        // Check if user has dismissed the notice
+        $user_id = get_current_user_id();
+        if (get_user_meta($user_id, 'coreboost_dismissed_notice_3_1_0', true)) {
+            return;
+        }
+        
+        // Only show to users who can manage options
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
+        $settings_url = admin_url('admin.php?page=coreboost-optimizations&tab=media#hero');
+        ?>
+        <div class="notice notice-info is-dismissible coreboost-migration-notice" data-notice-id="3_1_0">
+            <div class="notice-content">
+                <div class="notice-icon">
+                    <span class="dashicons dashicons-performance"></span>
+                </div>
+                <div class="notice-text">
+                    <strong><?php _e('CoreBoost 3.1.0 - Improved Hero Optimization', 'coreboost'); ?></strong>
+                    <p><?php _e('Hero preload methods have been simplified for easier configuration. Review your settings to ensure optimal LCP performance.', 'coreboost'); ?></p>
+                </div>
+                <a href="<?php echo esc_url($settings_url); ?>" class="button button-primary">
+                    <?php _e('Review Settings', 'coreboost'); ?>
+                </a>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * AJAX handler for dismissing admin notices
+     */
+    public function ajax_dismiss_notice() {
+        // Verify nonce
+        $nonce = filter_input(INPUT_POST, 'nonce', FILTER_SANITIZE_SPECIAL_CHARS);
+        if (!$nonce || !wp_verify_nonce($nonce, 'coreboost_clear_cache_nonce')) {
+            wp_send_json_error(__('Security check failed', 'coreboost'));
+        }
+        
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Insufficient permissions', 'coreboost'));
+        }
+        
+        $notice_id = filter_input(INPUT_POST, 'notice_id', FILTER_SANITIZE_SPECIAL_CHARS);
+        if (!$notice_id) {
+            wp_send_json_error(__('Invalid notice ID', 'coreboost'));
+        }
+        
+        // Store dismissal in user meta
+        $user_id = get_current_user_id();
+        update_user_meta($user_id, 'coreboost_dismissed_notice_' . $notice_id, true);
+        
+        wp_send_json_success(['dismissed' => true]);
     }
 }
