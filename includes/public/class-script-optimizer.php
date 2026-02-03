@@ -83,6 +83,19 @@ class Script_Optimizer {
     public function defer_scripts($tag, $handle) {
         if (!$this->options['enable_script_defer'] || is_admin()) return $tag;
         
+        // WordPress Core Script Defer - handle wp-hooks, wp-i18n, wp-dom-ready
+        // These are deferred separately to break critical request chains
+        if (!empty($this->options['enable_wp_core_defer'])) {
+            $wp_core_handles = array('wp-hooks', 'wp-i18n', 'wp-dom-ready');
+            if (in_array($handle, $wp_core_handles)) {
+                // Only add defer if not already present
+                if (strpos($tag, ' defer') === false && strpos($tag, ' async') === false) {
+                    return str_replace(' src', ' defer src', $tag);
+                }
+                return $tag;
+            }
+        }
+        
         // Check excluded scripts using new exclusions system
         if ($this->exclusions->is_excluded($handle)) {
             return $tag;
@@ -148,6 +161,14 @@ class Script_Optimizer {
             'jquery-migrate' => 'low',
             'jquery-ui-core' => 'low'
         );
+        
+        // Add WordPress core scripts for preload when defer is enabled
+        // This enables parallel download while scripts are deferred
+        if (!empty($this->options['enable_wp_core_defer'])) {
+            $critical_scripts['wp-hooks'] = 'high';
+            $critical_scripts['wp-i18n'] = 'high';
+            $critical_scripts['wp-dom-ready'] = 'low';
+        }
         
         foreach ($critical_scripts as $handle => $priority) {
             if (isset($wp_scripts->registered[$handle])) {

@@ -110,7 +110,7 @@ class Settings_Sanitizer {
             'image' => isset($input['enable_image_optimization']) || isset($input['enable_lazy_loading']) || isset($input['add_width_height_attributes']) || isset($input['generate_aspect_ratio_css']) || isset($input['add_decoding_async']),
             'advanced' => isset($input['unused_css_list']) || isset($input['unused_js_list']) || isset($input['inline_script_ids']) || isset($input['inline_style_ids']),
             'tag' => isset($input['tag_head_scripts']) || isset($input['tag_body_scripts']) || isset($input['tag_footer_scripts']) || isset($input['tag_load_strategy']),
-            'script_advanced' => isset($input['enable_default_exclusions']) || isset($input['script_exclusion_patterns']) || isset($input['script_load_strategy']) || isset($input['script_custom_delay']),
+            'script_advanced' => isset($input['enable_default_exclusions']) || isset($input['script_exclusion_patterns']) || isset($input['script_load_strategy']) || isset($input['script_custom_delay']) || isset($input['enable_wp_core_defer']),
             'optimization_advanced' => isset($input['script_wildcard_patterns']) || isset($input['script_regex_patterns']) || isset($input['script_plugin_profiles']) || isset($input['enable_event_hijacking']) || isset($input['event_hijack_triggers']) || isset($input['script_load_priority'])
         );
     }
@@ -202,7 +202,7 @@ class Settings_Sanitizer {
                 'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
                 'smart_youtube_blocking', 'smart_video_facades', 'block_youtube_player_css', 'block_youtube_embed_ui',
                 'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes',
-                'generate_aspect_ratio_css', 'add_decoding_async'
+                'generate_aspect_ratio_css', 'add_decoding_async', 'enable_wp_core_defer'
             ),
             'textarea' => array(
                 'scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',

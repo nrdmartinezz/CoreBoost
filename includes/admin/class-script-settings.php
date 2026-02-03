@@ -51,6 +51,15 @@ class Script_Settings {
             'coreboost_script_exclusions_section'
         );
 
+        // WordPress Core Script Defer toggle
+        add_settings_field(
+            'enable_wp_core_defer',
+            'Defer WordPress Core Scripts',
+            array($this, 'enable_wp_core_defer_callback'),
+            'coreboost-scripts',
+            'coreboost_script_exclusions_section'
+        );
+
         // Custom exclusion patterns field
         add_settings_field(
             'script_exclusion_patterns',
@@ -119,6 +128,29 @@ class Script_Settings {
         <p class="description">
             <?php esc_html_e('When enabled, common scripts like jQuery, WordPress utilities, and popular plugin scripts are automatically excluded from deferring to prevent compatibility issues.', 'coreboost'); ?>
         </p>
+        <?php
+    }
+
+    /**
+     * Enable WordPress Core Script Defer callback
+     */
+    public function enable_wp_core_defer_callback() {
+        $value = isset($this->options['enable_wp_core_defer']) ? $this->options['enable_wp_core_defer'] : false;
+        $checked = $value ? 'checked' : '';
+        ?>
+        <input 
+            type="checkbox" 
+            name="coreboost_options[enable_wp_core_defer]" 
+            value="1"
+            <?php echo esc_attr($checked); ?>
+        >
+        <label><?php esc_html_e('Defer WordPress core dist scripts (wp-hooks, wp-i18n, wp-dom-ready)', 'coreboost'); ?></label>
+        <p class="description">
+            <?php esc_html_e('Breaks render-blocking chains by deferring WordPress core JavaScript packages. This reduces critical request chain latency in PageSpeed Insights while preserving execution order.', 'coreboost'); ?>
+        </p>
+        <div class="notice notice-warning inline" style="margin-top: 10px;">
+            <p><strong>⚠️ <?php esc_html_e('Important:', 'coreboost'); ?></strong> <?php esc_html_e('Test thoroughly after enabling. Some Block Editor plugins or themes with inline scripts may require these to load synchronously.', 'coreboost'); ?></p>
+        </div>
         <?php
     }
 
@@ -258,6 +290,14 @@ class Script_Settings {
         } else {
             // Checkbox was unchecked - explicitly set to false
             $sanitized['enable_default_exclusions'] = false;
+        }
+
+        // Sanitize enable_wp_core_defer (handle both checked and unchecked)
+        if (isset($input['enable_wp_core_defer'])) {
+            $sanitized['enable_wp_core_defer'] = !empty($input['enable_wp_core_defer']);
+        } else {
+            // Checkbox was unchecked - explicitly set to false
+            $sanitized['enable_wp_core_defer'] = false;
         }
 
         // Sanitize script_exclusion_patterns

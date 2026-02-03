@@ -330,6 +330,8 @@ class CoreBoost {
             'add_width_height_attributes' => true,
             'generate_aspect_ratio_css' => true,
             'add_decoding_async' => true,
+            // WordPress Core Script Optimization (v3.1.0)
+            'enable_wp_core_defer' => false,
         );
     }
 }
