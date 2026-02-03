@@ -71,7 +71,14 @@ class Delay_JS_Optimizer {
         'jquery-migrate',
         'jquery-ui-core',
         'jquery-ui-widget',
+        'jquery-ui-position',
+        'jquery-ui-mouse',
+        'jquery-ui-sortable',
+        'jquery-ui-draggable',
+        'jquery-ui-droppable',
+        'jquery-ui-resizable',
         'jquery-effects-core',
+        'jquery-effects-slide',
         
         // WordPress core essentials
         'wp-embed',
@@ -182,6 +189,16 @@ class Delay_JS_Optimizer {
     private function is_excluded($handle, $src = '') {
         // Always exclude core delay exclusions
         if (in_array($handle, $this->default_delay_exclusions, true)) {
+            return true;
+        }
+        
+        // Exclude Elementor scripts by URL path (catches all Elementor assets)
+        if ($src && strpos($src, '/elementor/') !== false) {
+            return true;
+        }
+        
+        // Exclude Elementor Pro scripts by URL path
+        if ($src && strpos($src, '/elementor-pro/') !== false) {
             return true;
         }
 
