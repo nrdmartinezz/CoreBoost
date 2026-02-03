@@ -5,6 +5,71 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] - 2026-02-02
+
+### 🚀 Delay JavaScript & Custom Preconnect URLs
+
+This release adds two powerful advanced optimization features to significantly reduce JavaScript execution time and improve connection performance for third-party resources.
+
+### Added
+
+#### Delay JavaScript Execution (Advanced)
+
+- **New `Delay_JS_Optimizer` class** delays non-critical JavaScript until user interaction
+
+  - Replaces `<script src>` with `<script type="coreboost/delayed" data-coreboost-src>`
+  - Injects lightweight loader script that restores scripts on trigger
+  - Significantly reduces Total Blocking Time (TBT) and improves Time to Interactive (TTI)
+- **Multiple trigger strategies:**
+
+  - **User Interaction** (recommended) - Loads on mouse, keyboard, touch, or scroll events
+  - **Browser Idle** - Uses `requestIdleCallback` when browser is idle
+  - **Page Load Complete** - Loads after window load event
+  - **Custom Delay** - Configurable fixed delay (0-10,000ms)
+- **Configurable fallback timeout** (1-20 seconds) ensures scripts eventually load even without interaction
+- **Flexible exclusion patterns:**
+
+  - Exact match: `jquery-core`
+  - Wildcard patterns: `*.gstatic.com/*`, `elementor-*`
+  - Regex patterns: `/recaptcha|grecaptcha/i`
+  - Option to use same default exclusions as script deferring (jQuery, WP core, analytics, etc.)
+- **Optional inline script delaying** (experimental) for advanced users
+
+#### Custom Preconnect URLs (Advanced)
+
+- **New preconnect URL textarea** in Advanced settings
+
+  - Add custom preconnect hints for third-party domains
+  - Reduces DNS lookup and connection establishment time
+  - One URL per line format
+- **Smart URL validation:**
+
+  - Automatically extracts origin (scheme + host) from URLs
+  - Silently skips invalid URLs
+  - Prevents duplicate preconnect entries
+  - Only allows http/https protocols
+- **Helpful documentation** with common preconnect domains:
+
+  - `https://www.googletagmanager.com` - Google Tag Manager
+  - `https://www.gstatic.com` - Google reCAPTCHA & services
+  - `https://www.google-analytics.com` - Google Analytics
+  - `https://connect.facebook.net` - Facebook Pixel
+
+### Changed
+
+- **Extended `Font_Optimizer` class** with `add_custom_preconnects()` method
+- **Updated `Advanced_Optimization_Settings`** with two new sections and 8 new settings fields
+- **Added 9 new field configurations** to `Config` class
+
+### Technical Details
+
+- New file: `includes/public/class-delay-js-optimizer.php` (536 lines)
+- Sequential script loading preserves dependency order
+- Custom events dispatched for analytics: `coreboost_delay_scripts_loading`, `coreboost_delay_scripts_loaded`
+- Full integration with existing `Script_Exclusions` and `Pattern_Matcher` classes
+
+---
+
 ## [3.1.1] - 2026-02-02
 
 ### 🎯 Simplified Hero Preload Settings with Modern UI
@@ -91,7 +156,7 @@ This release consolidates the 6 hero preload methods into 4 clear, easy-to-under
 
 ---
 
-## [3.1.0] - 2025-01-XX
+## [3.1.0] - 2026-01-XX
 
 ### 🎯 Streamlined Image Optimization
 
@@ -153,7 +218,7 @@ This release removes the bulk image converter feature in favor of dedicated imag
 
 ---
 
-## [3.0.9] - 2025-01-28
+## [3.0.9] - 2026-01-28
 
 ### 🎬 YouTube Video Background & CSS Background LCP Fix
 
@@ -201,7 +266,7 @@ This release fixes the LCP (Largest Contentful Paint) issue for pages with YouTu
     - `$elementor->editor->is_edit_mode()` (Elementor's own edit mode detection)
   - Prevents 520/522 server errors caused by optimizations running during admin/editor requests
 
-## [3.0.8] - 2025-01-27
+## [3.0.8] - 2026-01-27
 
 ### 🚀 LCP Optimization & Browser Cache Headers
 
@@ -309,7 +374,7 @@ Variant_Cache_Headers::ensure_htaccess_on_init();
 wp_ajax_coreboost_regenerate_cache_headers
 ```
 
-## [3.0.7] - 2025-01-26
+## [3.0.7] - 2026-01-26
 
 ### 🛠️ Code Quality & Architecture Improvements
 

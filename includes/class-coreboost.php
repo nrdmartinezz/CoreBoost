@@ -18,6 +18,7 @@ use CoreBoost\PublicCore\Font_Optimizer;
 use CoreBoost\PublicCore\Resource_Remover;
 use CoreBoost\PublicCore\Tag_Manager;
 use CoreBoost\PublicCore\Image_Optimizer;
+use CoreBoost\PublicCore\Delay_JS_Optimizer;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -105,6 +106,13 @@ class CoreBoost {
      * @var Image_Optimizer
      */
     private $image_optimizer;
+    
+    /**
+     * Delay JS optimizer instance
+     *
+     * @var Delay_JS_Optimizer
+     */
+    private $delay_js_optimizer;
     
     /**
      * Analytics engine instance
@@ -196,6 +204,9 @@ class CoreBoost {
             
             // Initialize image optimizer
             $this->image_optimizer = new Image_Optimizer($this->options, $this->loader);
+            
+            // Initialize delay JS optimizer (Phase 5 - Advanced)
+            $this->delay_js_optimizer = new Delay_JS_Optimizer($this->options, $this->loader);
             
             // Initialize video facade for click-to-play videos
             new \CoreBoost\PublicCore\Video_Facade($this->options, $this->loader);
@@ -302,6 +313,16 @@ class CoreBoost {
             'enable_recommendations' => true,
             // Smart YouTube blocking (v2.0.3)
             'smart_youtube_blocking' => false,
+            // Delay JavaScript (v3.1.0)
+            'enable_delay_js' => false,
+            'delay_js_trigger' => 'user_interaction',
+            'delay_js_timeout' => 10000,
+            'delay_js_custom_delay' => 3000,
+            'delay_js_include_inline' => false,
+            'delay_js_use_default_exclusions' => true,
+            'delay_js_exclusions' => '',
+            // Custom Preconnect URLs (v3.1.0)
+            'custom_preconnect_urls' => '',
             // Image Optimization
             'enable_image_optimization' => true,
             'enable_lazy_loading' => true,

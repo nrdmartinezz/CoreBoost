@@ -61,7 +61,17 @@ class Config {
             // Font Optimization - Preconnect Settings
             'preconnect_google_fonts' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable preconnect to fonts.googleapis.com for faster Google Fonts loading. Reduces DNS lookup and connection time.'),
             'preconnect_adobe_fonts' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable preconnect to use.typekit.net for faster Adobe Fonts loading. Reduces DNS lookup and connection time.'),
-            'font_display_swap' => array('type' => 'checkbox', 'default' => true, 'description' => 'Use font-display: swap to display fallback fonts immediately while web fonts load, improving perceived performance and preventing blank text.')
+            'font_display_swap' => array('type' => 'checkbox', 'default' => true, 'description' => 'Use font-display: swap to display fallback fonts immediately while web fonts load, improving perceived performance and preventing blank text.'),
+            // Delay JavaScript (Advanced)
+            'enable_delay_js' => array('type' => 'checkbox', 'default' => false, 'description' => 'Delay JavaScript execution until user interaction to reduce Total Blocking Time (TBT) and improve Time to Interactive (TTI).'),
+            'delay_js_trigger' => array('type' => 'select', 'default' => 'user_interaction', 'description' => 'Choose when delayed scripts should execute.', 'options' => array('user_interaction' => 'User Interaction (click, scroll, touch)', 'browser_idle' => 'Browser Idle (requestIdleCallback)', 'page_load_complete' => 'Page Load Complete', 'custom_delay' => 'Custom Delay (ms)')),
+            'delay_js_timeout' => array('type' => 'slider', 'default' => 10000, 'min' => 1000, 'max' => 20000, 'step' => 500, 'description' => 'Fallback timeout in milliseconds. Scripts will load after this time even without user interaction.'),
+            'delay_js_custom_delay' => array('type' => 'slider', 'default' => 3000, 'min' => 0, 'max' => 10000, 'step' => 500, 'description' => 'Custom delay in milliseconds (only used when trigger is set to Custom Delay).'),
+            'delay_js_include_inline' => array('type' => 'checkbox', 'default' => false, 'description' => 'Also delay inline scripts matching exclusion patterns. Use with caution as this may affect functionality.'),
+            'delay_js_use_default_exclusions' => array('type' => 'checkbox', 'default' => true, 'description' => 'Use the same default exclusions as script deferring (jQuery, WP core, analytics, etc.). Recommended to prevent breaking critical functionality.'),
+            'delay_js_exclusions' => array('type' => 'textarea', 'rows' => 6, 'description' => 'Scripts to exclude from delay (one pattern per line). Supports exact matches, wildcards (*), and regex (/pattern/flags). These scripts will load normally.'),
+            // Custom Preconnect URLs (Advanced)
+            'custom_preconnect_urls' => array('type' => 'textarea', 'rows' => 5, 'description' => 'Add custom preconnect URLs to reduce DNS/connection time for third-party resources. One URL per line (e.g., https://fonts.gstatic.com).')
         );
     }
     

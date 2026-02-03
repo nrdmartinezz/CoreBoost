@@ -55,6 +55,7 @@ class Font_Optimizer {
     private function define_hooks() {
         $this->loader->add_filter('style_loader_tag', $this, 'optimize_font_loading', 10, 4);
         $this->loader->add_action('wp_head', $this, 'add_font_preconnects', 1);
+        $this->loader->add_action('wp_head', $this, 'add_custom_preconnects', 1);
     }
     
     /**
@@ -120,6 +121,76 @@ class Font_Optimizer {
         }
         
         if (!empty($preconnects)) {
+            echo implode("\n", $preconnects) . "\n";
+        }
+    }
+
+    /**
+     * Add custom preconnect links from user settings
+     */
+    public function add_custom_preconnects() {
+        // Don't output on admin or preview contexts
+        if (Context_Helper::should_skip_optimization()) {
+            return;
+        }
+
+        // Get custom preconnect URLs
+        $custom_urls = isset($this->options['custom_preconnect_urls']) 
+            ? $this->options['custom_preconnect_urls'] 
+            : '';
+
+        if (empty($custom_urls)) {
+            return;
+        }
+
+        // Parse URLs (one per line)
+        $urls = array_filter(array_map('trim', explode("\n", $custom_urls)));
+        
+        if (empty($urls)) {
+            return;
+        }
+
+        $preconnects = array();
+
+        foreach ($urls as $url) {
+            // Skip empty lines
+            if (empty($url)) {
+                continue;
+            }
+
+            // Validate URL - silently skip invalid URLs
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                continue;
+            }
+
+            // Parse URL to get just the origin (scheme + host)
+            $parsed = wp_parse_url($url);
+            
+            // Must have scheme and host
+            if (empty($parsed['scheme']) || empty($parsed['host'])) {
+                continue;
+            }
+
+            // Only allow http/https
+            if (!in_array($parsed['scheme'], array('http', 'https'), true)) {
+                continue;
+            }
+
+            // Build origin URL (scheme + host + optional port)
+            $origin = $parsed['scheme'] . '://' . $parsed['host'];
+            if (!empty($parsed['port'])) {
+                $origin .= ':' . $parsed['port'];
+            }
+
+            // Avoid duplicates
+            $preconnect_tag = '<link rel="preconnect" href="' . esc_url($origin) . '" crossorigin>';
+            if (!in_array($preconnect_tag, $preconnects, true)) {
+                $preconnects[] = $preconnect_tag;
+            }
+        }
+
+        if (!empty($preconnects)) {
+            echo "<!-- CoreBoost Custom Preconnects -->\n";
             echo implode("\n", $preconnects) . "\n";
         }
     }

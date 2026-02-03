@@ -105,6 +105,94 @@ class Advanced_Optimization_Settings {
             'coreboost-advanced',
             'coreboost_event_hijacking_section'
         );
+
+        // Phase 5: Delay JavaScript Section
+        add_settings_section(
+            'coreboost_delay_js_section',
+            __('Delay JavaScript Execution', 'coreboost'),
+            array($this, 'delay_js_section_callback'),
+            'coreboost-advanced'
+        );
+
+        // Enable delay JS
+        add_settings_field(
+            'enable_delay_js',
+            __('Enable Delay JavaScript', 'coreboost'),
+            array($this, 'enable_delay_js_callback'),
+            'coreboost-advanced',
+            'coreboost_delay_js_section'
+        );
+
+        // Delay JS trigger strategy
+        add_settings_field(
+            'delay_js_trigger',
+            __('Trigger Strategy', 'coreboost'),
+            array($this, 'delay_js_trigger_callback'),
+            'coreboost-advanced',
+            'coreboost_delay_js_section'
+        );
+
+        // Delay JS timeout
+        add_settings_field(
+            'delay_js_timeout',
+            __('Fallback Timeout', 'coreboost'),
+            array($this, 'delay_js_timeout_callback'),
+            'coreboost-advanced',
+            'coreboost_delay_js_section'
+        );
+
+        // Delay JS custom delay
+        add_settings_field(
+            'delay_js_custom_delay',
+            __('Custom Delay', 'coreboost'),
+            array($this, 'delay_js_custom_delay_callback'),
+            'coreboost-advanced',
+            'coreboost_delay_js_section'
+        );
+
+        // Delay JS include inline
+        add_settings_field(
+            'delay_js_include_inline',
+            __('Include Inline Scripts', 'coreboost'),
+            array($this, 'delay_js_include_inline_callback'),
+            'coreboost-advanced',
+            'coreboost_delay_js_section'
+        );
+
+        // Delay JS use default exclusions
+        add_settings_field(
+            'delay_js_use_default_exclusions',
+            __('Use Default Exclusions', 'coreboost'),
+            array($this, 'delay_js_use_default_exclusions_callback'),
+            'coreboost-advanced',
+            'coreboost_delay_js_section'
+        );
+
+        // Delay JS exclusions
+        add_settings_field(
+            'delay_js_exclusions',
+            __('Custom Exclusions', 'coreboost'),
+            array($this, 'delay_js_exclusions_callback'),
+            'coreboost-advanced',
+            'coreboost_delay_js_section'
+        );
+
+        // Phase 6: Custom Preconnect URLs Section
+        add_settings_section(
+            'coreboost_preconnect_section',
+            __('Custom Preconnect URLs', 'coreboost'),
+            array($this, 'preconnect_section_callback'),
+            'coreboost-advanced'
+        );
+
+        // Custom preconnect URLs
+        add_settings_field(
+            'custom_preconnect_urls',
+            __('Preconnect URLs', 'coreboost'),
+            array($this, 'custom_preconnect_urls_callback'),
+            'coreboost-advanced',
+            'coreboost_preconnect_section'
+        );
     }
 
     /**
@@ -373,6 +461,248 @@ class Advanced_Optimization_Settings {
     }
 
     /**
+     * Delay JavaScript section callback
+     */
+    public function delay_js_section_callback() {
+        ?>
+        <p><?php esc_html_e('Delay JavaScript execution until user interaction to reduce Total Blocking Time (TBT) and improve Time to Interactive (TTI). This is particularly effective for third-party scripts like analytics, chat widgets, and advertising.', 'coreboost'); ?></p>
+        <div class="notice notice-warning inline">
+            <p><strong><?php esc_html_e('⚠️ Important:', 'coreboost'); ?></strong> <?php esc_html_e('Test thoroughly after enabling. Some scripts may break if delayed. Use exclusions to keep critical scripts loading normally.', 'coreboost'); ?></p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Enable delay JS callback
+     */
+    public function enable_delay_js_callback() {
+        $value = isset($this->options['enable_delay_js']) ? $this->options['enable_delay_js'] : false;
+        $checked = $value ? 'checked' : '';
+        ?>
+        <input 
+            type="checkbox" 
+            name="coreboost_options[enable_delay_js]" 
+            id="enable_delay_js"
+            value="1"
+            <?php echo esc_attr($checked); ?>
+        >
+        <label for="enable_delay_js"><?php esc_html_e('Delay non-critical JavaScript until user interaction', 'coreboost'); ?></label>
+        <p class="description">
+            <?php esc_html_e('Scripts are stored as text/template and only executed when triggered. This can significantly reduce TBT but requires careful exclusion management.', 'coreboost'); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Delay JS trigger strategy callback
+     */
+    public function delay_js_trigger_callback() {
+        $value = isset($this->options['delay_js_trigger']) ? $this->options['delay_js_trigger'] : 'user_interaction';
+        $delay_enabled = isset($this->options['enable_delay_js']) && $this->options['enable_delay_js'];
+        
+        $triggers = [
+            'user_interaction' => [
+                'label' => 'User Interaction',
+                'description' => 'Load scripts on mouse, keyboard, touch, or scroll events (recommended)'
+            ],
+            'browser_idle' => [
+                'label' => 'Browser Idle',
+                'description' => 'Load scripts when browser is idle via requestIdleCallback'
+            ],
+            'page_load_complete' => [
+                'label' => 'Page Load Complete',
+                'description' => 'Load scripts after the window load event fires'
+            ],
+            'custom_delay' => [
+                'label' => 'Custom Delay',
+                'description' => 'Load scripts after a fixed delay (configured below)'
+            ],
+        ];
+        ?>
+        <fieldset <?php echo !$delay_enabled ? 'style="opacity: 0.6;"' : ''; ?>>
+            <?php foreach ($triggers as $trigger_key => $trigger): ?>
+                <label style="display: block; margin-bottom: 10px;">
+                    <input 
+                        type="radio" 
+                        name="coreboost_options[delay_js_trigger]" 
+                        value="<?php echo esc_attr($trigger_key); ?>"
+                        <?php checked($value, $trigger_key); ?>
+                        <?php echo !$delay_enabled ? 'disabled' : ''; ?>
+                    >
+                    <strong><?php echo esc_html($trigger['label']); ?></strong>
+                    <br>
+                    <span style="margin-left: 25px; color: #666; font-size: 12px;">
+                        <?php echo esc_html($trigger['description']); ?>
+                    </span>
+                </label>
+            <?php endforeach; ?>
+        </fieldset>
+        <?php
+    }
+
+    /**
+     * Delay JS timeout callback
+     */
+    public function delay_js_timeout_callback() {
+        $value = isset($this->options['delay_js_timeout']) ? intval($this->options['delay_js_timeout']) : 10000;
+        $delay_enabled = isset($this->options['enable_delay_js']) && $this->options['enable_delay_js'];
+        ?>
+        <input 
+            type="range" 
+            name="coreboost_options[delay_js_timeout]" 
+            id="delay_js_timeout"
+            min="1000" 
+            max="20000" 
+            step="500"
+            value="<?php echo esc_attr($value); ?>"
+            <?php echo !$delay_enabled ? 'disabled' : ''; ?>
+            oninput="document.getElementById('delay_js_timeout_display').textContent = this.value + 'ms'"
+        >
+        <span id="delay_js_timeout_display" style="margin-left: 10px; font-weight: bold;"><?php echo esc_html($value); ?>ms</span>
+        <p class="description">
+            <?php esc_html_e('Maximum time to wait before loading scripts even without user interaction. Acts as a safety fallback.', 'coreboost'); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Delay JS custom delay callback
+     */
+    public function delay_js_custom_delay_callback() {
+        $value = isset($this->options['delay_js_custom_delay']) ? intval($this->options['delay_js_custom_delay']) : 3000;
+        $delay_enabled = isset($this->options['enable_delay_js']) && $this->options['enable_delay_js'];
+        $trigger = isset($this->options['delay_js_trigger']) ? $this->options['delay_js_trigger'] : 'user_interaction';
+        $is_custom = $trigger === 'custom_delay';
+        ?>
+        <input 
+            type="range" 
+            name="coreboost_options[delay_js_custom_delay]" 
+            id="delay_js_custom_delay"
+            min="0" 
+            max="10000" 
+            step="500"
+            value="<?php echo esc_attr($value); ?>"
+            <?php echo (!$delay_enabled || !$is_custom) ? 'disabled' : ''; ?>
+            oninput="document.getElementById('delay_js_custom_delay_display').textContent = this.value + 'ms'"
+        >
+        <span id="delay_js_custom_delay_display" style="margin-left: 10px; font-weight: bold;"><?php echo esc_html($value); ?>ms</span>
+        <p class="description">
+            <?php esc_html_e('Fixed delay before loading scripts. Only applies when "Custom Delay" trigger is selected.', 'coreboost'); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Delay JS include inline callback
+     */
+    public function delay_js_include_inline_callback() {
+        $value = isset($this->options['delay_js_include_inline']) ? $this->options['delay_js_include_inline'] : false;
+        $delay_enabled = isset($this->options['enable_delay_js']) && $this->options['enable_delay_js'];
+        $checked = $value ? 'checked' : '';
+        ?>
+        <input 
+            type="checkbox" 
+            name="coreboost_options[delay_js_include_inline]" 
+            id="delay_js_include_inline"
+            value="1"
+            <?php echo esc_attr($checked); ?>
+            <?php echo !$delay_enabled ? 'disabled' : ''; ?>
+        >
+        <label for="delay_js_include_inline"><?php esc_html_e('Also delay inline scripts (experimental)', 'coreboost'); ?></label>
+        <p class="description">
+            <?php esc_html_e('Delay inline scripts in addition to external scripts. Use with caution as this may affect critical functionality.', 'coreboost'); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Delay JS use default exclusions callback
+     */
+    public function delay_js_use_default_exclusions_callback() {
+        $value = isset($this->options['delay_js_use_default_exclusions']) ? $this->options['delay_js_use_default_exclusions'] : true;
+        $delay_enabled = isset($this->options['enable_delay_js']) && $this->options['enable_delay_js'];
+        $checked = $value ? 'checked' : '';
+        ?>
+        <input 
+            type="checkbox" 
+            name="coreboost_options[delay_js_use_default_exclusions]" 
+            id="delay_js_use_default_exclusions"
+            value="1"
+            <?php echo esc_attr($checked); ?>
+            <?php echo !$delay_enabled ? 'disabled' : ''; ?>
+        >
+        <label for="delay_js_use_default_exclusions"><?php esc_html_e('Use default exclusions (jQuery, WP core, analytics, etc.)', 'coreboost'); ?></label>
+        <p class="description">
+            <?php esc_html_e('Recommended. Uses the same exclusion list as script deferring to prevent breaking critical scripts.', 'coreboost'); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Delay JS exclusions callback
+     */
+    public function delay_js_exclusions_callback() {
+        $value = isset($this->options['delay_js_exclusions']) ? $this->options['delay_js_exclusions'] : '';
+        $delay_enabled = isset($this->options['enable_delay_js']) && $this->options['enable_delay_js'];
+        ?>
+        <textarea 
+            name="coreboost_options[delay_js_exclusions]" 
+            id="delay_js_exclusions" 
+            rows="6" 
+            class="large-text code"
+            placeholder="jquery&#10;recaptcha&#10;*.gstatic.com/*&#10;/gtag|gtm|analytics/i"
+            <?php echo !$delay_enabled ? 'disabled' : ''; ?>
+        ><?php echo esc_textarea($value); ?></textarea>
+        <p class="description">
+            <?php esc_html_e('Scripts to exclude from delay (one per line). These scripts will load normally without delay.', 'coreboost'); ?>
+        </p>
+        <p class="description">
+            <strong><?php esc_html_e('Supported patterns:', 'coreboost'); ?></strong><br>
+            • <?php esc_html_e('Exact match:', 'coreboost'); ?> <code>jquery-core</code><br>
+            • <?php esc_html_e('Wildcard:', 'coreboost'); ?> <code>*.gstatic.com/*</code>, <code>elementor-*</code><br>
+            • <?php esc_html_e('Regex:', 'coreboost'); ?> <code>/recaptcha|grecaptcha/i</code>
+        </p>
+        <?php
+    }
+
+    /**
+     * Preconnect section callback
+     */
+    public function preconnect_section_callback() {
+        ?>
+        <p><?php esc_html_e('Add preconnect hints to reduce DNS lookup and connection time for third-party resources. Preconnects establish early connections to important domains.', 'coreboost'); ?></p>
+        <div class="notice notice-info inline">
+            <p><strong><?php esc_html_e('💡 Common preconnect domains:', 'coreboost'); ?></strong></p>
+            <ul style="margin-left: 20px; list-style: disc; margin-top: 5px;">
+                <li><code>https://www.googletagmanager.com</code> - <?php esc_html_e('Google Tag Manager', 'coreboost'); ?></li>
+                <li><code>https://www.gstatic.com</code> - <?php esc_html_e('Google reCAPTCHA & other Google services', 'coreboost'); ?></li>
+                <li><code>https://www.google-analytics.com</code> - <?php esc_html_e('Google Analytics', 'coreboost'); ?></li>
+                <li><code>https://connect.facebook.net</code> - <?php esc_html_e('Facebook Pixel', 'coreboost'); ?></li>
+            </ul>
+        </div>
+        <?php
+    }
+
+    /**
+     * Custom preconnect URLs callback
+     */
+    public function custom_preconnect_urls_callback() {
+        $value = isset($this->options['custom_preconnect_urls']) ? $this->options['custom_preconnect_urls'] : '';
+        ?>
+        <textarea 
+            name="coreboost_options[custom_preconnect_urls]" 
+            id="custom_preconnect_urls" 
+            rows="5" 
+            class="large-text code"
+            placeholder="https://www.googletagmanager.com&#10;https://www.gstatic.com&#10;https://connect.facebook.net"
+        ><?php echo esc_textarea($value); ?></textarea>
+        <p class="description">
+            <?php esc_html_e('Enter URLs to preconnect (one per line). Only include the domain with protocol (e.g., https://example.com). Invalid URLs will be silently skipped.', 'coreboost'); ?>
+        </p>
+        <?php
+    }
+
+    /**
      * Sanitize and validate advanced settings
      *
      * @param array $input Raw input values
@@ -411,6 +741,49 @@ class Advanced_Optimization_Settings {
             if (in_array($input['script_load_priority'], $valid_priorities)) {
                 $sanitized['script_load_priority'] = $input['script_load_priority'];
             }
+        }
+
+        // Sanitize Delay JavaScript settings
+        if (isset($input['enable_delay_js'])) {
+            $sanitized['enable_delay_js'] = !empty($input['enable_delay_js']);
+        } else {
+            $sanitized['enable_delay_js'] = false;
+        }
+
+        if (isset($input['delay_js_trigger'])) {
+            $valid_triggers = array('user_interaction', 'browser_idle', 'page_load_complete', 'custom_delay');
+            if (in_array($input['delay_js_trigger'], $valid_triggers)) {
+                $sanitized['delay_js_trigger'] = $input['delay_js_trigger'];
+            }
+        }
+
+        if (isset($input['delay_js_timeout'])) {
+            $sanitized['delay_js_timeout'] = max(1000, min(20000, intval($input['delay_js_timeout'])));
+        }
+
+        if (isset($input['delay_js_custom_delay'])) {
+            $sanitized['delay_js_custom_delay'] = max(0, min(10000, intval($input['delay_js_custom_delay'])));
+        }
+
+        if (isset($input['delay_js_include_inline'])) {
+            $sanitized['delay_js_include_inline'] = !empty($input['delay_js_include_inline']);
+        } else {
+            $sanitized['delay_js_include_inline'] = false;
+        }
+
+        if (isset($input['delay_js_use_default_exclusions'])) {
+            $sanitized['delay_js_use_default_exclusions'] = !empty($input['delay_js_use_default_exclusions']);
+        } else {
+            $sanitized['delay_js_use_default_exclusions'] = false;
+        }
+
+        if (isset($input['delay_js_exclusions'])) {
+            $sanitized['delay_js_exclusions'] = sanitize_textarea_field($input['delay_js_exclusions']);
+        }
+
+        // Sanitize custom preconnect URLs
+        if (isset($input['custom_preconnect_urls'])) {
+            $sanitized['custom_preconnect_urls'] = sanitize_textarea_field($input['custom_preconnect_urls']);
         }
 
         return $sanitized;
