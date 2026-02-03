@@ -840,6 +840,10 @@ class Advanced_Optimization_Settings {
             $sanitized['delay_js_use_default_exclusions'] = !empty($input['delay_js_use_default_exclusions']);
         } else {
             $sanitized['delay_js_use_default_exclusions'] = false;
+        }
+
+        if (isset($input['delay_js_exclusions'])) {
+            $sanitized['delay_js_exclusions'] = sanitize_textarea_field($input['delay_js_exclusions']);
         } else {
             $sanitized['delay_js_exclusions'] = '';
         }
@@ -848,11 +852,7 @@ class Advanced_Optimization_Settings {
         if (isset($input['custom_preconnect_urls'])) {
             $sanitized['custom_preconnect_urls'] = sanitize_textarea_field($input['custom_preconnect_urls']);
         } else {
-            $sanitized['custom_preconnect_urls'] = ''
-
-        // Sanitize custom preconnect URLs
-        if (isset($input['custom_preconnect_urls'])) {
-            $sanitized['custom_preconnect_urls'] = sanitize_textarea_field($input['custom_preconnect_urls']);
+            $sanitized['custom_preconnect_urls'] = '';
         }
 
         // Sanitize auto defer all CSS
