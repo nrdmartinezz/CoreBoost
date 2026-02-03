@@ -105,4 +105,66 @@ class Field_Renderer {
         echo '</select>';
         echo '<p class="description">' . esc_html($description) . '</p>';
     }
+    
+    /**
+     * Render card selector field with tooltips
+     * Cards display in a horizontal row with radio button selection
+     *
+     * @param string $name Field name
+     * @param mixed $value Current selected value
+     * @param array $cards Array of card configurations with keys:
+     *                     - key: Option value
+     *                     - title: Card title
+     *                     - icon: Dashicon class (e.g., 'dashicons-admin-generic')
+     *                     - excerpt: Short description (1 line)
+     *                     - tooltip: Detailed explanation for info bubble
+     */
+    public static function render_card_selector($name, $value, $cards) {
+        echo '<div class="coreboost-card-selector" role="radiogroup" aria-label="' . esc_attr__('Select preload method', 'coreboost') . '">';
+        
+        foreach ($cards as $card) {
+            $is_selected = ($value === $card['key']);
+            $card_id = 'coreboost-card-' . esc_attr($name) . '-' . esc_attr($card['key']);
+            $tooltip_id = $card_id . '-tooltip';
+            
+            echo '<div class="coreboost-method-card' . ($is_selected ? ' selected' : '') . '" data-value="' . esc_attr($card['key']) . '">';
+            
+            // Hidden radio input for form submission
+            echo '<input type="radio" name="coreboost_options[' . esc_attr($name) . ']" id="' . $card_id . '" ';
+            echo 'value="' . esc_attr($card['key']) . '"' . checked($is_selected, true, false) . ' ';
+            echo 'class="coreboost-card-radio" aria-describedby="' . $tooltip_id . '">';
+            
+            // Card content wrapper
+            echo '<label for="' . $card_id . '" class="coreboost-card-content">';
+            
+            // Icon
+            echo '<span class="coreboost-card-icon"><span class="dashicons ' . esc_attr($card['icon']) . '"></span></span>';
+            
+            // Title with info bubble
+            echo '<span class="coreboost-card-title">';
+            echo esc_html($card['title']);
+            
+            // Info bubble with tooltip
+            if (!empty($card['tooltip'])) {
+                echo '<button type="button" class="coreboost-info-trigger" aria-expanded="false" aria-describedby="' . $tooltip_id . '">';
+                echo '<span class="dashicons dashicons-info-outline"></span>';
+                echo '<span class="screen-reader-text">' . esc_html__('More information', 'coreboost') . '</span>';
+                echo '</button>';
+                echo '<div id="' . $tooltip_id . '" class="coreboost-tooltip" role="tooltip" aria-hidden="true">';
+                echo '<div class="coreboost-tooltip-content">' . wp_kses_post($card['tooltip']) . '</div>';
+                echo '<div class="coreboost-tooltip-arrow"></div>';
+                echo '</div>';
+            }
+            
+            echo '</span>';
+            
+            // Excerpt
+            echo '<span class="coreboost-card-excerpt">' . esc_html($card['excerpt']) . '</span>';
+            
+            echo '</label>';
+            echo '</div>';
+        }
+        
+        echo '</div>';
+    }
 }

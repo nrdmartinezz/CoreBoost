@@ -367,24 +367,8 @@ class Resource_Remover {
         // Inject preload link for hero video fallback image (LCP optimization)
         if ($this->youtube_fallback_preload_url) {
             $preload_url = $this->youtube_fallback_preload_url;
-            $type_attr = '';
             
-            // Check for optimized variants (AVIF first, then WebP)
-            if (class_exists('CoreBoost\\Core\\Variant_Cache')) {
-                $avif_url = \CoreBoost\Core\Variant_Cache::get_variant($preload_url, 'avif');
-                if ($avif_url) {
-                    $preload_url = $avif_url;
-                    $type_attr = ' type="image/avif"';
-                } else {
-                    $webp_url = \CoreBoost\Core\Variant_Cache::get_variant($preload_url, 'webp');
-                    if ($webp_url) {
-                        $preload_url = $webp_url;
-                        $type_attr = ' type="image/webp"';
-                    }
-                }
-            }
-            
-            $preload_tag = '<link rel="preload" href="' . esc_url($preload_url) . '" as="image"' . $type_attr . ' fetchpriority="high">' . "\n";
+            $preload_tag = '<link rel="preload" href="' . esc_url($preload_url) . '" as="image" fetchpriority="high">' . "\n";
             $html = str_replace('</head>', $preload_tag . '</head>', $html);
             
             if (!empty($this->options['debug_mode'])) {
@@ -669,9 +653,9 @@ SCRIPT;
             
             if ($this->options['debug_mode']) {
                 if ($count > 0) {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€œ Removed inline script with ID: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline script with ID: {$id} -->\n";
                 } else {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€” Inline script ID not found: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline script ID not found: {$id} -->\n";
                 }
                 $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
             }
@@ -711,9 +695,9 @@ SCRIPT;
             
             if ($this->options['debug_mode']) {
                 if ($count > 0) {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€œ Removed inline style with ID: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline style with ID: {$id} -->\n";
                 } else {
-                    $debug_comment = "<!-- CoreBoost: Ã¢Å“â€” Inline style ID not found: {$id} -->\n";
+                    $debug_comment = "<!-- CoreBoost: Inline style ID not found: {$id} -->\n";
                 }
                 $html = preg_replace('/(<head[^>]*>)/i', "$1\n" . $debug_comment, $html, 1);
             }

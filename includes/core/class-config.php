@@ -52,19 +52,12 @@ class Config {
             'smart_video_facades' => array('type' => 'checkbox', 'default' => false, 'description' => 'Replace above-the-fold video widgets with click-to-play facades. Defers YouTube/Vimeo loading, reducing initial resource load by ~1MB per video. Videos play when clicked.'),
             'block_youtube_player_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube player CSS files (useful for background videos that don\'t need player UI).'),
             'block_youtube_embed_ui' => array('type' => 'checkbox', 'default' => false, 'description' => 'Block YouTube embed UI scripts (useful for autoplay background videos).'),
-            // Image Optimization Fields (Phase 1)
+            // Image Optimization Fields
             'enable_image_optimization' => array('type' => 'checkbox', 'default' => false, 'description' => 'Enable comprehensive image optimization including lazy loading, width/height attributes, aspect ratio CSS, and async decoding.'),
             'enable_lazy_loading' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add native lazy loading to off-screen images. Respects lazy_load_exclude_count to keep LCP images unaffected.'),
             'add_width_height_attributes' => array('type' => 'checkbox', 'default' => false, 'description' => 'Automatically add width and height attributes to images to prevent Cumulative Layout Shift (CLS).'),
             'generate_aspect_ratio_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Generate CSS aspect-ratio rules for images to provide double protection against CLS during load.'),
             'add_decoding_async' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add decoding="async" to images to prevent render-blocking image decode operations.'),
-            // Image Optimization Fields (Phase 1.5 - Responsive Sizing)
-            'enable_responsive_image_resizing' => array('type' => 'checkbox', 'default' => false, 'description' => 'Generate appropriately-sized image variants to satisfy PageSpeed Insights "Properly size images" requirement. Images are resized on-demand in the background (no server performance impact). Requires "Generate AVIF/WebP Variants" to be enabled.'),
-            // Image Optimization Fields (Phase 2 - Format Optimization)
-            'enable_image_format_conversion' => array('type' => 'checkbox', 'default' => false, 'description' => 'Generate AVIF and WebP variants for optimal compression. Variants are created automatically on upload and can be bulk-generated for existing images using the Bulk Converter above. AVIF provides 20-30% better compression than WebP.'),
-            'avif_quality' => array('type' => 'slider', 'default' => 85, 'min' => 75, 'max' => 95, 'step' => 1, 'description' => 'AVIF compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
-            'webp_quality' => array('type' => 'slider', 'default' => 85, 'min' => 75, 'max' => 95, 'step' => 1, 'description' => 'WebP compression quality (75-95). Higher values = better quality but larger files. Recommended: 85.'),
-            'cleanup_orphans_weekly' => array('type' => 'checkbox', 'default' => true, 'description' => 'Automatically delete image variants for images no longer used on site (runs weekly via WP-Cron). Prevents storage bloat.'),
             // Font Optimization - Preconnect Settings
             'preconnect_google_fonts' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable preconnect to fonts.googleapis.com for faster Google Fonts loading. Reduces DNS lookup and connection time.'),
             'preconnect_adobe_fonts' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable preconnect to use.typekit.net for faster Adobe Fonts loading. Reduces DNS lookup and connection time.'),

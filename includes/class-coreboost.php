@@ -9,25 +9,15 @@
 namespace CoreBoost;
 
 use CoreBoost\Admin\Admin;
-use CoreBoost\Admin\Dashboard_UI;
 use CoreBoost\Core\Context_Helper;
 use CoreBoost\PublicCore\Analytics_Engine;
 use CoreBoost\PublicCore\Hero_Optimizer;
-use CoreBoost\PublicCore\Performance_Insights;
 use CoreBoost\PublicCore\Script_Optimizer;
 use CoreBoost\PublicCore\CSS_Optimizer;
 use CoreBoost\PublicCore\Font_Optimizer;
 use CoreBoost\PublicCore\Resource_Remover;
 use CoreBoost\PublicCore\Tag_Manager;
 use CoreBoost\PublicCore\Image_Optimizer;
-use CoreBoost\PublicCore\Image_Format_Optimizer;
-use CoreBoost\PublicCore\Image_Variant_Lifecycle_Manager;
-use CoreBoost\Admin\Image_Variant_Admin_Tools;
-use CoreBoost\Admin\Bulk_Image_Converter;
-use CoreBoost\Core\Cache_Invalidator;
-use CoreBoost\Core\Cache_Warmer;
-use CoreBoost\Core\Cache_Consistency_Checker;
-use CoreBoost\Core\Variant_Cache_Headers;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -110,39 +100,11 @@ class CoreBoost {
     private $tag_manager;
     
     /**
-     * Image optimizer instance (Phase 1 & 2)
+     * Image optimizer instance
      *
      * @var Image_Optimizer
      */
     private $image_optimizer;
-    
-    /**
-     * Image format optimizer instance (Phase 2)
-     *
-     * @var Image_Format_Optimizer
-     */
-    private $image_format_optimizer;
-    
-    /**
-     * Image variant lifecycle manager instance (Phase 2)
-     *
-     * @var Image_Variant_Lifecycle_Manager
-     */
-    private $image_variant_lifecycle_manager;
-    
-    /**
-     * Image variant admin tools instance (Phase 2.5)
-     *
-     * @var Image_Variant_Admin_Tools
-     */
-    private $image_variant_admin_tools;
-    
-    /**
-     * Bulk image converter instance
-     *
-     * @var Bulk_Image_Converter
-     */
-    private $bulk_image_converter;
     
     /**
      * Analytics engine instance
@@ -150,13 +112,6 @@ class CoreBoost {
      * @var Analytics_Engine
      */
     private $analytics_engine;
-    
-    /**
-     * Dashboard UI instance
-     *
-     * @var Dashboard_UI
-     */
-    private $dashboard_ui;
     
     /**
      * Get single instance
@@ -223,8 +178,6 @@ class CoreBoost {
         // Initialize admin area
         if (is_admin()) {
             $this->admin = new Admin($this->options, $this->loader);
-            // Initialize dashboard UI (Phase 5) - will lazy-load analytics engine when needed
-            $this->dashboard_ui = new Dashboard_UI(null, $this->options);
         }
         
         // Initialize frontend optimizers
@@ -241,79 +194,13 @@ class CoreBoost {
             $this->tag_manager = new Tag_Manager($this->options);
             $this->tag_manager->register_hooks($this->loader);
             
-            // Initialize image optimizer (Phase 1 & 2)
+            // Initialize image optimizer
             $this->image_optimizer = new Image_Optimizer($this->options, $this->loader);
-            
-            // Initialize format optimizer separately for admin tools access
-            if (!empty($this->options['enable_image_format_conversion'])) {
-                $this->image_format_optimizer = new Image_Format_Optimizer($this->options);
-            }
             
             // Initialize video facade for click-to-play videos
             new \CoreBoost\PublicCore\Video_Facade($this->options, $this->loader);
         }
         
-        // Initialize admin tools (Phase 2.5)
-        if (is_admin()) {
-            // Create lifecycle manager and tools if format conversion is enabled
-            if (!empty($this->options['enable_image_format_conversion'])) {
-                // Initialize format optimizer if not already done
-                if (!$this->image_format_optimizer) {
-                    $this->image_format_optimizer = new Image_Format_Optimizer($this->options);
-                }
-                
-                // Initialize bulk image converter (needed for AJAX handlers)
-                $this->bulk_image_converter = new Bulk_Image_Converter(
-                    $this->options,
-                    $this->image_format_optimizer,
-                    $this->loader
-                );
-                
-                // Only initialize UI tools when not doing AJAX
-                if (!wp_doing_ajax()) {
-                    // CRITICAL FIX: Create lifecycle manager instance before passing to admin tools
-                    $this->image_variant_lifecycle_manager = new Image_Variant_Lifecycle_Manager(
-                        $this->options,
-                        $this->image_format_optimizer
-                    );
-                    
-                    $this->image_variant_admin_tools = new Image_Variant_Admin_Tools(
-                        $this->options,
-                        $this->image_variant_lifecycle_manager
-                    );
-                    $this->image_variant_admin_tools->register_hooks($this->loader);
-                }
-            }
-        }
-        
-        // Initialize cache invalidator (Phase 3.1 - v3.1.0)
-        // Always initialize if image optimization is enabled
-        if (class_exists('CoreBoost\\Core\\Cache_Invalidator') && 
-            (!empty($this->options['enable_image_optimization']) || 
-             !empty($this->options['enable_image_format_conversion']))) {
-            Cache_Invalidator::init();
-        }
-        
-        // Initialize cache warmer (Phase 3.1 - v3.1.0)
-        // Only initialize if format conversion is enabled
-        if (class_exists('CoreBoost\\Core\\Cache_Warmer') && 
-            !empty($this->options['enable_image_format_conversion'])) {
-            Cache_Warmer::init();
-        }
-        
-        // Initialize cache consistency checker (Phase 3.1 - v3.1.0)
-        if (class_exists('CoreBoost\\Core\\Cache_Consistency_Checker') && 
-            (!empty($this->options['enable_image_optimization']) || 
-             !empty($this->options['enable_image_format_conversion']))) {
-            Cache_Consistency_Checker::init();
-        }
-        
-        // Initialize variant cache headers (Phase 3.1 - v3.1.0)
-        // Manages browser caching for image variants
-        if (class_exists('CoreBoost\\Core\\Variant_Cache_Headers') && 
-            !empty($this->options['enable_image_format_conversion'])) {
-            Variant_Cache_Headers::init();
-        }
     }    
     /**
      * Run the loader to execute all hooks
@@ -415,17 +302,12 @@ class CoreBoost {
             'enable_recommendations' => true,
             // Smart YouTube blocking (v2.0.3)
             'smart_youtube_blocking' => false,
-            // Image Optimization (v2.7.0 Phase 1 & 2)
+            // Image Optimization
             'enable_image_optimization' => true,
             'enable_lazy_loading' => true,
             'add_width_height_attributes' => true,
             'generate_aspect_ratio_css' => true,
             'add_decoding_async' => true,
-            'enable_image_format_conversion' => false,
-            'enable_responsive_image_resizing' => false,
-            'avif_quality' => 85,
-            'webp_quality' => 85,
-            'variant_cache_lifetime' => 31536000, // 1 year in seconds
         );
     }
 }

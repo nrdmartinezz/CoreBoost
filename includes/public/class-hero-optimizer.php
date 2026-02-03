@@ -9,7 +9,6 @@
 namespace CoreBoost\PublicCore;
 
 use CoreBoost\Core\Context_Helper;
-use CoreBoost\Core\Variant_Cache;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -87,13 +86,19 @@ class Hero_Optimizer {
             return;
         }
         
+        // Consolidated methods mapping (v3.1.0+)
         $methods = array(
-            'auto_elementor' => 'preload_auto_elementor',
-            'featured_fallback' => 'preload_featured_fallback',
-            'smart_detection' => 'preload_smart_detection',
-            'advanced_cached' => 'preload_advanced_cached',
-            'css_class_based' => 'preload_css_class_based',
-            'video_fallback' => 'preload_video_hero_fallback'
+            'automatic'   => 'preload_automatic',
+            'css_class'   => 'preload_css_class',
+            'video_hero'  => 'preload_video_hero',
+            // Legacy mappings for backwards compatibility
+            'auto_elementor'    => 'preload_automatic',
+            'featured_fallback' => 'preload_automatic',
+            'smart_detection'   => 'preload_automatic',
+            'advanced_cached'   => 'preload_automatic',
+            'css_class_based'   => 'preload_css_class',
+            'video_fallback'    => 'preload_video_hero',
+            'elementor_data'    => 'preload_automatic',
         );
         
         $method = $this->options['preload_method'];
@@ -103,151 +108,91 @@ class Hero_Optimizer {
     }
     
     /**
-     * Auto Elementor detection method
+     * Automatic detection method (consolidated)
+     * Combines best features of auto_elementor, featured_fallback, smart_detection, and advanced_cached
+     * Includes caching for performance and extensibility via filter
      */
-    private function preload_auto_elementor() {
-        if (!defined('ELEMENTOR_VERSION')) return;
-        
+    private function preload_automatic() {
         global $post;
         if (!$post) return;
         
-        $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
-        if (empty($elementor_data)) return;
-        
-        $data = json_decode($elementor_data, true);
-        if (!is_array($data)) return;
-        
-        $hero_image_url = $this->find_hero_background_image($data);
-        if ($hero_image_url) {
-            $this->output_preload_tag($hero_image_url);
-            if ($this->options['enable_responsive_preload']) {
-                $this->output_responsive_preload($hero_image_url);
-            }
-        }
-    }
-    
-    /**
-     * Featured image fallback method
-     */
-    private function preload_featured_fallback() {
-        global $post;
-        $hero_image_url = null;
+        // Allow other plugins/themes to provide hero image URL
+        $hero_image_url = apply_filters('coreboost_detect_hero_image', null, $post);
         $hero_image_id = null;
         
-        // Try Elementor first
-        if (defined('ELEMENTOR_VERSION') && $post) {
+        if ($hero_image_url) {
+            $this->output_preload_tag($hero_image_url);
+            return;
+        }
+        
+        // Check cache first
+        $cache_key = 'coreboost_hero_' . $post->ID;
+        $cached_data = null;
+        
+        if (!empty($this->options['enable_caching'])) {
+            $cached_data = get_transient($cache_key);
+            if ($cached_data !== false && isset($cached_data['url'])) {
+                if ($cached_data['url']) {
+                    $this->output_preload_tag($cached_data['url']);
+                    if (!empty($this->options['enable_responsive_preload']) && !empty($cached_data['id'])) {
+                        $this->output_responsive_preload_by_id($cached_data['id']);
+                    }
+                }
+                return;
+            }
+        }
+        
+        // Check for page-specific manual overrides first
+        $specific_images = $this->parse_specific_pages();
+        
+        if (is_front_page() && isset($specific_images['home'])) {
+            $hero_image_url = $specific_images['home'];
+        } elseif (is_page() && isset($specific_images[$post->post_name])) {
+            $hero_image_url = $specific_images[$post->post_name];
+        }
+        
+        // Try Elementor detection if no manual override
+        if (!$hero_image_url && defined('ELEMENTOR_VERSION')) {
             $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
             if ($elementor_data) {
                 $data = json_decode($elementor_data, true);
-                if (isset($data[0]['settings']['background_image']['url'])) {
-                    $hero_image_url = $data[0]['settings']['background_image']['url'];
-                    $hero_image_id = isset($data[0]['settings']['background_image']['id']) ? $data[0]['settings']['background_image']['id'] : null;
+                if (is_array($data)) {
+                    // Search up to 3 levels deep for background images
+                    $hero_image_url = $this->search_elementor_hero_advanced($data);
+                    
+                    // Try to get image ID for responsive preload
+                    if ($hero_image_url) {
+                        $hero_image_id = $this->find_image_id_by_url($data, $hero_image_url);
+                    }
                 }
             }
         }
         
         // Fallback to featured image
-        if (!$hero_image_url && has_post_thumbnail()) {
-            $hero_image_id = get_post_thumbnail_id();
+        if (!$hero_image_url && has_post_thumbnail($post->ID)) {
+            $hero_image_id = get_post_thumbnail_id($post->ID);
             $hero_image_url = get_the_post_thumbnail_url($post->ID, 'full');
         }
         
-        // Fallback to custom field
-        if (!$hero_image_url) {
-            $custom_hero = get_post_meta($post->ID, 'hero_image', true);
-            if ($custom_hero) $hero_image_url = $custom_hero;
+        // Cache the result
+        if (!empty($this->options['enable_caching'])) {
+            $cache_ttl = isset($this->options['hero_preload_cache_ttl']) ? (int)$this->options['hero_preload_cache_ttl'] : 3600;
+            set_transient($cache_key, array('url' => $hero_image_url, 'id' => $hero_image_id), $cache_ttl);
         }
         
         if ($hero_image_url) {
             $this->output_preload_tag($hero_image_url);
-            if ($this->options['enable_responsive_preload'] && $hero_image_id) {
+            if (!empty($this->options['enable_responsive_preload']) && $hero_image_id) {
                 $this->output_responsive_preload_by_id($hero_image_id);
             }
         }
     }
     
     /**
-     * Smart detection with manual override
+     * CSS class-based detection (consolidated)
+     * Finds images with .hero-image or .lcp-image classes
      */
-    private function preload_smart_detection() {
-        global $post;
-        
-        // Check for page-specific images first
-        $specific_images = $this->parse_specific_pages();
-        
-        if (is_front_page() && isset($specific_images['home'])) {
-            $this->output_preload_tag($specific_images['home']);
-            return;
-        }
-        
-        if (is_page() && $post) {
-            $page_slug = $post->post_name;
-            if (isset($specific_images[$page_slug])) {
-                $this->output_preload_tag($specific_images[$page_slug]);
-                return;
-            }
-        }
-        
-        // Fall back to auto-detection
-        $this->preload_auto_elementor();
-    }
-    
-    /**
-     * Advanced cached method
-     */
-    private function preload_advanced_cached() {
-        if (!defined('ELEMENTOR_VERSION')) return;
-        
-        global $post;
-        if (!$post) return;
-        
-        // Check cache first
-        $cache_key = 'coreboost_hero_' . $post->ID;
-        $cached_image = null;
-        
-        if ($this->options['enable_caching']) {
-            $cached_image = get_transient($cache_key);
-        }
-        
-        if ($cached_image !== false && $cached_image !== null) {
-            if ($cached_image) {
-                $this->output_preload_tag($cached_image);
-                
-                if ($this->options['enable_responsive_preload']) {
-                    $this->output_responsive_preload($cached_image);
-                }
-            }
-            return;
-        }
-        
-        $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
-        $hero_image_url = null;
-        
-        if ($elementor_data) {
-            $data = json_decode($elementor_data, true);
-            if (is_array($data)) {
-                $hero_image_url = $this->search_elementor_hero_advanced($data);
-            }
-        }
-        
-        // Cache the result
-        if ($this->options['enable_caching']) {
-            set_transient($cache_key, $hero_image_url, 3600); // Cache for 1 hour
-        }
-        
-        if ($hero_image_url) {
-            $this->output_preload_tag($hero_image_url);
-            
-            if ($this->options['enable_responsive_preload']) {
-                $this->output_responsive_preload($hero_image_url);
-            }
-        }
-    }
-    
-    /**
-     * CSS class-based detection
-     */
-    private function preload_css_class_based() {
+    private function preload_css_class() {
         if (!defined('ELEMENTOR_VERSION')) return;
         
         global $post;
@@ -260,7 +205,7 @@ class Hero_Optimizer {
             
             if ($hero_image) {
                 $this->output_preload_tag($hero_image['url']);
-                if ($this->options['enable_responsive_preload'] && $hero_image['id']) {
+                if (!empty($this->options['enable_responsive_preload']) && $hero_image['id']) {
                     $this->output_responsive_preload_by_id($hero_image['id']);
                 }
             }
@@ -268,10 +213,14 @@ class Hero_Optimizer {
     }
     
     /**
-     * Video hero fallback detection method
-     * Preloads YouTube video thumbnail if hero section has video background
+     * Video hero detection (consolidated)
+     * Preloads video fallback thumbnail for optimal LCP when video backgrounds are used
+     * 
+     * Note: If smart_youtube_blocking is also enabled, the Resource_Remover will handle
+     * the preload injection during output buffer processing. This method provides an
+     * early preload via wp_head for faster discovery.
      */
-    private function preload_video_hero_fallback() {
+    private function preload_video_hero() {
         if (!defined('ELEMENTOR_VERSION')) return;
         
         global $post;
@@ -283,17 +232,74 @@ class Hero_Optimizer {
         $data = json_decode($elementor_data, true);
         if (!is_array($data)) return;
         
-        // Try to get video hero fallback first, then fall back to static image
-        $fallback_url = $this->get_video_hero_fallback_image($data);
+        // First try to get Elementor's configured fallback image (best for LCP)
+        $fallback_url = $this->get_elementor_video_fallback($data);
         
+        // If no fallback configured, try YouTube thumbnail
         if (!$fallback_url) {
-            // Fall back to static background image
+            $fallback_url = $this->get_video_hero_fallback_image($data);
+        }
+        
+        // Last resort: use static background image
+        if (!$fallback_url) {
             $fallback_url = $this->find_hero_background_image($data);
         }
         
         if ($fallback_url) {
             $this->output_preload_tag($fallback_url);
         }
+    }
+    
+    /**
+     * Get Elementor's configured video fallback image
+     * This is the image set in Elementor's "Background Fallback" setting
+     * 
+     * @param array $elements Elementor elements array
+     * @return string|null Fallback image URL or null
+     */
+    private function get_elementor_video_fallback($elements) {
+        if (!is_array($elements) || empty($elements)) {
+            return null;
+        }
+        
+        // Check first element (hero section)
+        $first_element = $elements[0];
+        
+        // Elementor stores video fallback in background_video_fallback
+        if (isset($first_element['settings']['background_video_fallback']['url']) && 
+            !empty($first_element['settings']['background_video_fallback']['url'])) {
+            return $first_element['settings']['background_video_fallback']['url'];
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Legacy method mappings for backwards compatibility
+     * These call the new consolidated methods
+     */
+    private function preload_auto_elementor() {
+        $this->preload_automatic();
+    }
+    
+    private function preload_featured_fallback() {
+        $this->preload_automatic();
+    }
+    
+    private function preload_smart_detection() {
+        $this->preload_automatic();
+    }
+    
+    private function preload_advanced_cached() {
+        $this->preload_automatic();
+    }
+    
+    private function preload_css_class_based() {
+        $this->preload_css_class();
+    }
+    
+    private function preload_video_hero_fallback() {
+        $this->preload_video_hero();
     }
     
     /**
@@ -447,11 +453,21 @@ class Hero_Optimizer {
     
     private function find_hero_foreground_image($elements) {
         foreach ($elements as $element) {
-            if ($element['widgetType'] === 'image') {
+            if (isset($element['widgetType']) && $element['widgetType'] === 'image') {
                 $css_classes = isset($element['settings']['_css_classes']) ? $element['settings']['_css_classes'] : '';
                 
-                if ((strpos($css_classes, 'hero-foreground-image') !== false || strpos($css_classes, 'heroimg') !== false) 
-                    && isset($element['settings']['image']['url'])) {
+                // Match various hero image class names
+                $hero_classes = array('hero-foreground-image', 'heroimg', 'hero-image', 'lcp-image');
+                $matches_hero_class = false;
+                
+                foreach ($hero_classes as $hero_class) {
+                    if (strpos($css_classes, $hero_class) !== false) {
+                        $matches_hero_class = true;
+                        break;
+                    }
+                }
+                
+                if ($matches_hero_class && isset($element['settings']['image']['url'])) {
                     return array(
                         'url' => $element['settings']['image']['url'],
                         'id' => isset($element['settings']['image']['id']) ? $element['settings']['image']['id'] : null
@@ -461,6 +477,31 @@ class Hero_Optimizer {
             
             if (isset($element['elements']) && is_array($element['elements'])) {
                 $found = $this->find_hero_foreground_image($element['elements']);
+                if ($found) return $found;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Find image ID from Elementor data by URL
+     * 
+     * @param array $elements Elementor elements
+     * @param string $url Image URL to find
+     * @return int|null Image ID or null
+     */
+    private function find_image_id_by_url($elements, $url) {
+        foreach ($elements as $element) {
+            // Check background image
+            if (isset($element['settings']['background_image']['url']) && 
+                $element['settings']['background_image']['url'] === $url &&
+                isset($element['settings']['background_image']['id'])) {
+                return (int)$element['settings']['background_image']['id'];
+            }
+            
+            // Recurse into nested elements
+            if (isset($element['elements']) && is_array($element['elements'])) {
+                $found = $this->find_image_id_by_url($element['elements'], $url);
                 if ($found) return $found;
             }
         }
@@ -497,31 +538,7 @@ class Hero_Optimizer {
             return;
         }
         
-        // Check for optimized variants (AVIF first, then WebP)
-        $preload_url = $image_url;
-        $type_attr = '';
-        
-        if (class_exists('CoreBoost\\Core\\Variant_Cache')) {
-            // Try AVIF first (best compression)
-            $avif_url = Variant_Cache::get_variant($image_url, 'avif');
-            if ($avif_url) {
-                $preload_url = $avif_url;
-                $type_attr = ' type="image/avif"';
-                Context_Helper::debug_log('Hero preload using AVIF variant: ' . $avif_url);
-            } else {
-                // Try WebP fallback
-                $webp_url = Variant_Cache::get_variant($image_url, 'webp');
-                if ($webp_url) {
-                    $preload_url = $webp_url;
-                    $type_attr = ' type="image/webp"';
-                    Context_Helper::debug_log('Hero preload using WebP variant: ' . $webp_url);
-                } else {
-                    Context_Helper::debug_log('Hero preload using original (no variants found): ' . $image_url);
-                }
-            }
-        }
-        
-        echo '<link rel="preload" href="' . esc_url($preload_url) . '" as="image"' . $type_attr . ' fetchpriority="high">' . "\n";
+        echo '<link rel="preload" href="' . esc_url($image_url) . '" as="image" fetchpriority="high">' . "\n";
     }
     
     private function output_responsive_preload($image_url) {
@@ -541,25 +558,7 @@ class Hero_Optimizer {
         foreach ($sizes as $size => $media_query) {
             $responsive_url = wp_get_attachment_image_url($image_id, $size);
             if ($responsive_url && $responsive_url !== $original_url) {
-                // Check for optimized variants
-                $preload_url = $responsive_url;
-                $type_attr = '';
-                
-                if (class_exists('CoreBoost\\Core\\Variant_Cache')) {
-                    $avif_url = Variant_Cache::get_variant($responsive_url, 'avif');
-                    if ($avif_url) {
-                        $preload_url = $avif_url;
-                        $type_attr = ' type="image/avif"';
-                    } else {
-                        $webp_url = Variant_Cache::get_variant($responsive_url, 'webp');
-                        if ($webp_url) {
-                            $preload_url = $webp_url;
-                            $type_attr = ' type="image/webp"';
-                        }
-                    }
-                }
-                
-                echo '<link rel="preload" href="' . esc_url($preload_url) . '" as="image"' . $type_attr . ' media="' . $media_query . '">' . "\n";
+                echo '<link rel="preload" href="' . esc_url($responsive_url) . '" as="image" media="' . $media_query . '">' . "\n";
             }
         }
     }

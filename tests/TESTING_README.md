@@ -2,13 +2,12 @@
 
 ## Test Suite Implementation
 
-This directory contains comprehensive unit tests for the CoreBoost plugin, with a focus on preventing functionality loss during updates.
+This directory contains tests for the CoreBoost plugin, with a focus on ensuring core functionality works correctly.
 
 ## Prerequisites
 
-1. **PHP 7.4 or higher** (PHP 8.1+ recommended for AVIF support)
+1. **PHP 7.4 or higher**
 2. **Composer** - PHP dependency manager
-3. **GD Library** with AVIF/WebP support
 
 ### Installing Composer (Windows)
 
@@ -23,15 +22,8 @@ choco install composer
 
 1. Install PHPUnit and dependencies:
 ```powershell
-cd "d:\natha\Documents\Web Dev Workspace\Code Workspace\CoreBoost\CoreBoost"
+cd "d:\natha\Documents\Web Dev Workspace\Code Workspace\CoreBoost"
 composer install
-```
-
-2. Verify GD library support:
-```powershell
-php -r "echo 'GD: ' . (extension_loaded('gd') ? 'YES' : 'NO') . PHP_EOL;"
-php -r "echo 'AVIF: ' . (function_exists('imageavif') ? 'YES' : 'NO') . PHP_EOL;"
-php -r "echo 'WebP: ' . (function_exists('imagewebp') ? 'YES' : 'NO') . PHP_EOL;"
 ```
 
 ## Running Tests
@@ -48,7 +40,7 @@ vendor/bin/phpunit
 
 ### Run specific test suite:
 ```powershell
-vendor/bin/phpunit tests/unit/ImageFormatOptimizerTest.php
+vendor/bin/phpunit tests/integration/ContextHelperTest.php
 ```
 
 ### Run with coverage report:
@@ -58,11 +50,6 @@ composer test-coverage
 
 Coverage report will be generated in `tests/coverage/html/index.html`
 
-### Run specific test method:
-```powershell
-vendor/bin/phpunit --filter test_generate_avif_variant_creates_file_successfully
-```
-
 ### Verbose output:
 ```powershell
 vendor/bin/phpunit --verbose
@@ -70,38 +57,33 @@ vendor/bin/phpunit --verbose
 
 ## Test Structure
 
-### Image Format Optimizer Tests (79 tests)
+### Context Helper Tests (`tests/integration/ContextHelperTest.php`)
 
-**Category 1: Variant Generation (7 tests)**
-- AVIF/WebP file creation
-- Transparency preservation
-- Quality settings application
-- Corrupted image handling
+Tests the Context_Helper utility class which handles:
+- Elementor preview detection
+- Optimization skip logic
+- Debug logging
 
-**Category 2: File Validation (5 tests)**
-- JPEG/PNG acceptance
-- Unsupported format rejection
-- Missing file handling
-- Corrupted file detection
+### Test Mocks (`tests/mocks/`)
 
-**Category 3: GD Library Detection (3 tests)**
-- Extension availability
-- Function availability (imageavif, imagewebp)
+Contains mock classes used to simulate WordPress and plugin dependencies during testing:
+- `class-context-helper-mock.php` - Mock for Context_Helper with test control methods
 
-**Category 4: Quality Settings (2 tests)**
-- Default quality application
-- Constructor option persistence
+## GitHub Actions CI
 
-**Category 5: Error Handling (3 tests)**
-- Missing source files
-- File overwrite behavior
-- Empty/null path handling
+Tests are automatically run on push/PR to main and develop branches via `.github/workflows/test.yml`:
+
+- **Syntax Check**: PHP 7.4, 8.0, 8.1, 8.2
+- **PHPUnit Tests**: PHP 7.4, 8.1
+- **WordPress Compatibility**: WP 6.1-6.4 with PHP 7.4/8.1
+- **Code Quality**: PHPCS with WordPress standards
+- **Plugin Activation**: Minimal WordPress environment testing
+- **Build Test**: ZIP creation verification
 
 ## Test Coverage Goals
 
-- **Line Coverage**: 95%+
-- **Branch Coverage**: 90%+
-- **Method Coverage**: 100%
+- **Line Coverage**: 80%+
+- **Method Coverage**: 90%+
 
 ## Debugging Tests
 
@@ -115,73 +97,22 @@ vendor/bin/phpunit --debug
 vendor/bin/phpunit --filter test_name --testdox --colors
 ```
 
-### Check test execution order:
-```powershell
-vendor/bin/phpunit --order-by=default --testdox
-```
-
-## Known Limitations
-
-1. **AVIF Support**: Requires PHP 8.1+ and GD library compiled with AVIF support
-   - Tests will be skipped if not available
-   - WebP tests will still run on PHP 7.4+
-
-2. **File System**: Tests create temporary files in system temp directory
-   - Cleanup happens automatically in tearDown()
-   - Manual cleanup may be needed if tests crash
-
-3. **Performance**: Some tests involve file I/O and image processing
-   - May take 5-10 seconds to complete full suite
-   - Use `--filter` for faster iteration during development
-
 ## Troubleshooting
-
-### "GD library not available"
-Install PHP GD extension:
-```powershell
-# Check current php.ini location
-php --ini
-
-# Edit php.ini and uncomment:
-extension=gd
-```
-
-### "AVIF support not available"
-- Upgrade to PHP 8.1+
-- Ensure GD was compiled with AVIF support
-- Check with: `php -r "var_dump(gd_info());"`
-
-### "WebP support not available"
-- Usually available in GD 2.0+
-- Check with: `php -r "var_dump(function_exists('imagewebp'));"`
 
 ### Permission errors
 Ensure write access to:
 - System temp directory
 - `tests/coverage/` directory
 
-## Continuous Integration
-
-Tests can be integrated into GitHub Actions, GitLab CI, or other CI/CD pipelines:
-
-```yaml
-# Example .github/workflows/test.yml
-- name: Run PHPUnit tests
-  run: composer test
-```
-
-## Next Steps
-
-1. **Install dependencies**: `composer install`
-2. **Run initial test**: `vendor/bin/phpunit --testdox`
-3. **Check coverage**: `composer test-coverage`
-4. **Fix any failures**: Review error output and adjust code/tests
-5. **Integrate into workflow**: Add to CI/CD pipeline
+### Test failures after updates
+1. Run `composer install` to ensure dependencies are up to date
+2. Check for any new mock requirements in `tests/bootstrap.php`
+3. Review error messages for missing functions
 
 ## Support
 
-For issues with tests or image conversion:
-1. Check GD library configuration
-2. Verify file permissions
-3. Review error logs in WordPress debug mode
-4. Run diagnostic: `php -r "var_dump(gd_info());"`
+For issues with tests:
+1. Check PHP version compatibility
+2. Verify Composer dependencies are installed
+3. Review error logs
+4. Check if mock classes need updates
