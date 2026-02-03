@@ -279,6 +279,26 @@ class Tag_Manager {
                     var footerTemp = document.createElement('div');
                     footerTemp.innerHTML = footerContent;
                     
+                    // Process script tags separately to ensure they execute AND delay network requests
+                    var scripts = footerTemp.querySelectorAll('script');
+                    scripts.forEach(function(oldScript) {
+                        var newScript = document.createElement('script');
+                        if (oldScript.src) {
+                            newScript.src = oldScript.src;
+                        }
+                        if (oldScript.innerHTML) {
+                            newScript.innerHTML = oldScript.innerHTML;
+                        }
+                        // Copy attributes
+                        for (var j = 0; j < oldScript.attributes.length; j++) {
+                            var attr = oldScript.attributes[j];
+                            if (attr.name !== 'src') {
+                                newScript.setAttribute(attr.name, attr.value);
+                            }
+                        }
+                        oldScript.parentNode.replaceChild(newScript, oldScript);
+                    });
+                    
                     // Move all child nodes from the temporary container to the end of body
                     // This handles scripts, noscript, and any other elements
                     while (footerTemp.firstChild) {

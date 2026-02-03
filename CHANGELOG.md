@@ -5,6 +5,46 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.5] - 2026-02-03
+
+### 🐛 Tag Manager & Video Facade Bug Fixes
+
+This release fixes critical bugs affecting Tag Manager footer script delays and Video Facade display/testing issues.
+
+### Fixed
+
+#### Tag Manager Footer Script Delay
+
+- **Footer scripts now properly delay network requests** - Previously, footer scripts in Tag Manager were appended to the DOM without recreation, causing browsers to preload resources immediately despite the delay timer working correctly
+- Added script recreation loop to footer tag processing to match head/body tag handling
+- Scripts are now properly recreated with `document.createElement('script')` before DOM insertion
+- Fixes issue where GTM/GA scripts loaded in 1,400-1,800ms despite "aggressive" (5s) delay setting
+
+#### Video Facade Desktop Sizing
+
+- **Fixed video not filling container on desktop** - Video facades now use CSS `aspect-ratio: 16/9` with `padding-bottom` fallback for older browsers
+- Added `@supports (aspect-ratio: 16/9)` block to remove padding-bottom when aspect-ratio is supported
+- Added Elementor-specific CSS for containers with explicit heights:
+  - `.elementor-widget-video .coreboost-video-facade`
+  - `.elementor-fit-aspect-ratio .coreboost-video-facade`
+  - `.elementor-widget-video .elementor-wrapper .coreboost-video-facade`
+- Videos now properly inherit parent container dimensions
+
+#### Video Facade PageSpeed Insights Compatibility
+
+- **Fixed video errors in PageSpeed Insights testing** - Video facades now auto-load for testing bots instead of waiting for clicks
+- Added bot detection for `Lighthouse`, `Chrome-Lighthouse`, `PageSpeed`, `PTST`, `GTmetrix`, and `Googlebot`
+- Bots trigger automatic iframe replacement after 100ms, bypassing click requirement
+- Prevents "video not playing" errors in PSI and other testing tools
+
+### Technical Details
+
+- Updated `Tag_Manager::output_delay_script()` footer processing with script recreation
+- Updated `Video_Facade::add_video_facade_script()` with bot detection and CSS improvements
+- No breaking changes to existing configurations
+
+---
+
 ## [3.1.4] - 2026-02-03
 
 ### 🎨 Auto CSS Deferring & Bug Fixes
