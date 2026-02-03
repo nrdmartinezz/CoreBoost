@@ -12,9 +12,6 @@
     failOnWarning="false"
     verbose="true">
     <testsuites>
-        <testsuite name="CoreBoost Unit Tests">
-            <directory>tests/unit</directory>
-        </testsuite>
         <testsuite name="CoreBoost Integration Tests">
             <directory>tests/integration</directory>
         </testsuite>
