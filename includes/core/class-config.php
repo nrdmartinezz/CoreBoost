@@ -34,6 +34,7 @@ class Config {
             'scripts_to_async' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Independent scripts to load with async (one per line). These scripts have no dependencies and can execute immediately. Examples: youtube-iframe-api, google-analytics, facebook-pixel.'),
             'exclude_scripts' => array('type' => 'textarea', 'rows' => 3, 'description' => 'Script handles to never defer or async (one per line). Keep jQuery here as it\'s required by most WordPress scripts.'),
             'enable_css_defer' => array('type' => 'checkbox', 'default' => false, 'description' => 'Enable CSS deferring with critical CSS inlining.'),
+            'auto_defer_all_css' => array('type' => 'checkbox', 'default' => false, 'description' => 'Automatically defer all CSS files except critical stylesheets. Simplest approach for CSS optimization.'),
             'styles_to_defer' => array('type' => 'textarea', 'rows' => 3, 'description' => 'CSS handles to defer (one per line).'),
             'critical_css_global' => array('type' => 'textarea', 'rows' => 8, 'class' => 'large-text code', 'description' => 'Global critical CSS applied to all pages. Include only above-the-fold styles.'),
             'critical_css_home' => array('type' => 'textarea', 'rows' => 6, 'class' => 'large-text code', 'description' => 'Critical CSS specific to the homepage. This will be combined with global critical CSS.'),

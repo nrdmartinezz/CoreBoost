@@ -69,10 +69,56 @@ class Delay_JS_Optimizer {
         'jquery',
         'jquery-core',
         'jquery-migrate',
+        'jquery-ui-core',
+        'jquery-ui-widget',
+        'jquery-ui-position',
+        'jquery-ui-mouse',
+        'jquery-ui-sortable',
+        'jquery-ui-draggable',
+        'jquery-ui-droppable',
+        'jquery-ui-resizable',
+        'jquery-effects-core',
+        'jquery-effects-slide',
         
         // WordPress core essentials
         'wp-embed',
         'wp-polyfill',
+        'wp-element',
+        'wp-data',
+        'wp-compose',
+        'wp-date',
+        'wp-hooks',
+        'wp-i18n',
+        'wp-api-fetch',
+        'wp-components',
+        'wp-rich-text',
+        'wp-primitives',
+        'wp-editor',
+        'wp-block-editor',
+        'wp-blocks',
+        'wp-url',
+        'wp-dom-ready',
+        
+        // React and dependencies
+        'react',
+        'react-dom',
+        'react-jsx-runtime',
+        'moment',
+        'lodash',
+        'underscore',
+        'backbone',
+        'marionette',
+        
+        // Elementor scripts that need immediate initialization
+        'elementor-frontend',
+        'elementor-frontend-modules',
+        'elementor-pro-frontend',
+        'elementor-waypoints',
+        'elementor-common',
+        'elementor-common-modules',
+        'elementor-dialog',
+        'swiper',
+        'e-swiper',
         
         // CoreBoost's own scripts
         'coreboost',
@@ -143,6 +189,16 @@ class Delay_JS_Optimizer {
     private function is_excluded($handle, $src = '') {
         // Always exclude core delay exclusions
         if (in_array($handle, $this->default_delay_exclusions, true)) {
+            return true;
+        }
+        
+        // Exclude Elementor scripts by URL path (catches all Elementor assets)
+        if ($src && strpos($src, '/elementor/') !== false) {
+            return true;
+        }
+        
+        // Exclude Elementor Pro scripts by URL path
+        if ($src && strpos($src, '/elementor-pro/') !== false) {
             return true;
         }
 
@@ -265,6 +321,11 @@ class Delay_JS_Optimizer {
             return $tag;
         }
 
+        // Only process actual script tags
+        if (strpos($tag, '<script') === false) {
+            return $tag;
+        }
+
         // Check if this script should be excluded
         if ($this->is_excluded($handle, $src)) {
             return $tag;
@@ -277,6 +338,11 @@ class Delay_JS_Optimizer {
 
         // Don't delay inline scripts here (handled separately)
         if (empty($src)) {
+            return $tag;
+        }
+        
+        // Don't delay scripts with module type (ES6 modules need to load in order)
+        if (preg_match('/type=["\']module["\']/i', $tag)) {
             return $tag;
         }
 
