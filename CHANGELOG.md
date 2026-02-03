@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Critical Bug Fixes
 
-- **Fixed 23 settings that could not be disabled or cleared once set**
+- **Fixed 23 settings that could not be disabled or cleared once set.**
   - Fixed `enable_event_hijacking` checkbox - can now be disabled
   - Fixed 22 textarea fields that could not be cleared:
     - Script settings: `scripts_to_defer`, `scripts_to_async`, `styles_to_defer`, `exclude_scripts`, `specific_pages`, `script_exclusion_patterns`
