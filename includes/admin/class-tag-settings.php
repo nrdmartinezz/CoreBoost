@@ -277,16 +277,22 @@ console.log('Footer script loaded');
         // Sanitize head scripts
         if (isset($input['tag_head_scripts'])) {
             $sanitized['tag_head_scripts'] = $this->sanitize_script_field($input['tag_head_scripts']);
+        } else {
+            $sanitized['tag_head_scripts'] = '';
         }
 
         // Sanitize body scripts
         if (isset($input['tag_body_scripts'])) {
             $sanitized['tag_body_scripts'] = $this->sanitize_script_field($input['tag_body_scripts']);
+        } else {
+            $sanitized['tag_body_scripts'] = '';
         }
 
         // Sanitize footer scripts
         if (isset($input['tag_footer_scripts'])) {
             $sanitized['tag_footer_scripts'] = $this->sanitize_script_field($input['tag_footer_scripts']);
+        } else {
+            $sanitized['tag_footer_scripts'] = '';
         }
 
         // Sanitize load strategy

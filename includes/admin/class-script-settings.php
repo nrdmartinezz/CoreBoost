@@ -263,6 +263,8 @@ class Script_Settings {
         // Sanitize script_exclusion_patterns
         if (isset($input['script_exclusion_patterns'])) {
             $sanitized['script_exclusion_patterns'] = sanitize_textarea_field($input['script_exclusion_patterns']);
+        } else {
+            $sanitized['script_exclusion_patterns'] = '';
         }
 
         // Sanitize script_load_strategy

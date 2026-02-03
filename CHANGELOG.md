@@ -5,6 +5,40 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.8] - 2026-02-03
+
+### 🐛 Fixed - Settings Sanitization
+
+#### Critical Bug Fixes
+
+- **Fixed 23 settings that could not be disabled or cleared once set**
+  - Fixed `enable_event_hijacking` checkbox - can now be disabled
+  - Fixed 22 textarea fields that could not be cleared:
+    - Script settings: `scripts_to_defer`, `scripts_to_async`, `styles_to_defer`, `exclude_scripts`, `specific_pages`, `script_exclusion_patterns`
+    - Advanced optimization: `script_wildcard_patterns`, `script_regex_patterns`, `delay_js_exclusions`, `custom_preconnect_urls`
+    - Resource removal: `unused_css_list`, `unused_js_list`, `inline_script_ids`, `inline_style_ids`
+    - Critical CSS: `critical_css_global`, `critical_css_home`, `critical_css_pages`, `critical_css_posts`
+    - Tag Manager: `tag_head_scripts`, `tag_body_scripts`, `tag_footer_scripts`
+
+#### Technical Details
+
+- Added missing `else` clauses to all checkbox and textarea sanitization logic
+- Checkbox fields now properly set to `false` when unchecked
+- Textarea fields now properly cleared to empty string when field is not submitted
+- Added form context awareness to prevent accidental clearing of fields from other tabs
+- Added `smart_video_facades` to centralized boolean field sanitization
+
+#### Files Modified
+
+- `includes/admin/class-settings-sanitizer.php` - Fixed 13 textarea/CSS fields with context-aware clearing
+- `includes/admin/class-script-settings.php` - Fixed `script_exclusion_patterns`
+- `includes/admin/class-advanced-optimization-settings.php` - Fixed `enable_event_hijacking` + 4 textarea fields
+- `includes/admin/class-tag-settings.php` - Fixed 3 tag manager textarea fields
+
+### Impact
+
+Users can now properly disable checkboxes and clear textarea fields, eliminating persistent settings that previously couldn't be removed.
+
 ## [3.1.5] - 2026-02-03
 
 ### 🐛 Tag Manager & Video Facade Bug Fixes
@@ -56,12 +90,12 @@ This release adds a simple auto-defer toggle for CSS optimization and includes c
 #### Auto CSS Deferring (Advanced)
 
 - **New "Auto-Defer All CSS" toggle** in Advanced settings
+
   - Single checkbox to defer all CSS automatically
   - Overrides manual "Styles to Defer" list when enabled
   - Critical admin styles automatically excluded (admin-bar, dashicons, wp-admin, elementor-editor)
   - Works with existing CSS defer method settings (simple or preload with critical)
   - Reduces render-blocking CSS without manual configuration
-
 - **New settings section** with helpful documentation explaining how auto-deferring works
 - **Added `auto_defer_all_css` config** to field configuration and default options
 
@@ -70,26 +104,26 @@ This release adds a simple auto-defer toggle for CSS optimization and includes c
 #### Delay JavaScript Compatibility Fixes
 
 - **Elementor Navigation Menu Fix** - Added comprehensive Elementor script exclusions:
+
   - `elementor-frontend`, `elementor-pro-frontend`, `elementor-sticky`
   - `elementor-waypoints`, `elementor-webpack-runtime`
   - All frontend handlers (`elementor-frontend-modules`, etc.)
-  
 - **WordPress Core Scripts Fix** - Added WordPress core script exclusions:
+
   - `wp-element`, `wp-data`, `wp-hooks`, `wp-i18n`, `wp-components`
   - `wp-blocks`, `wp-editor`, `wp-compose`, `wp-dom-ready`
   - `react`, `react-dom`, `backbone`, `marionette`, `underscore`, `lodash`
   - `moment`, `wp-polyfill`, `regenerator-runtime`
-  
 - **jQuery UI Components Fix** - Added all jQuery UI widget exclusions:
+
   - `jquery-ui-core`, `jquery-ui-widget`, `jquery-ui-mouse`
   - `jquery-ui-sortable`, `jquery-ui-draggable`, `jquery-ui-droppable`
   - `jquery-ui-accordion`, `jquery-ui-autocomplete`, `jquery-ui-datepicker`
-  
 - **URL-Based Exclusions** - Added automatic script exclusion for Elementor editor URLs:
+
   - Scripts from `/elementor/` paths excluded
   - Scripts from `/elementor-pro/` paths excluded
   - Prevents "sticky is not a function" and similar runtime errors
-  
 - **Non-Script Tag Safety** - Added check to skip non-script tags (prevents favicon issues)
 - **ES6 Module Support** - Added check to skip `type="module"` scripts
 

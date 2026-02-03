@@ -166,6 +166,11 @@ class Settings_Sanitizer {
         foreach ($field_types['textarea'] as $field) {
             if (isset($input[$field])) {
                 $sanitized[$field] = sanitize_textarea_field($input[$field]);
+            } else {
+                // Only clear if this field is from the current form tab
+                if ($this->is_field_in_current_form($field, $form_context)) {
+                    $sanitized[$field] = '';
+                }
             }
         }
         
@@ -173,6 +178,11 @@ class Settings_Sanitizer {
         foreach ($field_types['css'] as $field) {
             if (isset($input[$field])) {
                 $sanitized[$field] = wp_strip_all_tags($input[$field]);
+            } else {
+                // Only clear if this field is from the current form tab
+                if ($this->is_field_in_current_form($field, $form_context)) {
+                    $sanitized[$field] = '';
+                }
             }
         }
     }

@@ -772,11 +772,15 @@ class Advanced_Optimization_Settings {
         // Sanitize wildcard patterns
         if (isset($input['script_wildcard_patterns'])) {
             $sanitized['script_wildcard_patterns'] = sanitize_textarea_field($input['script_wildcard_patterns']);
+        } else {
+            $sanitized['script_wildcard_patterns'] = '';
         }
 
         // Sanitize regex patterns
         if (isset($input['script_regex_patterns'])) {
             $sanitized['script_regex_patterns'] = sanitize_textarea_field($input['script_regex_patterns']);
+        } else {
+            $sanitized['script_regex_patterns'] = '';
         }
 
         // Sanitize plugin profiles
@@ -836,11 +840,15 @@ class Advanced_Optimization_Settings {
             $sanitized['delay_js_use_default_exclusions'] = !empty($input['delay_js_use_default_exclusions']);
         } else {
             $sanitized['delay_js_use_default_exclusions'] = false;
+        } else {
+            $sanitized['delay_js_exclusions'] = '';
         }
 
-        if (isset($input['delay_js_exclusions'])) {
-            $sanitized['delay_js_exclusions'] = sanitize_textarea_field($input['delay_js_exclusions']);
-        }
+        // Sanitize custom preconnect URLs
+        if (isset($input['custom_preconnect_urls'])) {
+            $sanitized['custom_preconnect_urls'] = sanitize_textarea_field($input['custom_preconnect_urls']);
+        } else {
+            $sanitized['custom_preconnect_urls'] = ''
 
         // Sanitize custom preconnect URLs
         if (isset($input['custom_preconnect_urls'])) {
