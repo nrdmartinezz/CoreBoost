@@ -190,7 +190,7 @@ class Settings_Sanitizer {
                 'enable_font_optimization', 'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                 'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
                 'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal',
-                'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui',
+                'smart_youtube_blocking', 'smart_video_facades', 'block_youtube_player_css', 'block_youtube_embed_ui',
                 'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes',
                 'generate_aspect_ratio_css', 'add_decoding_async'
             ),

@@ -787,6 +787,8 @@ class Advanced_Optimization_Settings {
         // Sanitize event hijacking enable
         if (isset($input['enable_event_hijacking'])) {
             $sanitized['enable_event_hijacking'] = !empty($input['enable_event_hijacking']);
+        } else {
+            $sanitized['enable_event_hijacking'] = false;
         }
 
         // Sanitize hijack triggers
