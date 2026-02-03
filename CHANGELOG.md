@@ -5,6 +5,53 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-02-03
+
+### ✨ New Feature - WordPress Core Script Defer
+
+#### Critical Request Chain Optimization
+
+- **New "Defer WordPress Core Scripts" setting** to break render-blocking chains from WordPress core JavaScript packages
+- Targets `wp-hooks`, `wp-i18n`, and `wp-dom-ready` scripts that cause critical request chain latency in PageSpeed Insights
+- Reduces Maximum Critical Path Latency by deferring these scripts while preserving execution order
+
+#### How It Works
+
+- Adds `defer` attribute to WordPress dist scripts, enabling parallel download during HTML parsing
+- Scripts execute in document order after HTML parsing completes
+- Includes preload hints (`<link rel="preload">`) for faster parallel downloads when enabled
+- Frontend-only optimization — admin pages are never affected
+
+#### Settings
+
+- **Location**: Scripts tab → Script Exclusion Patterns section
+- **Default**: Disabled (opt-in after testing)
+- **Requires**: "Enable Script Defer" must also be enabled
+
+#### Files Modified
+
+- `includes/class-coreboost.php` - Added `enable_wp_core_defer` default option
+- `includes/admin/class-script-settings.php` - Added setting field, callback, and sanitization
+- `includes/admin/class-settings-sanitizer.php` - Added form context detection and field type mapping
+- `includes/public/class-script-optimizer.php` - Added defer logic and preload hints for WP core scripts
+
+#### Unit Tests
+
+- Added `tests/integration/ScriptOptimizerTest.php` with 8 tests covering:
+  - WP core scripts not deferred when disabled (default behavior)
+  - WP core scripts deferred when enabled
+  - Non-WP-core scripts unaffected
+  - No duplicate defer attributes
+  - No defer on scripts with async attribute
+  - All three WP core handles recognized
+  - Master enable_script_defer switch respected
+
+### Impact
+
+Sites with Block Editor or Gutenberg-dependent plugins can reduce critical request chain latency significantly. Test thoroughly before enabling on production sites with complex Block Editor integrations.
+
+---
+
 ## [3.1.9] - 2026-02-03
 
 ### 🐛 Fixed - Settings Sanitization
