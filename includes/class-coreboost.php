@@ -259,6 +259,7 @@ class CoreBoost {
             'preload_method' => 'elementor_data',
             'enable_script_defer' => false,
             'enable_css_defer' => false,
+            'auto_defer_all_css' => false,
             'enable_foreground_conversion' => false,
             'enable_responsive_preload' => false,
             'enable_caching' => false,

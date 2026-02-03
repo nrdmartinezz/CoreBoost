@@ -5,6 +5,63 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.4] - 2026-02-03
+
+### 🎨 Auto CSS Deferring & Bug Fixes
+
+This release adds a simple auto-defer toggle for CSS optimization and includes critical bug fixes for Elementor and WordPress core compatibility.
+
+### Added
+
+#### Auto CSS Deferring (Advanced)
+
+- **New "Auto-Defer All CSS" toggle** in Advanced settings
+  - Single checkbox to defer all CSS automatically
+  - Overrides manual "Styles to Defer" list when enabled
+  - Critical admin styles automatically excluded (admin-bar, dashicons, wp-admin, elementor-editor)
+  - Works with existing CSS defer method settings (simple or preload with critical)
+  - Reduces render-blocking CSS without manual configuration
+
+- **New settings section** with helpful documentation explaining how auto-deferring works
+- **Added `auto_defer_all_css` config** to field configuration and default options
+
+### Fixed
+
+#### Delay JavaScript Compatibility Fixes
+
+- **Elementor Navigation Menu Fix** - Added comprehensive Elementor script exclusions:
+  - `elementor-frontend`, `elementor-pro-frontend`, `elementor-sticky`
+  - `elementor-waypoints`, `elementor-webpack-runtime`
+  - All frontend handlers (`elementor-frontend-modules`, etc.)
+  
+- **WordPress Core Scripts Fix** - Added WordPress core script exclusions:
+  - `wp-element`, `wp-data`, `wp-hooks`, `wp-i18n`, `wp-components`
+  - `wp-blocks`, `wp-editor`, `wp-compose`, `wp-dom-ready`
+  - `react`, `react-dom`, `backbone`, `marionette`, `underscore`, `lodash`
+  - `moment`, `wp-polyfill`, `regenerator-runtime`
+  
+- **jQuery UI Components Fix** - Added all jQuery UI widget exclusions:
+  - `jquery-ui-core`, `jquery-ui-widget`, `jquery-ui-mouse`
+  - `jquery-ui-sortable`, `jquery-ui-draggable`, `jquery-ui-droppable`
+  - `jquery-ui-accordion`, `jquery-ui-autocomplete`, `jquery-ui-datepicker`
+  
+- **URL-Based Exclusions** - Added automatic script exclusion for Elementor editor URLs:
+  - Scripts from `/elementor/` paths excluded
+  - Scripts from `/elementor-pro/` paths excluded
+  - Prevents "sticky is not a function" and similar runtime errors
+  
+- **Non-Script Tag Safety** - Added check to skip non-script tags (prevents favicon issues)
+- **ES6 Module Support** - Added check to skip `type="module"` scripts
+
+### Technical Details
+
+- Updated `CSS_Optimizer::should_defer_style()` to support auto-defer mode
+- Added `CSS_Optimizer::is_auto_defer_enabled()` helper method
+- Extended `Delay_JS_Optimizer::is_excluded()` with URL pattern matching
+- Expanded default exclusions in `Delay_JS_Optimizer` constructor
+
+---
+
 ## [3.1.3] - 2026-02-02
 
 ### 🚀 Delay JavaScript & Custom Preconnect URLs

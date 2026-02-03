@@ -145,9 +145,36 @@ class CSS_Optimizer {
     }
     
     /**
+     * Check if auto defer all CSS is enabled
+     *
+     * @return bool
+     */
+    private function is_auto_defer_enabled() {
+        return !empty($this->options['auto_defer_all_css']);
+    }
+    
+    /**
      * Check if a CSS handle should be deferred using pattern matching
      */
     private function should_defer_style($handle, $styles_to_defer) {
+        // Auto-defer all CSS mode - defer everything except critical exclusions
+        if ($this->is_auto_defer_enabled()) {
+            // Exclude critical admin/editor styles
+            $critical_exclusions = array(
+                'admin-bar',
+                'dashicons',
+                'wp-admin',
+                'elementor-editor',
+                'elementor-common',
+            );
+            foreach ($critical_exclusions as $exclusion) {
+                if (strpos($handle, $exclusion) !== false) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
         foreach ($styles_to_defer as $pattern) {
             $pattern = trim($pattern);
             if (empty($pattern)) continue;

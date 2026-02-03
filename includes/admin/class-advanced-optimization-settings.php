@@ -193,6 +193,23 @@ class Advanced_Optimization_Settings {
             'coreboost-advanced',
             'coreboost_preconnect_section'
         );
+
+        // Phase 7: Auto CSS Defer Section
+        add_settings_section(
+            'coreboost_auto_css_defer_section',
+            __('Auto CSS Deferring', 'coreboost'),
+            array($this, 'auto_css_defer_section_callback'),
+            'coreboost-advanced'
+        );
+
+        // Auto defer all CSS
+        add_settings_field(
+            'auto_defer_all_css',
+            __('Auto-Defer All CSS', 'coreboost'),
+            array($this, 'auto_defer_all_css_callback'),
+            'coreboost-advanced',
+            'coreboost_auto_css_defer_section'
+        );
     }
 
     /**
@@ -703,6 +720,48 @@ class Advanced_Optimization_Settings {
     }
 
     /**
+     * Auto CSS Defer section callback
+     */
+    public function auto_css_defer_section_callback() {
+        ?>
+        <p><?php esc_html_e('Automatically defer all CSS stylesheets to improve render performance. This is the simplest approach to CSS optimization.', 'coreboost'); ?></p>
+        <div class="notice notice-info inline">
+            <p><strong><?php esc_html_e('🎨 How it works:', 'coreboost'); ?></strong></p>
+            <ul style="margin-left: 20px; list-style: disc; margin-top: 5px;">
+                <li><?php esc_html_e('All non-critical CSS files are deferred (loaded with media="print" then swapped to "all")', 'coreboost'); ?></li>
+                <li><?php esc_html_e('Critical admin styles (admin-bar, dashicons) are automatically excluded', 'coreboost'); ?></li>
+                <li><?php esc_html_e('Works with the CSS Defer settings in Performance tab - just enables auto-detection', 'coreboost'); ?></li>
+                <li><?php esc_html_e('For best results, combine with Critical CSS in the Performance tab', 'coreboost'); ?></li>
+            </ul>
+        </div>
+        <?php
+    }
+
+    /**
+     * Auto defer all CSS callback
+     */
+    public function auto_defer_all_css_callback() {
+        $checked = !empty($this->options['auto_defer_all_css']);
+        ?>
+        <label class="coreboost-toggle">
+            <input type="checkbox" 
+                   name="coreboost_options[auto_defer_all_css]" 
+                   id="auto_defer_all_css" 
+                   value="1" 
+                   <?php checked($checked); ?>>
+            <span class="coreboost-toggle-slider"></span>
+            <?php esc_html_e('Automatically defer all CSS (except critical)', 'coreboost'); ?>
+        </label>
+        <p class="description" style="margin-top: 8px;">
+            <?php esc_html_e('Enable to defer all CSS files automatically. This overrides the manual "Styles to Defer" list in the Performance tab. Browser will load CSS asynchronously, reducing render-blocking.', 'coreboost'); ?>
+        </p>
+        <div class="notice notice-warning inline" style="margin-top: 10px; padding: 8px 12px;">
+            <p style="margin: 0;"><strong><?php esc_html_e('⚠️ Note:', 'coreboost'); ?></strong> <?php esc_html_e('CSS Deferring must be enabled in the Performance tab for this setting to work.', 'coreboost'); ?></p>
+        </div>
+        <?php
+    }
+
+    /**
      * Sanitize and validate advanced settings
      *
      * @param array $input Raw input values
@@ -784,6 +843,13 @@ class Advanced_Optimization_Settings {
         // Sanitize custom preconnect URLs
         if (isset($input['custom_preconnect_urls'])) {
             $sanitized['custom_preconnect_urls'] = sanitize_textarea_field($input['custom_preconnect_urls']);
+        }
+
+        // Sanitize auto defer all CSS
+        if (isset($input['auto_defer_all_css'])) {
+            $sanitized['auto_defer_all_css'] = !empty($input['auto_defer_all_css']);
+        } else {
+            $sanitized['auto_defer_all_css'] = false;
         }
 
         return $sanitized;
