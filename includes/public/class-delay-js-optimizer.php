@@ -397,7 +397,7 @@ class Delay_JS_Optimizer {
         $custom_delay = $this->get_custom_delay();
 
         ?>
-<script id="coreboost-delay-loader">
+<script id="coreboost-delay-loader" defer>
 /**
  * CoreBoost Delay JavaScript Loader
  * Restores delayed scripts on user interaction or specified trigger

@@ -8,6 +8,9 @@ jQuery(document).ready(function($) {
     // Initialize migration notice dismiss
     initMigrationNotice();
     
+    // Handle delay JS toggle enabling/disabling related fields
+    initDelayJsToggle();
+    
     // Handle admin bar cache clearing
     $('.coreboost-clear-cache-link').on('click', function(e) {
         e.preventDefault();
@@ -525,6 +528,36 @@ function initTooltips() {
         $trigger.attr('aria-expanded', 'false');
         $tooltip.attr('aria-hidden', 'true').removeClass('visible');
     }
+}
+
+/**
+ * Initialize delay JS toggle functionality
+ */
+function initDelayJsToggle() {
+    var $ = jQuery;
+    
+    // Handle enable_delay_js checkbox change
+    $('#enable_delay_js').on('change', function() {
+        var isEnabled = $(this).is(':checked');
+        
+        // Enable/disable all delay JS related fields
+        $('#delay_js_trigger input[type="radio"]').prop('disabled', !isEnabled);
+        $('#delay_js_timeout').prop('disabled', !isEnabled);
+        $('#delay_js_include_inline').prop('disabled', !isEnabled);
+        $('#delay_js_use_default_exclusions').prop('disabled', !isEnabled);
+        $('#delay_js_exclusions').prop('disabled', !isEnabled);
+        
+        // Handle custom delay field (only enabled when trigger is custom AND delay JS is enabled)
+        var isCustomTrigger = $('input[name="coreboost_options[delay_js_trigger]"]:checked').val() === 'custom_delay';
+        $('#delay_js_custom_delay').prop('disabled', !isEnabled || !isCustomTrigger);
+    });
+    
+    // Handle delay_js_trigger radio change to enable/disable custom delay field
+    $('input[name="coreboost_options[delay_js_trigger]"]').on('change', function() {
+        var isEnabled = $('#enable_delay_js').is(':checked');
+        var isCustom = $(this).val() === 'custom_delay';
+        $('#delay_js_custom_delay').prop('disabled', !isEnabled || !isCustom);
+    });
 }
 
 /**

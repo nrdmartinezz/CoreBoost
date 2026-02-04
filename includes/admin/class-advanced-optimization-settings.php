@@ -839,7 +839,13 @@ class Advanced_Optimization_Settings {
         if (isset($input['delay_js_use_default_exclusions'])) {
             $sanitized['delay_js_use_default_exclusions'] = !empty($input['delay_js_use_default_exclusions']);
         } else {
-            $sanitized['delay_js_use_default_exclusions'] = false;
+            // Preserve existing value if delay JS is disabled (disabled checkboxes don't submit)
+            // This prevents losing the "true" default when the parent option is toggled off
+            if (isset($this->options['delay_js_use_default_exclusions'])) {
+                $sanitized['delay_js_use_default_exclusions'] = $this->options['delay_js_use_default_exclusions'];
+            } else {
+                $sanitized['delay_js_use_default_exclusions'] = true; // Default to true for new installs
+            }
         }
 
         if (isset($input['delay_js_exclusions'])) {
