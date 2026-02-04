@@ -88,6 +88,12 @@ class Script_Optimizer {
         if (!empty($this->options['enable_wp_core_defer'])) {
             $wp_core_handles = array('wp-hooks', 'wp-i18n', 'wp-dom-ready');
             if (in_array($handle, $wp_core_handles)) {
+                // Skip deferring if the script has inline scripts attached
+                // Inline scripts execute immediately and would fail if parent is deferred
+                if ($this->has_inline_scripts($handle)) {
+                    return $tag;
+                }
+                
                 // Only add defer if not already present
                 if (strpos($tag, ' defer') === false && strpos($tag, ' async') === false) {
                     return str_replace(' src', ' defer src', $tag);
@@ -181,5 +187,33 @@ class Script_Optimizer {
                 echo '<link rel="preload" href="' . esc_url($src) . '" as="script" fetchpriority="' . esc_attr($priority) . '">' . "\n";
             }
         }
+    }
+    
+    /**
+     * Check if a script has inline scripts attached that would break if deferred
+     *
+     * @param string $handle Script handle
+     * @return bool True if script has inline scripts attached
+     */
+    private function has_inline_scripts($handle) {
+        global $wp_scripts;
+        
+        if (!isset($wp_scripts->registered[$handle])) {
+            return false;
+        }
+        
+        $script = $wp_scripts->registered[$handle];
+        
+        // Check for inline scripts added via wp_add_inline_script()
+        if (!empty($script->extra['before']) || !empty($script->extra['after'])) {
+            return true;
+        }
+        
+        // Check for localized data via wp_localize_script()
+        if (!empty($script->extra['data'])) {
+            return true;
+        }
+        
+        return false;
     }
 }
