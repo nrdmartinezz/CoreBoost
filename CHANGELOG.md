@@ -5,6 +5,36 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2026-02-03
+
+### 🐛 Fixed - Delay JavaScript Bugs
+
+#### Favicon Not Displaying with Delay JS Enabled
+
+- **Fixed favicon not appearing in browser tab** when Delay JavaScript feature is enabled
+- Root cause: The delay loader script executed immediately on page load, keeping the browser main thread busy and causing browsers to deprioritize low-priority resources like favicons
+- Solution: Added `defer` attribute to the delay loader script, allowing favicons to be discovered and queued during HTML parsing before the script executes
+
+#### Delay JS Settings UI Issues
+
+- **Fixed "Use Default Exclusions" checkbox not staying checked** after saving settings
+  - Disabled checkboxes don't submit form data, causing the value to reset to `false`
+  - Now preserves existing value when parent `enable_delay_js` is disabled
+  - Defaults to `true` for new installations as intended
+
+- **Fixed inability to edit Delay JS options until saving**
+  - Added JavaScript to dynamically enable/disable Delay JS fields when the main checkbox is toggled
+  - Users can now immediately configure options after enabling Delay JS without saving first
+  - Custom delay field properly enables only when both Delay JS is on AND custom trigger is selected
+
+#### Files Modified
+
+- `includes/public/class-delay-js-optimizer.php` - Added `defer` attribute to delay loader script tag
+- `includes/admin/class-advanced-optimization-settings.php` - Fixed sanitization to preserve checkbox defaults
+- `assets/admin.js` - Added `initDelayJsToggle()` function for dynamic field state management
+
+---
+
 ## [3.2.0] - 2026-02-03
 
 ### ✨ New Feature - WordPress Core Script Defer
