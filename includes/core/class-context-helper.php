@@ -121,10 +121,10 @@ class Context_Helper {
             return true;
         }
         
-        // Skip if URL contains wp-admin (catches edge cases like customizer, Gutenberg iframe)
+        // Skip on WordPress core functionality pages (admin, login, cron, etc.)
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $request_uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
-        if (strpos($request_uri, '/wp-admin') !== false || strpos($request_uri, 'wp-admin') !== false) {
+        if (preg_match('/wp-(admin|login|cron|signup|activate|trackback|comments-post)|xmlrpc\.php/', $request_uri)) {
             self::$should_skip = true;
             return true;
         }

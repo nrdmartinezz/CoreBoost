@@ -5,6 +5,38 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.2] - 2026-02-04
+
+### 🐛 Fixed - Admin/Login Page Optimization Bypass
+
+#### Critical Fix: Optimizations Running on WordPress Core Pages
+
+- **Fixed optimizations incorrectly running on admin and login pages** causing potential conflicts and errors
+- Root cause: The `should_skip_optimization()` method only checked for `/wp-admin` URLs, missing login and other WordPress core pages
+- Solution: Replaced multiple `strpos()` checks with a single optimized regex pattern matching all WordPress core functionality URLs
+
+#### URLs Now Excluded from Optimizations
+
+- `/wp-admin/` - WordPress dashboard and admin pages
+- `/wp-login.php` - Login page
+- `/wp-cron.php` - Background scheduled tasks
+- `/wp-signup.php` - Multisite user registration
+- `/wp-activate.php` - Multisite account activation
+- `/wp-trackback.php` - Trackback handling
+- `/wp-comments-post.php` - Comment submission
+- `/xmlrpc.php` - XML-RPC API endpoint
+
+#### Performance Improvement
+
+- Consolidated two `strpos()` calls into a single `preg_match()` with alternation pattern
+- Regex is evaluated once per request and result is cached
+
+#### Files Modified
+
+- `includes/core/class-context-helper.php` - Updated `should_skip_optimization()` with comprehensive WordPress core URL detection
+
+---
+
 ## [3.2.1] - 2026-02-03
 
 ### 🐛 Fixed - Delay JavaScript Bugs
