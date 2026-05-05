@@ -16,6 +16,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   dev_release:
     runs-on: ubuntu-latest
@@ -101,7 +104,7 @@ jobs:
         cat release-notes.md
     
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.dev_version.outputs.DEV_VERSION }}
         name: CoreBoost ${{ steps.dev_version.outputs.DEV_VERSION }} (${{ github.event.inputs.release_type }})
