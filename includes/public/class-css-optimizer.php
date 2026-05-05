@@ -119,8 +119,8 @@ class CSS_Optimizer {
             $critical_css .= "\n" . $this->options['critical_css_home'];
         }
         
-        // Page-specific critical CSS
-        if (is_page() && !empty($this->options['critical_css_pages'])) {
+        // Page-specific critical CSS (exclude homepage, which has its own section)
+        if (is_page() && !is_front_page() && !empty($this->options['critical_css_pages'])) {
             $critical_css .= "\n" . $this->options['critical_css_pages'];
         }
         
