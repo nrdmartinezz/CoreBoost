@@ -5,6 +5,38 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.3] - 2026-05-05
+
+### 🐛 Fixed - CSS Defer & Critical CSS Bugs
+
+#### CSS Auto-Defer Toggle Not Resetting
+
+- **Fixed `auto_defer_all_css` permanently sticking to `true`** after being enabled and saved once
+- Root cause: `auto_defer_all_css` was missing from the sanitizer's boolean field list and the CSS form context map, so unchecking the toggle never wrote `false` back to the database
+- Solution: Added `auto_defer_all_css` to `get_field_type_mapping()` boolean array and `is_field_in_current_form()` CSS context in `class-settings-sanitizer.php`
+
+#### Pages Critical CSS Leaking onto Homepage
+
+- **Fixed `critical_css_pages` being output on the static homepage** when a page is set as the front page
+- Root cause: WordPress returns `true` for both `is_front_page()` and `is_page()` simultaneously on a static homepage, causing both `critical_css_home` and `critical_css_pages` to be inlined
+- Solution: Added `!is_front_page()` guard to the `is_page()` condition in `output_critical_css()`
+
+### 🔧 Maintenance - GitHub Actions Node.js 24 Upgrade
+
+- Updated `actions/checkout` from `v4` to `v5` across all workflows (native Node.js 24 support)
+- Updated `softprops/action-gh-release` from `v1` to `v2` (Node.js 24 compatible)
+- Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` environment variable to all workflow files
+
+#### Files Modified
+
+- `includes/admin/class-settings-sanitizer.php` - Added `auto_defer_all_css` to field type mapping and form context
+- `includes/public/class-css-optimizer.php` - Added `!is_front_page()` guard to pages critical CSS condition
+- `.github/workflows/release.yml` - Upgraded action versions
+- `.github/workflows/dev-release.yml` - Upgraded action versions
+- `.github/workflows/test.yml` - Upgraded action versions
+
+---
+
 ## [3.2.2] - 2026-02-04
 
 ### 🐛 Fixed - Admin/Login Page Optimization Bypass

@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.2.2
+Stable tag: 3.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,11 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.2.3 =
+* Fixed: CSS defer toggle (auto_defer_all_css) now correctly resets to disabled when unchecked and saved
+* Fixed: Pages critical CSS no longer applied on the homepage when a static front page is set
+* Updated: GitHub Actions workflows upgraded to actions/checkout@v5 and softprops/action-gh-release@v2 for Node.js 24 compatibility
 
 = 3.1.1 =
 * Added: New card-based UI for hero preload method selection with visual cards and tooltips
