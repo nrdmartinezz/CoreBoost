@@ -5,6 +5,25 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.6] - 2026-05-05
+
+### 🐛 Fixed - Script Preloads Adding Deferred Scripts to Critical Chain
+
+- **Removed `<link rel="preload">` hints for `wp-hooks`, `wp-i18n`, `wp-dom-ready`** when WP Core Defer is enabled. These scripts are deferred (non-render-blocking), so emitting `fetchpriority="high"` preload hints for them caused PSI to count them in the critical request chain even though they don't block render. Deferred scripts are fetched naturally after HTML parsing and don't need preload hints.
+- jQuery and jQuery UI preloads are retained — jQuery is synchronous and does block render, so early prefetching is beneficial.
+
+### ✨ Added - CSS Auto-Defer Pattern Additions
+
+- **`e-animation-`** — defers Elementor animation library CSS (`e-animation-grow.min.css` and similar). These are animation-only stylesheets with zero impact on initial render.
+- **`QuestOrthodontics`** — defers the Quest Orthodontics child theme stylesheet, removing it from the critical request chain.
+
+#### Files Modified
+
+- `includes/public/class-script-optimizer.php` — removed wp-core preload hints from `add_script_resource_hints()`
+- `includes/core/class-config.php` — added `e-animation-` and `QuestOrthodontics` to `get_auto_defer_patterns()`
+
+---
+
 ## [3.2.5] - 2026-05-05
 
 ### 🐛 Fixed - Critical Request Chain & Script Preload URL Mismatch

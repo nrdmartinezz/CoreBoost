@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.2.5
+Stable tag: 3.2.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,11 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.2.6 =
+* Fixed: Removed high-priority preload hints for wp-hooks, wp-i18n, and wp-dom-ready when WP Core Defer is enabled — preloading deferred scripts caused PSI to include them in the critical request chain despite them being non-render-blocking
+* Added: e-animation- pattern to CSS auto-defer list (covers Elementor animation library e-animation-grow and similar)
+* Added: QuestOrthodontics pattern to CSS auto-defer list for child theme stylesheet
 
 = 3.2.5 =
 * Fixed: Script preload hints now use versioned, filter-passed URLs matching the actual <script> tag src — previously a URL mismatch caused the browser to double-fetch deferred scripts, adding ~130ms to the critical request chain
