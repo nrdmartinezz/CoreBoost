@@ -131,12 +131,12 @@ class Hero_Optimizer {
         
         if (!empty($this->options['enable_caching'])) {
             $cached_data = get_transient($cache_key);
-            if ($cached_data !== false && isset($cached_data['url'])) {
-                if ($cached_data['url']) {
-                    $this->output_preload_tag($cached_data['url']);
-                    if (!empty($this->options['enable_responsive_preload']) && !empty($cached_data['id'])) {
-                        $this->output_responsive_preload_by_id($cached_data['id']);
-                    }
+            // Only treat as a valid cache hit when a URL was actually stored.
+            // An empty/null cached URL means detection previously failed — retry live.
+            if ($cached_data !== false && !empty($cached_data['url'])) {
+                $this->output_preload_tag($cached_data['url']);
+                if (!empty($this->options['enable_responsive_preload']) && !empty($cached_data['id'])) {
+                    $this->output_responsive_preload_by_id($cached_data['id']);
                 }
                 return;
             }
@@ -174,8 +174,8 @@ class Hero_Optimizer {
             $hero_image_url = get_the_post_thumbnail_url($post->ID, 'full');
         }
         
-        // Cache the result
-        if (!empty($this->options['enable_caching'])) {
+        // Cache the result — only when a URL was found so failures are always retried live
+        if (!empty($this->options['enable_caching']) && $hero_image_url) {
             $cache_ttl = isset($this->options['hero_preload_cache_ttl']) ? (int)$this->options['hero_preload_cache_ttl'] : 3600;
             set_transient($cache_key, array('url' => $hero_image_url, 'id' => $hero_image_id), $cache_ttl);
         }
@@ -418,32 +418,30 @@ class Hero_Optimizer {
         return null;
     }
     
-    private function search_elementor_hero_advanced($elements, $max_depth = 3, $current_depth = 0) {
+    private function search_elementor_hero_advanced($elements, $max_depth = 4, $current_depth = 0) {
         if ($current_depth >= $max_depth) return null;
-        
+
+        // At root depth scan up to 5 top-level sections (covers most hero layouts)
+        $scan_limit = ($current_depth === 0) ? 5 : PHP_INT_MAX;
+
         foreach ($elements as $index => $element) {
-            if ($index > 2 && $current_depth === 0) break;
-            
-            // Check background image
-            if (isset($element['settings']['background_image']['url'])) {
+            if ($current_depth === 0 && $index >= $scan_limit) break;
+
+            // Check background image (works for both classic sections and Flexbox containers)
+            if (!empty($element['settings']['background_image']['url'])) {
                 return $element['settings']['background_image']['url'];
             }
-            
-            // Check for foreground images in widgets (only at top level)
-            if ($current_depth === 0 && isset($element['elements'])) {
-                foreach ($element['elements'] as $column) {
-                    if (isset($column['elements'])) {
-                        foreach ($column['elements'] as $widget) {
-                            if ($widget['widgetType'] === 'image' && isset($widget['settings']['image']['url'])) {
-                                return $widget['settings']['image']['url'];
-                            }
-                        }
-                    }
-                }
+
+            // Check for a foreground image widget at any nesting level
+            // Handles both classic (section > column > widget) and
+            // Flexbox container (container > container > widget) structures
+            if (isset($element['widgetType']) && $element['widgetType'] === 'image'
+                && !empty($element['settings']['image']['url'])) {
+                return $element['settings']['image']['url'];
             }
-            
-            // Recurse
-            if (isset($element['elements']) && is_array($element['elements'])) {
+
+            // Recurse into child elements
+            if (!empty($element['elements']) && is_array($element['elements'])) {
                 $found = $this->search_elementor_hero_advanced($element['elements'], $max_depth, $current_depth + 1);
                 if ($found) return $found;
             }
