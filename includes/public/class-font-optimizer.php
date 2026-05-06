@@ -33,6 +33,13 @@ class Font_Optimizer {
      * @var \CoreBoost\Loader
      */
     private $loader;
+
+    /**
+     * Google Font URLs extracted from Elementor CSS @import statements during the current request.
+     *
+     * @var array
+     */
+    private $collected_font_urls = array();
     
     /**
      * Constructor
@@ -47,6 +54,8 @@ class Font_Optimizer {
         if (!is_admin()) {
             $this->define_hooks();
         }
+        // Elementor CSS generation hook fires on admin saves and frontend regeneration
+        $this->define_elementor_hooks();
     }
     
     /**
@@ -57,10 +66,28 @@ class Font_Optimizer {
         $this->loader->add_action('wp_head', $this, 'add_font_preconnects', 1);
         $this->loader->add_action('wp_head', $this, 'add_custom_preconnects', 1);
         $this->loader->add_action('wp_head', $this, 'output_local_font_preloads', 1);
+        // Scan enqueued Elementor CSS files for embedded @import Google Font URLs,
+        // patch them out of the file, and collect the URLs for non-blocking preloading.
+        // Priority 1 runs before wp_print_styles (priority 8), so the file is already
+        // patched when the browser fetches it.
+        $this->loader->add_action('wp_head', $this, 'scan_and_patch_css_files', 1);
+        // Output <link rel="preload"> for any extracted Google Font URLs (priority 2,
+        // after scan fills $collected_font_urls at priority 1).
+        $this->loader->add_action('wp_head', $this, 'output_extracted_font_preloads', 2);
         // Output buffer wrapping wp_head to inject font-display:swap into inline @font-face blocks
         // (covers Elementor custom fonts and theme fonts that never go through style_loader_tag)
         $this->loader->add_action('wp_head', $this, 'start_font_display_buffer', 0);
         $this->loader->add_action('wp_head', $this, 'end_font_display_buffer', 999);
+    }
+
+    /**
+     * Register the Elementor CSS generation hook (fires on admin saves and frontend regeneration).
+     */
+    private function define_elementor_hooks() {
+        if (empty($this->options['enable_font_optimization']) || empty($this->options['defer_google_fonts'])) {
+            return;
+        }
+        $this->loader->add_filter('elementor/css/file_content', $this, 'strip_elementor_font_imports', 10, 1);
     }
     
     /**
@@ -215,6 +242,175 @@ class Font_Optimizer {
         );
 
         echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML already rendered by WordPress core
+    }
+
+    /**
+     * Scan enqueued Elementor CSS files for embedded Google Fonts @import statements.
+     *
+     * When Elementor uses the External File CSS mode it writes Google Font URLs directly
+     * as @import rules inside its generated CSS files rather than as separate <link> tags.
+     * That means WordPress's style_loader_tag filter never sees them, so the normal
+     * optimize_font_loading() method is bypassed. The @import causes the browser to
+     * pause CSS parsing and fetch Google Fonts synchronously — a render-blocking request.
+     *
+     * This method:
+     *  1. Iterates every handle in $wp_styles->queue looking for Elementor CSS files.
+     *  2. Reads each file and regex-scans for @import url(fonts.googleapis.com/...) lines.
+     *  3. If found, patches the file on disk to remove the @import (self-healing: the cache
+     *     key includes filemtime, so a regenerated file is re-patched on the next request).
+     *  4. Stores the extracted URLs in $this->collected_font_urls so that
+     *     output_extracted_font_preloads() can emit non-blocking <link rel="preload"> tags.
+     *
+     * Runs at wp_head priority 1 — before wp_print_styles fires at priority 8 — so the
+     * patched file is already on disk when the browser requests it.
+     */
+    public function scan_and_patch_css_files() {
+        if (!$this->options['enable_font_optimization'] || !$this->options['defer_google_fonts']) {
+            return;
+        }
+
+        if (Context_Helper::should_skip_optimization()) {
+            return;
+        }
+
+        global $wp_styles;
+        if (empty($wp_styles->queue)) {
+            return;
+        }
+
+        $upload_dir      = wp_upload_dir();
+        $upload_base_url = trailingslashit($upload_dir['baseurl']);
+        $upload_base_dir = trailingslashit($upload_dir['basedir']);
+
+        foreach ($wp_styles->queue as $handle) {
+            if (!isset($wp_styles->registered[$handle])) {
+                continue;
+            }
+
+            $src = $wp_styles->registered[$handle]->src;
+            if (!$src || strpos($src, '/elementor/css/') === false) {
+                continue;
+            }
+
+            // Strip query string (Elementor appends ?ver=... for cache-busting)
+            $src_clean = preg_replace('/\?.*$/', '', $src);
+
+            // Derive absolute file path from the URL
+            if (strpos($src_clean, $upload_base_url) === 0) {
+                $abspath = $upload_base_dir . substr($src_clean, strlen($upload_base_url));
+            } else {
+                // Fallback: strip scheme+host and map to ABSPATH
+                $parsed = wp_parse_url($src_clean);
+                if (empty($parsed['path'])) {
+                    continue;
+                }
+                $abspath = untrailingslashit(ABSPATH) . $parsed['path'];
+            }
+
+            if (!file_exists($abspath) || !is_readable($abspath)) {
+                continue;
+            }
+
+            // Cache result by file path + modification time so a regenerated file is re-scanned
+            $cache_key = 'cb_fnt_scan_' . md5($abspath . filemtime($abspath));
+            $cached    = get_transient($cache_key);
+
+            if ($cached !== false) {
+                // Empty array means file was scanned and had no @imports — skip silently
+                if (!empty($cached)) {
+                    $this->collected_font_urls = array_merge($this->collected_font_urls, $cached);
+                }
+                continue;
+            }
+
+            $css = file_get_contents($abspath); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+            if ($css === false) {
+                continue;
+            }
+
+            $found_urls = array();
+            $patched_css = preg_replace_callback(
+                '/@import\s+url\([\'"]?(https?:\/\/fonts\.googleapis\.com[^\'")\s]+)[\'"]?\)\s*;?/i',
+                function ($matches) use (&$found_urls) {
+                    $found_urls[] = $matches[1];
+                    return ''; // Remove the @import so the browser never sees it
+                },
+                $css
+            );
+
+            if (!empty($found_urls)) {
+                file_put_contents($abspath, $patched_css); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+                $this->collected_font_urls = array_merge($this->collected_font_urls, $found_urls);
+            }
+
+            // Cache for 24 hours (invalidated automatically when filemtime changes)
+            set_transient($cache_key, $found_urls, DAY_IN_SECONDS);
+        }
+    }
+
+    /**
+     * Output non-blocking <link rel="preload"> tags for Google Font URLs that were
+     * extracted from Elementor CSS @import statements by scan_and_patch_css_files().
+     *
+     * Runs at wp_head priority 2 — just after scan_and_patch_css_files() at priority 1.
+     */
+    public function output_extracted_font_preloads() {
+        if (!$this->options['enable_font_optimization'] || !$this->options['defer_google_fonts']) {
+            return;
+        }
+
+        if (Context_Helper::should_skip_optimization()) {
+            return;
+        }
+
+        $urls = array_unique($this->collected_font_urls);
+        if (empty($urls)) {
+            return;
+        }
+
+        foreach ($urls as $url) {
+            // Append display=swap if font_display_swap is enabled and not already set
+            if ($this->options['font_display_swap'] && strpos($url, 'display=') === false) {
+                $url = add_query_arg('display', 'swap', $url);
+            }
+            echo '<link rel="preload" href="' . esc_url($url) . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+            echo '<noscript><link rel="stylesheet" href="' . esc_url($url) . '"></noscript>' . "\n";
+        }
+    }
+
+    /**
+     * Strip Google Fonts @import rules from Elementor-generated CSS content before
+     * Elementor writes the file to disk.
+     *
+     * Hooks into elementor/css/file_content so that freshly regenerated CSS files
+     * (triggered by saving a page in Elementor) are clean from the moment they are written.
+     * The stripped URLs are persisted in the coreboost_elementor_font_urls site option so
+     * that scan_and_patch_css_files() can fall back to them when the transient cache is warm.
+     *
+     * @param string $css Raw CSS content Elementor is about to write.
+     * @return string CSS with Google Fonts @import lines removed.
+     */
+    public function strip_elementor_font_imports($css) {
+        $found_urls = array();
+
+        $css = preg_replace_callback(
+            '/@import\s+url\([\'"]?(https?:\/\/fonts\.googleapis\.com[^\'")\s]+)[\'"]?\)\s*;?/i',
+            function ($matches) use (&$found_urls) {
+                $found_urls[] = $matches[1];
+                return '';
+            },
+            $css
+        );
+
+        if (!empty($found_urls)) {
+            $existing = get_option('coreboost_elementor_font_urls', array());
+            if (!is_array($existing)) {
+                $existing = array();
+            }
+            update_option('coreboost_elementor_font_urls', array_unique(array_merge($existing, $found_urls)), false);
+        }
+
+        return $css;
     }
 
     /**
