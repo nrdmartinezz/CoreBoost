@@ -5,6 +5,49 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.4] - 2026-05-05
+
+### 🐛 Fixed - Hero Detection & CSS Defer Bugs
+
+#### Hero Image Detection Failures
+
+- **Fixed hero detection caching null results** — failed detections were stored in the transient cache for the full TTL (up to 30 days), permanently preventing any retry. Now only successful detections are cached; failures always fall through to live detection
+- **Fixed early return on empty cached URL** — cache hits now require a non-empty URL, allowing stale null entries from previous versions to be overridden
+- **Expanded Elementor element scan** — root-level scan limit raised from 3 to 5 sections; recursion depth raised from 3 to 4 levels
+- **Fixed Flexbox container support** — foreground image widget detection now works at any nesting depth, covering Elementor's modern container → container → widget structure
+
+#### CSS Auto-Patterns Leaking into Manual Mode
+
+- **Fixed auto-patterns always being merged into the defer list** regardless of the Auto Defer All CSS toggle. Patterns like `elementor-frontend`, `hello-elementor`, `elementor-kit-`, `parent-style`, `child-style` were silently deferring all layout CSS on every site, causing dramatic layout shifts when critical CSS wasn't complete
+- Auto-patterns now only apply when **Auto Defer All CSS** is explicitly enabled; manual mode defers only what is listed in the Styles to Defer field
+
+### ✨ Added - Local & Elementor Font Optimization
+
+#### font-display: swap for All @font-face Blocks
+
+- **Automatically injects `font-display: swap`** into every `@font-face` block in `wp_head` that doesn't already declare it
+- Covers Elementor custom fonts and theme fonts loaded as inline styles — these never go through `style_loader_tag` so the existing Google/Adobe Fonts toggle had no effect on them
+- Gated behind the existing **Font Display: Swap** checkbox — no new setting required
+
+#### Local Font Preloads Field
+
+- **New "Local Font Preloads" textarea** in the CSS & Fonts tab
+- Paste `.woff2` file URLs (one per line) to emit `<link rel="preload" as="font" type="font/woff2" crossorigin>` tags in `<head>`
+- Accepts full URLs or root-relative paths (e.g. `/wp-content/uploads/elementor/fonts/myfont.woff2`)
+- Find Elementor custom font URLs under **Elementor → Custom Fonts**
+
+#### Files Modified
+
+- `includes/public/class-hero-optimizer.php` — cache null fix, scan depth/width expansion, Flexbox widget detection
+- `includes/public/class-css-optimizer.php` — auto-patterns gated behind auto_defer_all_css toggle
+- `includes/public/class-font-optimizer.php` — font-display buffer injection, local font preload output
+- `includes/core/class-config.php` — added local_font_preloads field config
+- `includes/admin/class-settings-registry.php` — registered Local Font Preloads field
+- `includes/admin/class-settings-sanitizer.php` — added local_font_preloads to textarea sanitization
+- `includes/class-coreboost.php` — added local_font_preloads default
+
+---
+
 ## [3.2.3] - 2026-05-05
 
 ### 🐛 Fixed - CSS Defer & Critical CSS Bugs

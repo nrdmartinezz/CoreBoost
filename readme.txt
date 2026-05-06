@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.2.3
+Stable tag: 3.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,13 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.2.4 =
+* Fixed: Hero detection no longer caches failed results — retries live on every load until an image is found
+* Fixed: Elementor hero scan now covers up to 5 top-level sections and 4 levels deep, fixing detection on Flexbox container layouts
+* Fixed: CSS auto-patterns (elementor-frontend, hello-elementor, etc.) no longer deferred in manual mode — only active when Auto Defer All CSS is enabled
+* Added: font-display: swap automatically injected into all @font-face blocks in wp_head, covering Elementor custom fonts and theme fonts
+* Added: Local Font Preloads field — paste .woff2 URLs (one per line) to preload self-hosted and Elementor custom fonts
 
 = 3.2.3 =
 * Fixed: CSS defer toggle (auto_defer_all_css) now correctly resets to disabled when unchecked and saved
