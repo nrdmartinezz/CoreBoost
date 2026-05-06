@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.2.4
+Stable tag: 3.2.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,11 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.2.5 =
+* Fixed: Script preload hints now use versioned, filter-passed URLs matching the actual <script> tag src — previously a URL mismatch caused the browser to double-fetch deferred scripts, adding ~130ms to the critical request chain
+* Added: Google Fonts @import statements are now automatically stripped from Elementor-generated CSS files and replaced with non-blocking <link rel="preload"> tags in <head>
+* Added: Elementor CSS file filter (elementor/css/file_content) prevents re-introduction of Google Font @imports when Elementor regenerates CSS on save
 
 = 3.2.4 =
 * Fixed: Hero detection no longer caches failed results — retries live on every load until an image is found

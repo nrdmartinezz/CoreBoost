@@ -5,6 +5,30 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.5] - 2026-05-05
+
+### 🐛 Fixed - Critical Request Chain & Script Preload URL Mismatch
+
+#### Script Preload Hints Had Wrong URL
+
+- **Fixed URL mismatch between `<link rel="preload">` and `<script defer src>`** in `add_script_resource_hints()`. The preload was built from the raw registered src without appending `?ver=` or passing through `script_loader_src` filters. Any filter on the site (e.g. `remove_cssjs_ver`) would transform the `<script>` src but leave the preload href unchanged, making them two different URLs. The browser treated them as separate resources and fetched the file twice — wasting the preload entirely and adding ~130ms of latency to the critical request chain for `wp-hooks`, `wp-i18n`, `wp-dom-ready`, jQuery, and jQuery UI.
+- Preload URLs are now built identically to how `WP_Scripts::do_item()` builds the script tag src: `?ver=` is appended first (falling back to `$wp_scripts->default_version` when the registered ver is `false`), then the full URL is passed through `apply_filters('script_loader_src', $src, $handle)` so every active site filter is applied to both.
+
+### ✨ Added - Non-Blocking Google Fonts via Elementor CSS
+
+#### Elementor External File Mode — @import Extraction
+
+- **`scan_and_patch_css_files()`** (wp_head priority 1): Scans enqueued Elementor CSS files (`/elementor/css/`) for embedded `@import url(fonts.googleapis.com/...)` statements. When found, patches the file on disk to remove the `@import` (so the browser never blocks on it) and stores the URLs for non-blocking injection. Cache key includes `filemtime` so any Elementor-regenerated file is automatically re-scanned and re-patched on the next request.
+- **`output_extracted_font_preloads()`** (wp_head priority 2): Outputs `<link rel="preload" as="style" onload="...">` + `<noscript>` fallback for each extracted Google Fonts URL. Appends `display=swap` if Font Display Swap is enabled.
+- **`strip_elementor_font_imports()`** (`elementor/css/file_content` filter): Strips `@import` lines before Elementor writes a freshly regenerated CSS file to disk, preventing re-introduction on every Elementor save. Persists stripped URLs to `coreboost_elementor_font_urls` site option.
+
+#### Files Modified
+
+- `includes/public/class-script-optimizer.php` — versioned + filter-passed preload URLs in `add_script_resource_hints()`
+- `includes/public/class-font-optimizer.php` — added `scan_and_patch_css_files()`, `output_extracted_font_preloads()`, `strip_elementor_font_imports()`, new hooks in `define_hooks()` and `define_elementor_hooks()`
+
+---
+
 ## [3.2.4] - 2026-05-05
 
 ### 🐛 Fixed - Hero Detection & CSS Defer Bugs
