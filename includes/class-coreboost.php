@@ -324,6 +324,7 @@ class CoreBoost {
             'delay_js_exclusions' => '',
             // Custom Preconnect URLs (v3.1.0)
             'custom_preconnect_urls' => '',
+            'local_font_preloads' => '',
             // Image Optimization
             'enable_image_optimization' => true,
             'enable_lazy_loading' => true,

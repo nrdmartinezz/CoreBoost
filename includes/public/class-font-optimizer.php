@@ -56,6 +56,11 @@ class Font_Optimizer {
         $this->loader->add_filter('style_loader_tag', $this, 'optimize_font_loading', 10, 4);
         $this->loader->add_action('wp_head', $this, 'add_font_preconnects', 1);
         $this->loader->add_action('wp_head', $this, 'add_custom_preconnects', 1);
+        $this->loader->add_action('wp_head', $this, 'output_local_font_preloads', 1);
+        // Output buffer wrapping wp_head to inject font-display:swap into inline @font-face blocks
+        // (covers Elementor custom fonts and theme fonts that never go through style_loader_tag)
+        $this->loader->add_action('wp_head', $this, 'start_font_display_buffer', 0);
+        $this->loader->add_action('wp_head', $this, 'end_font_display_buffer', 999);
     }
     
     /**
@@ -123,6 +128,93 @@ class Font_Optimizer {
         if (!empty($preconnects)) {
             echo implode("\n", $preconnects) . "\n";
         }
+    }
+
+    /**
+     * Output preload tags for locally-hosted font files (including Elementor custom fonts).
+     * Users list their .woff2 URLs in the Local Font Preloads setting, one per line.
+     */
+    public function output_local_font_preloads() {
+        if (Context_Helper::should_skip_optimization()) {
+            return;
+        }
+
+        if (!$this->options['enable_font_optimization'] || empty($this->options['local_font_preloads'])) {
+            return;
+        }
+
+        $urls = array_filter(array_map('trim', explode("\n", $this->options['local_font_preloads'])));
+
+        foreach ($urls as $url) {
+            // Allow relative paths (e.g. /wp-content/uploads/...) as well as full URLs
+            if (strpos($url, '/') === 0) {
+                echo '<link rel="preload" href="' . esc_attr($url) . '" as="font" type="font/woff2" crossorigin>' . "\n";
+                continue;
+            }
+
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                continue;
+            }
+
+            $parsed = wp_parse_url($url);
+            if (empty($parsed['scheme']) || !in_array($parsed['scheme'], array('http', 'https'), true)) {
+                continue;
+            }
+
+            echo '<link rel="preload" href="' . esc_url($url) . '" as="font" type="font/woff2" crossorigin>' . "\n";
+        }
+    }
+
+    /**
+     * Start output buffer at wp_head priority 0 to capture inline @font-face blocks.
+     * Only active when font_display_swap is enabled.
+     */
+    public function start_font_display_buffer() {
+        if (!$this->options['enable_font_optimization'] || !$this->options['font_display_swap']) {
+            return;
+        }
+
+        if (Context_Helper::should_skip_optimization()) {
+            return;
+        }
+
+        ob_start();
+    }
+
+    /**
+     * End output buffer at wp_head priority 999 and inject font-display:swap into
+     * any @font-face block that doesn't already declare it.
+     * Covers Elementor custom fonts, theme fonts, and any other inline @font-face.
+     */
+    public function end_font_display_buffer() {
+        if (!$this->options['enable_font_optimization'] || !$this->options['font_display_swap']) {
+            return;
+        }
+
+        if (Context_Helper::should_skip_optimization()) {
+            return;
+        }
+
+        if (!ob_get_level()) {
+            return;
+        }
+
+        $html = ob_get_clean();
+
+        // Inject font-display: swap into @font-face blocks that don't already have it
+        $html = preg_replace_callback(
+            '/@font-face\s*\{([^}]+)\}/s',
+            function ($matches) {
+                $block_content = $matches[1];
+                if (strpos($block_content, 'font-display') !== false) {
+                    return $matches[0];
+                }
+                return '@font-face {' . $block_content . 'font-display: swap;}';
+            },
+            $html
+        );
+
+        echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML already rendered by WordPress core
     }
 
     /**

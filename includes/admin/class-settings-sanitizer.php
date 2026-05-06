@@ -207,7 +207,7 @@ class Settings_Sanitizer {
             ),
             'textarea' => array(
                 'scripts_to_defer', 'scripts_to_async', 'styles_to_defer', 'exclude_scripts', 'specific_pages',
-                'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids'
+                'unused_css_list', 'unused_js_list', 'inline_script_ids', 'inline_style_ids', 'local_font_preloads'
             ),
             'css' => array(
                 'critical_css_global', 'critical_css_home', 'critical_css_pages', 'critical_css_posts'

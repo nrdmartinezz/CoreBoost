@@ -183,6 +183,7 @@ class Settings_Registry {
         $this->register_dynamic_field('preconnect_google_fonts', __('Preconnect to Google Fonts', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->register_dynamic_field('preconnect_adobe_fonts', __('Preconnect to Adobe Fonts', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->register_dynamic_field('font_display_swap', __('Font Display: Swap', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
+        $this->register_dynamic_field('local_font_preloads', __('Local Font Preloads', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->register_dynamic_field('critical_css_global', __('Global Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->register_dynamic_field('critical_css_home', __('Homepage Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
         $this->register_dynamic_field('critical_css_pages', __('Pages Critical CSS', 'coreboost'), 'coreboost-css', 'coreboost_css_section');
