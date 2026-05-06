@@ -90,6 +90,7 @@ class Config {
             'swiper',                   // Swiper CSS
             'e-swiper',                 // Elementor Swiper
             'fadeIn',                   // Animation CSS
+            'e-animation-',             // Elementor animation library (e.g. e-animation-grow)
             'elementor-frontend',       // Elementor frontend
             'woocommerce-layout',       // WooCommerce layout
             'woocommerce-smallscreen',  // WooCommerce responsive
@@ -99,7 +100,8 @@ class Config {
             'elementor-icons',          // Elementor icons
             'wp-block-library-theme',   // WordPress block theme
             'parent-style',             // Parent theme main stylesheet
-            'child-style',              // Child theme main stylesheet
+            'child-style',              // Child theme main stylesheet (generic handle)
+            'QuestOrthodontics',        // Quest Orthodontics child theme stylesheet
         );
     }
     

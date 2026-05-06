@@ -161,20 +161,19 @@ class Script_Optimizer {
             return;
         }
         
-        // Preload jQuery and jQuery UI as critical dependencies
+        // Preload jQuery and jQuery UI as critical dependencies.
+        // jQuery is excluded from deferral (it's synchronous and other inline scripts depend on it),
+        // so preloading it here lets the browser start fetching it early while parsing HTML.
+        // NOTE: wp-hooks, wp-i18n, wp-dom-ready are intentionally NOT preloaded here when
+        // enable_wp_core_defer is on — those scripts are deferred (non-render-blocking) so
+        // adding a high-priority preload hint would cause PSI to count them in the critical
+        // request chain even though they don't block render. Deferred scripts are fetched
+        // naturally after HTML parsing without a preload hint.
         $critical_scripts = array(
             'jquery-core' => 'high',
             'jquery-migrate' => 'low',
             'jquery-ui-core' => 'low'
         );
-        
-        // Add WordPress core scripts for preload when defer is enabled
-        // This enables parallel download while scripts are deferred
-        if (!empty($this->options['enable_wp_core_defer'])) {
-            $critical_scripts['wp-hooks'] = 'high';
-            $critical_scripts['wp-i18n'] = 'high';
-            $critical_scripts['wp-dom-ready'] = 'low';
-        }
         
         foreach ($critical_scripts as $handle => $priority) {
             if (isset($wp_scripts->registered[$handle])) {
