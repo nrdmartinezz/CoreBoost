@@ -135,13 +135,19 @@ class CSS_Optimizer {
     }
     
     /**
-     * Get styles to defer including auto-detected patterns
+     * Get styles to defer.
+     * Auto-patterns are only merged when "Auto Defer All CSS" is enabled.
+     * In manual mode, only the explicit styles_to_defer list is used so the
+     * user has full control over what actually gets deferred.
      */
     private function get_styles_to_defer() {
         $manual_styles = array_filter(array_map('trim', explode("\n", $this->options['styles_to_defer'])));
-        $auto_patterns = Config::get_auto_defer_patterns();
-        
-        return array_merge($manual_styles, $auto_patterns);
+
+        if ($this->is_auto_defer_enabled()) {
+            return array_merge($manual_styles, Config::get_auto_defer_patterns());
+        }
+
+        return $manual_styles;
     }
     
     /**
