@@ -179,12 +179,31 @@ class Script_Optimizer {
         foreach ($critical_scripts as $handle => $priority) {
             if (isset($wp_scripts->registered[$handle])) {
                 $src = $wp_scripts->registered[$handle]->src;
+
+                // Build the versioned URL exactly as WordPress does in WP_Scripts::do_item():
+                // append ?ver=, then pass through script_loader_src so any site filter
+                // (e.g. remove_cssjs_ver stripping the query string) is also applied here.
+                // This guarantees the preload href matches the <script src> attribute exactly,
+                // so the browser can match them and avoid fetching the file twice.
+                $ver = $wp_scripts->registered[$handle]->ver;
+                if ($ver === false) {
+                    $ver = $wp_scripts->default_version;
+                }
+                if (!empty($ver)) {
+                    $src = add_query_arg('ver', $ver, $src);
+                }
+                $src = apply_filters('script_loader_src', $src, $handle);
+
+                // Resolve root-relative and protocol-relative paths to full URLs.
                 if (strpos($src, '//') === 0) {
                     $src = 'https:' . $src;
                 } elseif (strpos($src, '/') === 0) {
                     $src = site_url($src);
                 }
-                echo '<link rel="preload" href="' . esc_url($src) . '" as="script" fetchpriority="' . esc_attr($priority) . '">' . "\n";
+
+                if ($src) {
+                    echo '<link rel="preload" href="' . esc_url($src) . '" as="script" fetchpriority="' . esc_attr($priority) . '">' . "\n";
+                }
             }
         }
     }
