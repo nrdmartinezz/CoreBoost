@@ -122,29 +122,37 @@ class Resource_Remover {
     }
     
     /**
-     * Block YouTube player resources from script tags
-     * Note: smart_youtube_blocking does NOT block scripts - it only defers iframe creation in HTML
-     * This allows the YouTube API to load so videos can be restored after page load
+     * Block YouTube player resources from script tags.
+     *
+     * When smart_youtube_blocking is enabled we strip the YouTube IFrame API
+     * script entirely from the initial HTML. The restoration script (injected
+     * before </body>) dynamically injects the API only on first user interaction,
+     * so PageSpeed/bots never trigger it and real users still get working videos.
      */
     public function block_youtube_resources($tag, $handle, $src) {
         // Check if this is a YouTube resource
         $is_youtube = (strpos($src, 'youtube.com') !== false || strpos($src, 'ytimg.com') !== false);
-        
+
         if (!$is_youtube) {
             return $tag;
         }
-        
-        // NOTE: smart_youtube_blocking does NOT block YouTube scripts
-        // The YouTube API is required for Elementor to create video backgrounds
-        // We only defer the iframe creation via HTML modification, not script blocking
-        
+
+        // Smart blocking: remove the YouTube IFrame API script from the page entirely.
+        // The restoration script will inject it dynamically on first user interaction.
+        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
+            if (strpos($src, 'youtube.com/iframe_api') !== false ||
+                strpos($src, 'www.youtube.com/') !== false) {
+                return '';
+            }
+        }
+
         // Legacy setting - block YouTube embed UI scripts independently
         if (isset($this->options['block_youtube_embed_ui']) && $this->options['block_youtube_embed_ui']) {
             if (strpos($src, 'youtube.com/yts/') !== false) {
                 return '';
             }
         }
-        
+
         return $tag;
     }
     
@@ -382,17 +390,18 @@ class Resource_Remover {
 <script>
 (function() {
     var DEBUG = false; // Set to true to see restoration logs
-    
+    var triggered = false;
+
     function log() {
         if (DEBUG) console.log.apply(console, ['[CoreBoost YouTube]'].concat(Array.prototype.slice.call(arguments)));
     }
-    
+
     // Wait for Elementor to load and be ready
     if (window.elementorFrontend && typeof window.elementorFrontend.isEditMode === 'function' && window.elementorFrontend.isEditMode()) {
         log('In editor mode, skipping video deferral');
         return;
     }
-    
+
     // Wait for Elementor frontend to be fully initialized before restoring videos
     function waitForElementor(callback, maxWait) {
         var waited = 0;
@@ -410,18 +419,42 @@ class Resource_Remover {
             }
         }, interval);
     }
-    
-    // Defer video restoration until after page interactive
-    if ('requestIdleCallback' in window) {
-        requestIdleCallback(function() {
+
+    // Dynamically inject the YouTube IFrame API then restore deferred videos.
+    // Only fires once, only on real user interaction — bots/PageSpeed never trigger this.
+    function onUserInteraction() {
+        if (triggered) return;
+        triggered = true;
+
+        // Remove listeners immediately so they don't fire again
+        var events = ['scroll', 'click', 'touchstart', 'keydown', 'mousemove'];
+        events.forEach(function(evt) {
+            document.removeEventListener(evt, onUserInteraction, { passive: true });
+        });
+
+        log('User interaction detected, loading YouTube API');
+
+        // Inject the IFrame API script dynamically
+        var apiScript = document.createElement('script');
+        apiScript.src = 'https://www.youtube.com/iframe_api';
+        apiScript.async = true;
+        apiScript.onload = function() {
+            log('YouTube API loaded, restoring videos');
             waitForElementor(restoreYouTubeDeferredVideos, 5000);
-        }, { timeout: 5000 });
-    } else {
-        // Fallback: defer by 2 seconds then wait for Elementor
-        setTimeout(function() {
+        };
+        // Fallback: restore even if API fails to load
+        apiScript.onerror = function() {
+            log('YouTube API failed to load, attempting restoration anyway');
             waitForElementor(restoreYouTubeDeferredVideos, 5000);
-        }, 2000);
+        };
+        document.head.appendChild(apiScript);
     }
+
+    // Bind to first user interaction events
+    var interactionEvents = ['scroll', 'click', 'touchstart', 'keydown', 'mousemove'];
+    interactionEvents.forEach(function(evt) {
+        document.addEventListener(evt, onUserInteraction, { passive: true, once: true });
+    });
     
     function restoreYouTubeDeferredVideos() {
         var elements = document.querySelectorAll('[data-coreboost-deferred-youtube]');
@@ -719,17 +752,26 @@ SCRIPT;
     private function defer_scripts_by_url($html) {
         // Get exclusions to check against
         $exclusions = $this->get_url_exclusions();
-        
+        $smart_youtube = !empty($this->options['smart_youtube_blocking']);
+
         // Pattern to catch external scripts not caught by main regex
         // Matches: <script ...src="..." ...> with various attribute orders
         $pattern = '/<script\s+([^>]*?)src=["\']([^\'\"]+?)["\']([^>]*)>/i';
-        
-        $html = preg_replace_callback($pattern, function($matches) use ($exclusions) {
+
+        $html = preg_replace_callback($pattern, function($matches) use ($exclusions, $smart_youtube) {
             $full_tag = $matches[0];
             $before_src = $matches[1];
             $src = $matches[2];
             $after_src = $matches[3];
-            
+
+            // Strip YouTube scripts entirely when smart blocking is active
+            if ($smart_youtube) {
+                if (strpos($src, 'youtube.com/iframe_api') !== false ||
+                    strpos($src, 'www.youtube.com/') !== false) {
+                    return '';
+                }
+            }
+
             // Skip if already has defer or async
             if (strpos($full_tag, ' defer') !== false || strpos($full_tag, ' async') !== false) {
                 return $full_tag;
@@ -774,6 +816,8 @@ SCRIPT;
             'should_defer_async' => array(
                 'email-decode',           // Cloudflare email protection
                 'hello-frontend',         // Hello Elementor theme
+                // NOTE: YouTube scripts are stripped entirely when smart_youtube_blocking is on.
+                // These patterns are only reached when that setting is disabled.
                 'youtube.com/iframe_api', // YouTube API
                 'www.youtube.com/',       // YouTube embeds
             ),
@@ -852,8 +896,16 @@ SCRIPT;
         
         $should_defer = false;
         $use_async = false;
-        
-        // Check for YouTube iframe API (independent - use async)
+
+        // When smart YouTube blocking is active, strip YouTube scripts entirely from HTML.
+        // The restoration JS will inject the IFrame API dynamically on first user interaction.
+        if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
+            if (strpos($src, 'youtube.com/iframe_api') !== false || strpos($src, 'www.youtube.com/') !== false) {
+                return '';
+            }
+        }
+
+        // Check for YouTube iframe API (independent - use async) when smart blocking is OFF
         if (strpos($src, 'youtube.com/iframe_api') !== false || strpos($src, 'www.youtube.com/') !== false) {
             $use_async = true;
             $should_defer = true;
