@@ -508,6 +508,8 @@ class Hero_Optimizer {
     
     /**
      * Parse specific pages configuration
+     * Supports both slug-based keys (e.g. "home", "about") and full page URLs.
+     * When a full URL is entered, it is normalised to a slug automatically.
      */
     private function parse_specific_pages() {
         $specific_pages = array();
@@ -516,7 +518,24 @@ class Hero_Optimizer {
             if (!empty($line)) {
                 $parts = explode('|', $line, 2);
                 if (count($parts) === 2) {
-                    $specific_pages[trim($parts[0])] = trim($parts[1]);
+                    $key       = trim($parts[0]);
+                    $image_url = trim($parts[1]);
+
+                    // If the key looks like a full URL, normalise it to a slug.
+                    if (filter_var($key, FILTER_VALIDATE_URL)) {
+                        $home_url = trailingslashit(home_url());
+                        if (trailingslashit($key) === $home_url) {
+                            $key = 'home';
+                        } else {
+                            $path     = trim(parse_url($key, PHP_URL_PATH), '/');
+                            $segments = array_filter(explode('/', $path));
+                            $key      = !empty($segments) ? end($segments) : 'home';
+                        }
+                    }
+
+                    if (!empty($key) && !empty($image_url)) {
+                        $specific_pages[$key] = $image_url;
+                    }
                 }
             }
         }

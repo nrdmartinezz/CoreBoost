@@ -1016,16 +1016,18 @@ SCRIPT;
     
     /**
      * Parse page-specific images configuration from settings
+     * Supports both slug-based keys (e.g. "home", "about") and full page URLs.
+     * When a full URL is entered, it is normalised to a slug automatically.
      *
      * @return array Page-specific image URLs keyed by page slug
      */
     private function parse_specific_pages() {
         $specific_pages = array();
-        
+
         if (empty($this->options['specific_pages'])) {
             return $specific_pages;
         }
-        
+
         foreach (explode("\n", $this->options['specific_pages']) as $line) {
             $line = trim($line);
             if (!empty($line)) {
@@ -1033,13 +1035,26 @@ SCRIPT;
                 if (count($parts) === 2) {
                     $page_slug = trim($parts[0]);
                     $image_url = trim($parts[1]);
+
+                    // If the key looks like a full URL, normalise it to a slug.
+                    if (filter_var($page_slug, FILTER_VALIDATE_URL)) {
+                        $home_url = trailingslashit(home_url());
+                        if (trailingslashit($page_slug) === $home_url) {
+                            $page_slug = 'home';
+                        } else {
+                            $path      = trim(parse_url($page_slug, PHP_URL_PATH), '/');
+                            $segments  = array_filter(explode('/', $path));
+                            $page_slug = !empty($segments) ? end($segments) : 'home';
+                        }
+                    }
+
                     if (!empty($page_slug) && !empty($image_url)) {
                         $specific_pages[$page_slug] = $image_url;
                     }
                 }
             }
         }
-        
+
         return $specific_pages;
     }
 

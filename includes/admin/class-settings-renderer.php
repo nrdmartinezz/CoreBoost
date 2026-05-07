@@ -171,8 +171,8 @@ class Settings_Renderer {
     public function specific_pages_callback() {
         $value = isset($this->options['specific_pages']) ? $this->options['specific_pages'] : '';
         echo '<textarea name="coreboost_options[specific_pages]" rows="5" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">' . __('Enter one URL per line. For each URL, provide the image URL to preload. Format: `https://example.com/page/ https://example.com/image.jpg`', 'coreboost') . '</p>';
-        echo '<p class="description"><strong>' . __('Example:', 'coreboost') . '</strong> home|/wp-content/uploads/hero-home.jpg</p>';
+        echo '<p class="description">' . __('Enter one entry per line using the format <code>page|image-url</code>. The page can be a slug (e.g. <code>home</code>, <code>about</code>) or the full page URL.', 'coreboost') . '</p>';
+        echo '<p class="description"><strong>' . __('Examples:', 'coreboost') . '</strong><br><code>home|https://example.com/wp-content/uploads/hero-home.jpg</code><br><code>https://example.com/about/|https://example.com/wp-content/uploads/hero-about.jpg</code></p>';
     }
 
     /**
