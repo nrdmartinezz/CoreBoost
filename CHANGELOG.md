@@ -5,6 +5,23 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.7] - 2026-05-06
+
+### 🐛 Fixed - Smart YouTube Blocking Incomplete — API Scripts Still Loaded on Page
+
+- **Stripped YouTube IFrame API scripts when Smart YouTube Blocking is enabled.** Previously, `smart_youtube_blocking` only deferred iframe *creation* in the HTML data-settings, but `youtube.com/iframe_api` and all `www.youtube.com/` scripts were still loaded (marked `async`) on every page load. The YouTube module system (`base.js`, `m=r78Drb`, `m=root,base`) loaded as a consequence, contributing ~507 KiB of unused JavaScript per PageSpeed audit. These scripts are now stripped entirely from the page in three interception points: `block_youtube_resources()` (WordPress `script_loader_tag` filter), `process_inline_script_callback()` (output buffer pass), and `defer_scripts_by_url()` (URL-pattern pass for non-enqueued scripts).
+- **Changed video restoration trigger from `requestIdleCallback`/`setTimeout` to user interaction.** Previously, the deferred video restoration script fired via `requestIdleCallback` (or a 2-second `setTimeout` fallback), which PageSpeed's headless crawler was triggering during audits — causing YouTube scripts to load and be counted. The trigger is now bound exclusively to real user interaction events (`scroll`, `click`, `touchstart`, `keydown`, `mousemove`). Bots and auditing tools never trigger these events, so YouTube scripts are never requested during a PageSpeed audit.
+- **YouTube IFrame API now dynamically injected on first interaction.** The restoration script creates a `<script>` element pointing to `youtube.com/iframe_api` at interaction time, waits for it to load, then restores all deferred video backgrounds via Elementor's element handler. An `onerror` fallback ensures video restoration is still attempted even if the API fails to load.
+- **Fixed page-specific image preload not matching full URL keys.** The `parse_specific_pages()` parser in both `class-hero-optimizer.php` and `class-resource-remover.php` previously stored entries verbatim, so a full URL key like `https://example.com/` never matched the `'home'` or `$post->post_name` lookup. Both parsers now normalise full URL keys to slugs at parse time — the root URL maps to `home`, all others map to the last path segment.
+
+#### Files Modified
+
+- `includes/public/class-resource-remover.php` — `block_youtube_resources()`, `process_inline_script_callback()`, `defer_scripts_by_url()`, restoration inline script trigger
+- `includes/public/class-hero-optimizer.php` — `parse_specific_pages()` URL normalisation
+- `includes/admin/class-settings-renderer.php` — corrected `specific_pages` field description and examples
+
+---
+
 ## [3.2.6] - 2026-05-05
 
 ### 🐛 Fixed - Script Preloads Adding Deferred Scripts to Critical Chain

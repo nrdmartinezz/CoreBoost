@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.2.6
+Stable tag: 3.2.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,12 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.2.7 =
+* Fixed: Smart YouTube Blocking now strips youtube.com/iframe_api and all www.youtube.com/ scripts from the page entirely — previously they were still loaded (async), causing YouTube's module chain (base.js etc.) to be fetched and flagged as ~507 KiB of unused JS by PageSpeed
+* Fixed: Video restoration trigger changed from requestIdleCallback/setTimeout to real user interaction events (scroll, click, touch, keydown, mousemove) — bots and PageSpeed crawlers never trigger these, so YouTube scripts are never requested during audits
+* Fixed: YouTube IFrame API is now dynamically injected at interaction time, then deferred video backgrounds are restored — videos still play normally for real users
+* Fixed: Page-specific image preload field now accepts full URLs as page identifiers (e.g. https://example.com/) in addition to slugs — previously a full URL key never matched the internal home/slug lookup
 
 = 3.2.6 =
 * Fixed: Removed high-priority preload hints for wp-hooks, wp-i18n, and wp-dom-ready when WP Core Defer is enabled — preloading deferred scripts caused PSI to include them in the critical request chain despite them being non-render-blocking
