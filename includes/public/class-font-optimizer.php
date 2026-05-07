@@ -151,7 +151,14 @@ class Font_Optimizer {
         if ($this->options['defer_adobe_fonts']) {
             $preconnects[] = '<link rel="preconnect" href="https://use.typekit.net" crossorigin>';
         }
-        
+
+        // When smart YouTube blocking is active the LCP element is the video fallback image,
+        // which is served from i.ytimg.com. Preconnecting eliminates the DNS + TCP + TLS
+        // setup cost (~100–150 ms) before the first byte of that image arrives.
+        if (!empty($this->options['smart_youtube_blocking'])) {
+            $preconnects[] = '<link rel="preconnect" href="https://i.ytimg.com" crossorigin>';
+        }
+
         if (!empty($preconnects)) {
             echo implode("\n", $preconnects) . "\n";
         }

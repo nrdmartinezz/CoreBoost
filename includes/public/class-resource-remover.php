@@ -373,14 +373,16 @@ class Resource_Remover {
         );
         
         // Inject preload link for hero video fallback image (LCP optimization)
-        if ($this->youtube_fallback_preload_url) {
+        // Skip if the Hero_Optimizer already emitted this tag during wp_head (prevents duplicate).
+        if ($this->youtube_fallback_preload_url &&
+            !Hero_Optimizer::is_url_preloaded($this->youtube_fallback_preload_url)) {
             $preload_url = $this->youtube_fallback_preload_url;
-            
+
             $preload_tag = '<link rel="preload" href="' . esc_url($preload_url) . '" as="image" fetchpriority="high">' . "\n";
             $html = str_replace('</head>', $preload_tag . '</head>', $html);
-            
+
             if (!empty($this->options['debug_mode'])) {
-                Context_Helper::debug_log('YouTube fallback preload injected: ' . $preload_url);
+                Context_Helper::debug_log('YouTube fallback preload injected via output buffer: ' . $preload_url);
             }
         }
         

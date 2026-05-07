@@ -257,20 +257,30 @@ class Hero_Optimizer {
      * @param array $elements Elementor elements array
      * @return string|null Fallback image URL or null
      */
-    private function get_elementor_video_fallback($elements) {
-        if (!is_array($elements) || empty($elements)) {
+    private function get_elementor_video_fallback($elements, $depth = 0, $max_depth = 4) {
+        if (!is_array($elements) || empty($elements) || $depth > $max_depth) {
             return null;
         }
-        
-        // Check first element (hero section)
-        $first_element = $elements[0];
-        
-        // Elementor stores video fallback in background_video_fallback
-        if (isset($first_element['settings']['background_video_fallback']['url']) && 
-            !empty($first_element['settings']['background_video_fallback']['url'])) {
-            return $first_element['settings']['background_video_fallback']['url'];
+
+        // Scan up to 5 top-level sections at root depth (covers most hero layouts)
+        $scan_limit = ($depth === 0) ? 5 : PHP_INT_MAX;
+
+        foreach ($elements as $index => $element) {
+            if ($depth === 0 && $index >= $scan_limit) break;
+
+            // Elementor stores the configured fallback as background_video_fallback['url']
+            if (isset($element['settings']['background_video_fallback']['url']) &&
+                !empty($element['settings']['background_video_fallback']['url'])) {
+                return $element['settings']['background_video_fallback']['url'];
+            }
+
+            // Recurse into nested containers/sections
+            if (!empty($element['elements']) && is_array($element['elements'])) {
+                $found = $this->get_elementor_video_fallback($element['elements'], $depth + 1, $max_depth);
+                if ($found) return $found;
+            }
         }
-        
+
         return null;
     }
     
@@ -328,37 +338,40 @@ class Hero_Optimizer {
      * @param array $elements Elementor elements array
      * @return string|null Thumbnail URL or null if not a video hero
      */
-    private function get_video_hero_fallback_image($elements) {
-        if (!is_array($elements) || empty($elements)) {
+    private function get_video_hero_fallback_image($elements, $depth = 0, $max_depth = 4) {
+        if (!is_array($elements) || empty($elements) || $depth > $max_depth) {
             return null;
         }
-        
-        // Check first element (typically the hero section)
-        $first_element = $elements[0];
-        
-        if (!isset($first_element['settings']['background_video_link'])) {
-            return null;
+
+        // Scan up to 5 top-level sections at root depth
+        $scan_limit = ($depth === 0) ? 5 : PHP_INT_MAX;
+
+        foreach ($elements as $index => $element) {
+            if ($depth === 0 && $index >= $scan_limit) break;
+
+            if (!empty($element['settings']['background_video_link'])) {
+                $video_url = $element['settings']['background_video_link'];
+                $video_type = $this->detect_video_type($video_url);
+
+                if ($video_type === 'youtube') {
+                    return $this->extract_youtube_thumbnail_url($video_url);
+                } elseif ($video_type === 'vimeo') {
+                    return $this->extract_vimeo_thumbnail_url($video_url);
+                }
+
+                // For hosted/unknown types fall back to the static background image on the same element
+                if (!empty($element['settings']['background_image']['url'])) {
+                    return $element['settings']['background_image']['url'];
+                }
+            }
+
+            // Recurse into nested containers/sections
+            if (!empty($element['elements']) && is_array($element['elements'])) {
+                $found = $this->get_video_hero_fallback_image($element['elements'], $depth + 1, $max_depth);
+                if ($found) return $found;
+            }
         }
-        
-        $video_url = $first_element['settings']['background_video_link'];
-        if (empty($video_url)) {
-            return null;
-        }
-        
-        // Detect video type and extract thumbnail
-        $video_type = $this->detect_video_type($video_url);
-        
-        if ($video_type === 'youtube') {
-            return $this->extract_youtube_thumbnail_url($video_url);
-        } elseif ($video_type === 'vimeo') {
-            return $this->extract_vimeo_thumbnail_url($video_url);
-        }
-        
-        // For hosted videos or unknown types, try to use a static background image fallback
-        if (isset($first_element['settings']['background_image']['url'])) {
-            return $first_element['settings']['background_image']['url'];
-        }
-        
+
         return null;
     }
     
@@ -393,9 +406,10 @@ class Hero_Optimizer {
         if (empty($video_id)) {
             return null;
         }
-        
-        // Return hqdefault (480x360) for balance of quality and fast loading
-        return 'https://img.youtube.com/vi/' . esc_attr($video_id) . '/hqdefault.jpg';
+
+        // Use maxresdefault (1280×720) — full-width hero backgrounds render at this size.
+        // Preloading hqdefault (480×360) would cause a second fetch for the higher-res version.
+        return 'https://img.youtube.com/vi/' . esc_attr($video_id) . '/maxresdefault.jpg';
     }
     
     /**
@@ -543,6 +557,14 @@ class Hero_Optimizer {
     }
     
     /**
+    /**
+     * URLs already emitted as preload tags this request (prevents duplicates).
+     *
+     * @var array
+     */
+    private static $preloaded_urls = array();
+
+    /**
      * Output preload tag with optimized format lookup
      * 
      * Checks for existing AVIF/WebP variants and preloads those instead of original.
@@ -554,8 +576,25 @@ class Hero_Optimizer {
         if (empty($image_url)) {
             return;
         }
-        
+
+        // Deduplicate — skip if this URL was already preloaded in wp_head
+        if (in_array($image_url, self::$preloaded_urls, true)) {
+            return;
+        }
+        self::$preloaded_urls[] = $image_url;
+
         echo '<link rel="preload" href="' . esc_url($image_url) . '" as="image" fetchpriority="high">' . "\n";
+    }
+
+    /**
+     * Check whether a URL has already been emitted as a preload tag.
+     * Used by Resource_Remover to avoid injecting a duplicate in the output buffer.
+     *
+     * @param string $url Image URL
+     * @return bool
+     */
+    public static function is_url_preloaded($url) {
+        return in_array($url, self::$preloaded_urls, true);
     }
     
     private function output_responsive_preload($image_url) {
@@ -673,24 +712,26 @@ class Hero_Optimizer {
      * @param int $max_depth Maximum recursion depth (reduced to 3 - hero sections are always near top)
      * @return array Array of background video URLs
      */
-    private function find_background_videos($elements, $depth = 0, $max_depth = 3) {
+    private function find_background_videos($elements, $depth = 0, $max_depth = 4) {
         if ($depth > $max_depth || !is_array($elements)) {
             return array();
         }
-        
+
         $videos = array();
         $section_count = 0;
-        
+
         foreach ($elements as $element) {
             if (!is_array($element)) {
                 continue;
             }
-            
-            // Count top-level sections (hero is typically in first 3 sections)
-            if ($depth === 0 && isset($element['elType']) && $element['elType'] === 'section') {
+
+            // Count top-level layout elements (both classic sections and Flexbox containers)
+            // Hero sections appear in first 3–5 root-level elements regardless of elType.
+            if ($depth === 0 && isset($element['elType']) &&
+                in_array($element['elType'], array('section', 'container'), true)) {
                 $section_count++;
-                // Stop after checking first 3 sections at root level for performance
-                if ($section_count > 3) {
+                // Stop after checking first 5 root-level layout elements for performance
+                if ($section_count > 5) {
                     break;
                 }
             }

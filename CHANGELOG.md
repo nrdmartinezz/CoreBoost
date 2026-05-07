@@ -5,6 +5,30 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-05-07
+
+### ✨ Added - LCP Optimizations for CSS Background Video Heroes
+
+- **`preconnect` to `i.ytimg.com`** emitted automatically when Smart YouTube Blocking is enabled. YouTube fallback thumbnails (the LCP element on video-hero pages) are served from `i.ytimg.com`. Without a preconnect, the browser incurs a full DNS + TCP + TLS cold-start cost (~100–150 ms) before the first byte of the LCP image arrives. The tag is output at `wp_head` priority 1 alongside existing Google/Adobe Fonts preconnects in `Font_Optimizer::add_font_preconnects()`.
+- **`Hero_Optimizer::is_url_preloaded()`** — new public static method that tracks every URL emitted as a `<link rel="preload">` tag. Allows `Resource_Remover` to avoid injecting a duplicate preload in the output buffer when the hero optimizer already handled it during `wp_head`.
+
+### 🐛 Fixed - Video Hero Detection & LCP Fallback Quality
+
+- **`smart_youtube_blocking` now defaults to `true`** in `class-config.php`. The setting was `false` by default, meaning the PHP data-settings stripping never ran on any fresh install. The output buffer never started (it requires at least one optimization flag to be enabled), so `background_video_link` was never stripped, the YouTube IFrame API loaded on page load, and the fallback image preload tag was never injected — causing the 1,410 ms resource load delay on video-hero pages.
+- **YouTube thumbnail upgraded from `hqdefault.jpg` (480×360) to `maxresdefault.jpg` (1280×720)** in `extract_youtube_thumbnail_url()`. Full-width hero video backgrounds render at the larger size; preloading the low-res thumbnail caused the browser to make a second fetch for the high-res version, wasting the preload entirely and extending resource load duration.
+- **`get_elementor_video_fallback()` and `get_video_hero_fallback_image()` now scan recursively** (up to 4 levels deep, up to 5 root elements). Previously both methods only inspected `$elements[0]` — the first top-level element — missing video backgrounds nested inside Elementor Flexbox containers (`container > container > section`). The recursive approach matches the depth already used by `search_elementor_hero_advanced()`.
+- **`find_background_videos()` now counts both `section` and `container` elTypes** at root depth, and scans up to 5 root elements (was 3 `section`-type only). Modern Elementor Flexbox layouts use `elType === 'container'`, so the previous `$section_count` check never incremented, effectively allowing the scan to either run too deep or miss the hero in container-based layouts. Max recursion depth also raised from 3 to 4 for consistency with other detection methods.
+- **Duplicate fallback preload tag eliminated.** When both `preload_method = video_hero` and `smart_youtube_blocking` are active, both `Hero_Optimizer::preload_video_hero()` (`wp_head` priority 1) and `Resource_Remover::remove_youtube_background_iframes()` (output buffer) could emit a `<link rel="preload">` for the same URL. `Resource_Remover` now calls `Hero_Optimizer::is_url_preloaded()` before injecting and skips the tag if it was already output.
+
+#### Files Modified
+
+- `includes/core/class-config.php` — `smart_youtube_blocking` default `false` → `true`
+- `includes/public/class-hero-optimizer.php` — `extract_youtube_thumbnail_url()` thumbnail quality; `get_elementor_video_fallback()` and `get_video_hero_fallback_image()` recursive scan; `find_background_videos()` container support + depth; `output_preload_tag()` deduplication tracking; new `is_url_preloaded()` static method
+- `includes/public/class-resource-remover.php` — fallback preload deduplication check
+- `includes/public/class-font-optimizer.php` — `i.ytimg.com` preconnect in `add_font_preconnects()`
+
+---
+
 ## [3.2.7] - 2026-05-06
 
 ### 🐛 Fixed - Smart YouTube Blocking Incomplete — API Scripts Still Loaded on Page

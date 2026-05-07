@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.2.7
+Stable tag: 3.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,14 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.3.0 =
+* Added: Automatic preconnect to i.ytimg.com when Smart YouTube Blocking is enabled — eliminates DNS + TCP + TLS cold-start cost (~100–150 ms) before the LCP fallback image arrives
+* Changed: smart_youtube_blocking now defaults to enabled on fresh installs — previously defaulted to disabled, meaning the PHP data-settings stripping never ran and the fallback image preload was never injected
+* Fixed: YouTube hero fallback thumbnail upgraded from hqdefault.jpg (480×360) to maxresdefault.jpg (1280×720) — preloading the wrong resolution caused a second fetch for the full-width image
+* Fixed: Video fallback and video link detection now scans recursively (4 levels deep, 5 root elements) — previously only checked the first top-level element, missing videos nested in Flexbox container layouts
+* Fixed: find_background_videos() now recognises Elementor container elType at root depth (not just section), fixing detection on Flexbox-based hero layouts
+* Fixed: Duplicate preload tag eliminated when both video_hero preload method and smart_youtube_blocking are active for the same page
 
 = 3.2.7 =
 * Fixed: Smart YouTube Blocking now strips youtube.com/iframe_api and all www.youtube.com/ scripts from the page entirely — previously they were still loaded (async), causing YouTube's module chain (base.js etc.) to be fetched and flagged as ~507 KiB of unused JS by PageSpeed

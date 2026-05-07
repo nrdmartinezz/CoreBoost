@@ -11,7 +11,6 @@
 namespace CoreBoost\Admin;
 
 use CoreBoost\Core\Cache_Manager;
-use CoreBoost\PublicCore\Analytics_Engine;
 
 // Prevent direct access
 if (!defined('ABSPATH')) {
@@ -139,19 +138,12 @@ class Overview_Page {
      * Render analytics cards
      */
     private function render_analytics_cards() {
-        // Get script analytics
-        $analytics_engine = new Analytics_Engine($this->options, false);
-        $dashboard_summary = $analytics_engine->get_dashboard_summary();
-        
-        // Calculate metrics
-        $scripts_optimized = $dashboard_summary['total_scripts'] ?? 0;
-        $scripts_deferred = $scripts_optimized - ($dashboard_summary['scripts_excluded'] ?? 0);
-        
-        // Get image optimization metrics
-        $images_processed = get_transient('coreboost_images_processed') ?: 0;
-        
-        // Estimated load time improvement (rough calculation based on deferred scripts)
-        $load_improvement = $scripts_deferred > 0 ? min($scripts_deferred * 50, 500) : 0;
+        // Read cumulative totals written by Script_Optimizer (wp_footer) and Image_Optimizer
+        $scripts_deferred = (int) get_option( 'coreboost_scripts_deferred_total', 0 );
+        $images_processed = (int) get_option( 'coreboost_images_optimized_total', 0 );
+
+        // ~50 ms saved per deferred script, capped at 2 s
+        $load_improvement = $scripts_deferred > 0 ? min( $scripts_deferred * 50, 2000 ) : 0;
         ?>
         <div class="coreboost-card-stat green">
             <span class="dashicons dashicons-images-alt2 coreboost-card-icon"></span>

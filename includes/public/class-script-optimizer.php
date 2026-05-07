@@ -45,6 +45,14 @@ class Script_Optimizer {
      * @var Event_Hijacker
      */
     private $event_hijacker;
+
+    /**
+     * Number of scripts deferred/asynced on this request.
+     * Flushed to the coreboost_scripts_deferred_total option once via wp_footer.
+     *
+     * @var int
+     */
+    private $deferred_this_request = 0;
     
     /**
      * Constructor
@@ -74,6 +82,18 @@ class Script_Optimizer {
     private function define_hooks() {
         $this->loader->add_filter('script_loader_tag', $this, 'defer_scripts', 10, 2);
         $this->loader->add_action('wp_head', $this, 'add_script_resource_hints', 2);
+        $this->loader->add_action('wp_footer', $this, 'flush_defer_count', 99);
+    }
+
+    /**
+     * Persist the deferred-script count to the DB once per page load.
+     * Called via wp_footer so we only do a single option write per request.
+     */
+    public function flush_defer_count() {
+        if ( $this->deferred_this_request > 0 ) {
+            $current = (int) get_option( 'coreboost_scripts_deferred_total', 0 );
+            update_option( 'coreboost_scripts_deferred_total', $current + $this->deferred_this_request, false );
+        }
     }
     
     /**
@@ -139,8 +159,10 @@ class Script_Optimizer {
         }
         
         if ($use_async) {
+            $this->deferred_this_request++;
             return str_replace(' src', ' async src', $tag);
         } elseif ($use_defer) {
+            $this->deferred_this_request++;
             return str_replace(' src', ' defer src', $tag);
         }
         

@@ -218,7 +218,13 @@ class Image_Optimizer {
             $css .= "</style>\n";
             $html = str_replace('</head>', $css . '</head>', $html);
         }
-        
+
+        // Track images processed — one option write per page load (not per image)
+        if ( $image_count > 0 ) {
+            $current = (int) get_option( 'coreboost_images_optimized_total', 0 );
+            update_option( 'coreboost_images_optimized_total', $current + $image_count, false );
+        }
+
         return $html;
     }
     
