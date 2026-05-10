@@ -313,7 +313,7 @@ class CoreBoost {
             'enable_ab_testing' => false,
             'enable_recommendations' => true,
             // Smart YouTube blocking (v2.0.3)
-            'smart_youtube_blocking' => false,
+            'smart_youtube_blocking' => true,
             // Delay JavaScript (v3.1.0)
             'enable_delay_js' => false,
             'delay_js_trigger' => 'user_interaction',

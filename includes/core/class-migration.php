@@ -46,7 +46,11 @@ class Migration {
         if (version_compare($from_version, '3.1.0', '<')) {
             self::migrate_to_3_1_0();
         }
-        
+
+        if (version_compare($from_version, '3.3.0', '<')) {
+            self::migrate_to_3_3_0();
+        }
+
         // Always merge defaults with existing options to add new settings
         self::merge_option_defaults();
         
@@ -214,6 +218,23 @@ class Migration {
     }
     
     /**
+     * Migrate to version 3.3.0
+     * - Enable smart_youtube_blocking for existing installs where it defaulted to false
+     */
+    private static function migrate_to_3_3_0() {
+        Context_Helper::debug_log('Migrating to 3.3.0', 'Migration');
+
+        $options = get_option('coreboost_options', array());
+
+        // The default was incorrectly set to false through v3.2.x. Enable it now
+        // unless the user has explicitly saved the setting (we can't distinguish,
+        // so we unconditionally enable it — they can turn it off in settings).
+        $options['smart_youtube_blocking'] = true;
+
+        update_option('coreboost_options', $options);
+    }
+
+    /**
      * Merge default options with existing options
      * Adds any new settings while preserving existing values
      */
@@ -304,7 +325,7 @@ class Migration {
             'add_width_height_attributes' => false,
             'generate_aspect_ratio_css' => false,
             'add_decoding_async' => false,
-            'smart_youtube_blocking' => false,
+            'smart_youtube_blocking' => true,
             'smart_video_facades' => false,
             'enable_analytics' => true,
             'analytics_retention_days' => 30,

@@ -222,10 +222,25 @@ class Hero_Optimizer {
      */
     private function preload_video_hero() {
         if (!defined('ELEMENTOR_VERSION')) return;
-        
+
         global $post;
         if (!$post) return;
-        
+
+        // Check page-specific manual overrides first — same priority as preload_automatic().
+        $specific_images = $this->parse_specific_pages();
+        $override_url    = null;
+
+        if (is_front_page() && isset($specific_images['home'])) {
+            $override_url = $specific_images['home'];
+        } elseif (is_page() && isset($specific_images[$post->post_name])) {
+            $override_url = $specific_images[$post->post_name];
+        }
+
+        if ($override_url) {
+            $this->output_preload_tag($override_url);
+            return;
+        }
+
         $elementor_data = get_post_meta($post->ID, '_elementor_data', true);
         if (empty($elementor_data)) return;
         

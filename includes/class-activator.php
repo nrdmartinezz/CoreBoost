@@ -122,7 +122,7 @@ class Activator {
             'generate_aspect_ratio_css' => false,
             'add_decoding_async' => false,
             // YouTube blocking
-            'smart_youtube_blocking' => false,
+            'smart_youtube_blocking' => true,
         );
     }
     
