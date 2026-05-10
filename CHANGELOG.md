@@ -5,6 +5,22 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2026-05-10
+
+### 🐛 Fixed - Smart YouTube Blocking Never Activating & Video Hero Ignoring Page-Specific Images
+
+- **`smart_youtube_blocking` runtime defaults corrected.** The v3.3.0 fix only updated `class-config.php`, which drives the admin settings UI field default — not the actual option values used at runtime. `class-activator.php` (fresh installs), `class-coreboost.php` (runtime merge fallback), and `class-migration.php` (`merge_option_defaults()`) all still had `false`. Because `array_replace($defaults, $saved_options)` always lets the saved DB value win, any site installed before the option existed had `false` persisted in the database and the feature never ran despite appearing enabled. All three runtime defaults are now `true`, and a new `migrate_to_3_3_1()` step explicitly writes `true` into `coreboost_options` for every site upgrading from < 3.3.1.
+- **Page-specific image overrides now respected in `video_hero` preload mode.** `preload_video_hero()` went straight to Elementor data detection without first consulting the `specific_pages` setting, so any manual override entered in the page-specific images field was silently skipped. The method now checks `specific_pages` first — emitting the override preload and returning early — before falling through to Elementor fallback detection. Matches the behaviour of `preload_automatic()`.
+
+#### Files Modified
+
+- `includes/class-activator.php` — `smart_youtube_blocking` default `false` → `true`
+- `includes/class-coreboost.php` — `smart_youtube_blocking` default `false` → `true`
+- `includes/core/class-migration.php` — `smart_youtube_blocking` default `false` → `true`; new `migrate_to_3_3_1()` migration step
+- `includes/public/class-hero-optimizer.php` — `preload_video_hero()` now checks `specific_pages` overrides before Elementor detection
+
+---
+
 ## [3.3.0] - 2026-05-07
 
 ### ✨ Added - LCP Optimizations for CSS Background Video Heroes

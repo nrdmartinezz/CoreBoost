@@ -47,8 +47,8 @@ class Migration {
             self::migrate_to_3_1_0();
         }
 
-        if (version_compare($from_version, '3.3.0', '<')) {
-            self::migrate_to_3_3_0();
+        if (version_compare($from_version, '3.3.1', '<')) {
+            self::migrate_to_3_3_1();
         }
 
         // Always merge defaults with existing options to add new settings
@@ -218,15 +218,15 @@ class Migration {
     }
     
     /**
-     * Migrate to version 3.3.0
+     * Migrate to version 3.3.1
      * - Enable smart_youtube_blocking for existing installs where it defaulted to false
      */
-    private static function migrate_to_3_3_0() {
-        Context_Helper::debug_log('Migrating to 3.3.0', 'Migration');
+    private static function migrate_to_3_3_1() {
+        Context_Helper::debug_log('Migrating to 3.3.1', 'Migration');
 
         $options = get_option('coreboost_options', array());
 
-        // The default was incorrectly set to false through v3.2.x. Enable it now
+        // The default was incorrectly set to false through v3.3.0. Enable it now
         // unless the user has explicitly saved the setting (we can't distinguish,
         // so we unconditionally enable it — they can turn it off in settings).
         $options['smart_youtube_blocking'] = true;

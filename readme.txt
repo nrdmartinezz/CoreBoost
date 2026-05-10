@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.3.0
+Stable tag: 3.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,10 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.3.1 =
+* Fixed: smart_youtube_blocking default was only corrected in class-config.php (UI) in v3.3.0 — the runtime defaults in class-activator.php, class-coreboost.php, and class-migration.php still had false, so the feature never activated on any installed site. All three defaults are now true and a migration step enables it for existing installs upgrading from < 3.3.1
+* Fixed: Page-specific image overrides were silently ignored when the preload method was set to video_hero — preload_video_hero() skipped the specific_pages check that preload_automatic() performs. The override is now checked first in both methods, with Elementor detection used as a fallback
 
 = 3.3.0 =
 * Added: Automatic preconnect to i.ytimg.com when Smart YouTube Blocking is enabled — eliminates DNS + TCP + TLS cold-start cost (~100–150 ms) before the LCP fallback image arrives
