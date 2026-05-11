@@ -195,7 +195,7 @@ class Settings_Sanitizer {
     private function get_field_type_mapping() {
         return array(
             'boolean' => array(
-                'enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 
+                'enable_script_defer', 'enable_css_defer', 'enable_foreground_conversion', 'enable_lcp_foreground_injection',
                 'enable_responsive_preload', 'enable_hero_preload_extraction', 'enable_caching', 
                 'enable_font_optimization', 'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 
                 'preconnect_google_fonts', 'preconnect_adobe_fonts', 'enable_unused_css_removal',
@@ -226,7 +226,7 @@ class Settings_Sanitizer {
         $field_map = array(
             'script' => array('enable_script_defer'),
             'css' => array('enable_css_defer', 'auto_defer_all_css', 'enable_font_optimization', 'font_display_swap', 'defer_google_fonts', 'defer_adobe_fonts', 'preconnect_google_fonts', 'preconnect_adobe_fonts'),
-            'hero' => array('enable_responsive_preload', 'enable_foreground_conversion', 'enable_hero_preload_extraction'),
+            'hero' => array('enable_responsive_preload', 'enable_foreground_conversion', 'enable_lcp_foreground_injection', 'enable_hero_preload_extraction'),
             'advanced' => array('enable_caching', 'enable_unused_css_removal', 'enable_unused_js_removal', 'enable_inline_script_removal', 'enable_inline_style_removal', 'smart_youtube_blocking', 'block_youtube_player_css', 'block_youtube_embed_ui'),
             'image' => array('enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes', 'generate_aspect_ratio_css', 'add_decoding_async')
         );

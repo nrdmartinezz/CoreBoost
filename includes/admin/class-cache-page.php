@@ -263,7 +263,7 @@ class Cache_Page {
         <!-- Hidden fields to preserve other options -->
         <?php
         $preserve_fields = array(
-            'preload_method', 'enable_responsive_preload', 'enable_foreground_conversion',
+            'preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 'enable_lcp_foreground_injection',
             'enable_hero_preload_extraction', 'specific_pages', 'lazy_load_exclude_count',
             'enable_script_defer', 'scripts_to_defer', 'scripts_to_async', 'exclude_scripts',
             'enable_css_defer', 'css_defer_method', 'styles_to_defer', 'enable_font_optimization',

@@ -5,6 +5,34 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.2] - 2026-05-11
+
+### ✨ Added - LCP Foreground Injection (`cb-lcp`)
+
+- **`cb-lcp` CSS class convention for Elementor sections.** Add `cb-lcp` to any Elementor section or container's Advanced → CSS Classes field. CoreBoost detects the class in the output buffer and injects an `<img fetchpriority="high" loading="eager" class="cb-lcp-img">` as the first child of that element. This gives the browser a native `<img>` LCP target, bypassing Elementor's lazy-load CSS gate (`background-image: none !important` until `.e-lazyloaded` is added by deferred JS).
+- **Image URL resolved from Elementor `data-settings`.** The injected `<img>` uses the element's `background_video_fallback.url` (preferred — the image shown before/during video load) falling back to `background_image.url`. The `<link rel="preload">` emitted by `Hero_Optimizer` is also updated to prefer the video fallback URL when `cb-lcp` is present, so preload and LCP element always point to the same file.
+- **`.cb-lcp-img` CSS** — absolutely positioned, `inset: 0`, `width/height: 100%`, `object-fit: cover`, `z-index: 0`, `pointer-events: none`. Sits behind Elementor's overlay (`::before`) and the video container without interfering with layout or interaction.
+- **New setting: `enable_lcp_foreground_injection`** — checkbox under Hero Image & LCP Optimization. Off by default.
+
+### 🐛 Fixed - Remove Unused CSS/JS Pattern Matching
+
+- **`remove_unused_styles()` and `remove_unused_scripts()` now support the same pattern syntax as CSS/JS defer.** Previously both methods did a strict `wp_style_is()` / `wp_script_is()` exact-handle lookup, so patterns like `widget-`, `elementor-post-`, or `swiper` (which work in the defer fields) silently matched nothing. The methods now iterate `$wp_styles->registered` / `$wp_scripts->registered` and apply the same four-tier matching: exact, trailing-dash prefix, wildcard (`*`), and partial/contains. Extracted into a shared `handle_matches_pattern()` helper.
+
+#### Files Modified
+
+- `includes/public/class-hero-optimizer.php` — `search_elementor_hero_advanced()` cb-lcp detection; `get_foreground_conversion_css()` `.cb-lcp-img` rules; `enqueue_optimization_styles()` gate
+- `includes/public/class-resource-remover.php` — `inject_lcp_foreground_image()` new method + call in `process_inline_assets()`; `remove_unused_styles()` / `remove_unused_scripts()` pattern matching rewrite; new `handle_matches_pattern()` helper
+- `includes/core/class-config.php` — `enable_lcp_foreground_injection` field config
+- `includes/class-coreboost.php` — `enable_lcp_foreground_injection` runtime default
+- `includes/class-activator.php` — `enable_lcp_foreground_injection` install default
+- `includes/core/class-migration.php` — `enable_lcp_foreground_injection` migration default
+- `includes/admin/class-settings-registry.php` — LCP Foreground Injection field registered
+- `includes/admin/class-settings-sanitizer.php` — added to boolean list and hero field map
+- `includes/admin/class-settings-page.php` — added to hidden-fields preservation list
+- `includes/admin/class-cache-page.php` — added to preserved fields list
+
+---
+
 ## [3.3.1] - 2026-05-10
 
 ### 🐛 Fixed - Smart YouTube Blocking Never Activating & Video Hero Ignoring Page-Specific Images

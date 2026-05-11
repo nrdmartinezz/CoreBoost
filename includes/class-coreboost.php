@@ -261,6 +261,7 @@ class CoreBoost {
             'enable_css_defer' => false,
             'auto_defer_all_css' => false,
             'enable_foreground_conversion' => false,
+            'enable_lcp_foreground_injection' => false,
             'enable_responsive_preload' => false,
             'enable_caching' => false,
             'lazy_load_exclude_count' => 2,

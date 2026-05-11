@@ -456,6 +456,18 @@ class Hero_Optimizer {
         foreach ($elements as $index => $element) {
             if ($current_depth === 0 && $index >= $scan_limit) break;
 
+            // cb-lcp marker: prioritise the video fallback URL so the <link rel="preload">
+            // matches the <img> that inject_lcp_foreground_image() will produce.
+            if (!empty($element['settings']['_css_classes']) &&
+                strpos($element['settings']['_css_classes'], 'cb-lcp') !== false) {
+                if (!empty($element['settings']['background_video_fallback']['url'])) {
+                    return $element['settings']['background_video_fallback']['url'];
+                }
+                if (!empty($element['settings']['background_image']['url'])) {
+                    return $element['settings']['background_image']['url'];
+                }
+            }
+
             // Check background image (works for both classic sections and Flexbox containers)
             if (!empty($element['settings']['background_image']['url'])) {
                 return $element['settings']['background_image']['url'];
@@ -638,7 +650,7 @@ class Hero_Optimizer {
      * Enqueue optimization styles
      */
     public function enqueue_optimization_styles() {
-        if ($this->options['enable_foreground_conversion']) {
+        if ($this->options['enable_foreground_conversion'] || !empty($this->options['enable_lcp_foreground_injection'])) {
             wp_add_inline_style('wp-block-library', $this->get_foreground_conversion_css());
         }
     }
@@ -672,6 +684,16 @@ class Hero_Optimizer {
             top: 0;
             left: 0;
             z-index: -1;
+        }
+
+        .cb-lcp-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            pointer-events: none;
         }
         ';
     }

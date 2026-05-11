@@ -236,7 +236,7 @@ class Settings_Page {
     private function output_hidden_fields($active_tab) {
         $all_fields = array(
             'media' => array(
-                'preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 
+                'preload_method', 'enable_responsive_preload', 'enable_foreground_conversion', 'enable_lcp_foreground_injection',
                 'enable_hero_preload_extraction', 'hero_preload_cache_ttl', 'specific_pages', 'lazy_load_exclude_count',
                 'enable_image_optimization', 'enable_lazy_loading', 'add_width_height_attributes', 
                 'generate_aspect_ratio_css', 'add_decoding_async'

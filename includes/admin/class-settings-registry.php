@@ -154,6 +154,7 @@ class Settings_Registry {
         add_settings_field('preload_method', __('Preload Method', 'coreboost'), array($this->renderer, 'preload_method_callback'), 'coreboost-hero', 'coreboost_hero_section');
         $this->register_dynamic_field('enable_responsive_preload', __('Responsive Preloading', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
         $this->register_dynamic_field('enable_foreground_conversion', __('Enable Foreground CSS', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
+        $this->register_dynamic_field('enable_lcp_foreground_injection', __('LCP Foreground Injection (cb-lcp)', 'coreboost'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('enable_hero_preload_extraction', __('Enable Hero Preload', 'coreboost'), array($this->renderer, 'enable_hero_preload_extraction_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('hero_preload_cache_ttl', __('Hero Preload Cache TTL', 'coreboost'), array($this->renderer, 'hero_preload_cache_ttl_callback'), 'coreboost-hero', 'coreboost_hero_section');
         add_settings_field('specific_pages', __('Page-Specific Images', 'coreboost'), array($this->renderer, 'specific_pages_callback'), 'coreboost-hero', 'coreboost_hero_section');

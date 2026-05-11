@@ -291,6 +291,7 @@ class Migration {
             'enable_script_defer' => false,
             'enable_css_defer' => false,
             'enable_foreground_conversion' => false,
+            'enable_lcp_foreground_injection' => false,
             'enable_responsive_preload' => false,
             'enable_caching' => false,
             'lazy_load_exclude_count' => 2,

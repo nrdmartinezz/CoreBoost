@@ -86,39 +86,89 @@ class Resource_Remover {
     }
     
     /**
-     * Remove unused CSS files
+     * Remove unused CSS files.
+     * Supports the same pattern matching as CSS defer: exact, trailing-dash prefix,
+     * wildcard (*), and partial (contains) — so handles entered here behave
+     * identically to those in the Defer CSS field.
      */
     public function remove_unused_styles() {
         if (!$this->options['enable_unused_css_removal'] || empty($this->options['unused_css_list'])) {
             return;
         }
-        
-        $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_css_list'])));
-        
-        foreach ($handles as $handle) {
-            if (wp_style_is($handle, 'enqueued') || wp_style_is($handle, 'registered')) {
-                wp_dequeue_style($handle);
-                wp_deregister_style($handle);
+
+        $patterns = array_filter(array_map('trim', explode("\n", $this->options['unused_css_list'])));
+
+        global $wp_styles;
+        foreach (array_keys($wp_styles->registered) as $handle) {
+            foreach ($patterns as $pattern) {
+                if ($this->handle_matches_pattern($handle, $pattern)) {
+                    wp_dequeue_style($handle);
+                    wp_deregister_style($handle);
+                    break;
+                }
             }
         }
     }
-    
+
     /**
-     * Remove unused JavaScript files
+     * Remove unused JavaScript files.
+     * Supports the same pattern matching as JS defer: exact, trailing-dash prefix,
+     * wildcard (*), and partial (contains).
      */
     public function remove_unused_scripts() {
         if (!$this->options['enable_unused_js_removal'] || empty($this->options['unused_js_list'])) {
             return;
         }
-        
-        $handles = array_filter(array_map('trim', explode("\n", $this->options['unused_js_list'])));
-        
-        foreach ($handles as $handle) {
-            if (wp_script_is($handle, 'enqueued') || wp_script_is($handle, 'registered')) {
-                wp_dequeue_script($handle);
-                wp_deregister_script($handle);
+
+        $patterns = array_filter(array_map('trim', explode("\n", $this->options['unused_js_list'])));
+
+        global $wp_scripts;
+        foreach (array_keys($wp_scripts->registered) as $handle) {
+            foreach ($patterns as $pattern) {
+                if ($this->handle_matches_pattern($handle, $pattern)) {
+                    wp_dequeue_script($handle);
+                    wp_deregister_script($handle);
+                    break;
+                }
             }
         }
+    }
+
+    /**
+     * Match a registered handle against a user-supplied pattern.
+     * Rules (applied in order):
+     *   1. Exact match — or exact match with a '-css' suffix appended.
+     *   2. Trailing-dash prefix — e.g. "elementor-post-" matches "elementor-post-123".
+     *   3. Wildcard — e.g. "elementor*frontend" (uses * as .* regex).
+     *   4. Partial / contains — e.g. "swiper" matches "my-swiper-6".
+     *
+     * @param string $handle  The registered style/script handle.
+     * @param string $pattern One line from the user's handle list.
+     * @return bool
+     */
+    private function handle_matches_pattern($handle, $pattern) {
+        if (empty($pattern)) {
+            return false;
+        }
+
+        // 1. Exact match (with optional -css suffix tolerance)
+        if ($handle === $pattern || $handle === $pattern . '-css') {
+            return true;
+        }
+
+        // 2. Trailing-dash prefix: "widget-" matches "widget-recent-posts"
+        if (substr($pattern, -1) === '-' && strpos($handle, rtrim($pattern, '-')) === 0) {
+            return true;
+        }
+
+        // 3. Wildcard
+        if (strpos($pattern, '*') !== false) {
+            $regex = '/^' . str_replace('\*', '.*', preg_quote($pattern, '/')) . '$/';
+            return (bool) preg_match($regex, $handle);
+        }
+
+        // 4. Partial / contains
+        return strpos($handle, $pattern) !== false;
     }
     
     /**
@@ -239,6 +289,11 @@ class Resource_Remover {
         if (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) {
             $html = $this->remove_youtube_background_iframes($html);
         }
+
+        // Inject LCP foreground image for elements marked with the cb-lcp class
+        if (!empty($this->options['enable_lcp_foreground_injection'])) {
+            $html = $this->inject_lcp_foreground_image($html);
+        }
         
         // Remove inline scripts and styles by ID first
         $html = $this->remove_inline_scripts_by_id($html);
@@ -284,6 +339,57 @@ class Resource_Remover {
         return $html;
     }
     
+    /**
+     * Inject an LCP foreground <img> into elements marked with the cb-lcp CSS class.
+     *
+     * When a user adds `cb-lcp` to an Elementor section/container's CSS Classes field,
+     * CoreBoost injects an absolutely-positioned <img fetchpriority="high"> as the first
+     * child of that element. This gives the browser a native <img> element as the LCP
+     * target instead of a CSS background-image whose paint is gated on Elementor JS.
+     *
+     * @param string $html Full page HTML.
+     * @return string Modified HTML.
+     */
+    private function inject_lcp_foreground_image($html) {
+        return preg_replace_callback(
+            '/<([a-z][a-z0-9]*)\b([^>]*\bclass=["\'][^"\']*\bcb-lcp\b[^"\']*["\'][^>]*)>/i',
+            function($matches) {
+                $full_tag = $matches[0];
+                $attrs    = $matches[2];
+
+                // Extract Elementor data-settings JSON (HTML-entity encoded by WordPress)
+                if (!preg_match('/data-settings=["\']([^"\']+)["\']/', $attrs, $ds)) {
+                    return $full_tag;
+                }
+
+                $settings = json_decode(html_entity_decode($ds[1], ENT_QUOTES | ENT_HTML5), true);
+                if (!is_array($settings)) {
+                    return $full_tag;
+                }
+
+                // Prefer the video fallback image — shown before the video loads,
+                // making it the true LCP candidate.
+                $image_url = null;
+                if (!empty($settings['background_video_fallback']['url'])) {
+                    $image_url = $settings['background_video_fallback']['url'];
+                } elseif (!empty($settings['background_image']['url'])) {
+                    $image_url = $settings['background_image']['url'];
+                }
+
+                if (!$image_url) {
+                    return $full_tag;
+                }
+
+                $img = '<img src="' . esc_url($image_url) . '" '
+                     . 'fetchpriority="high" loading="eager" decoding="async" '
+                     . 'alt="" class="cb-lcp-img" aria-hidden="true">';
+
+                return $full_tag . $img;
+            },
+            $html
+        );
+    }
+
     /**
      * Defer YouTube background video iframes from Elementor sections
      * Keeps the video background but loads it after page render to prevent blocking

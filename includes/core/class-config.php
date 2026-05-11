@@ -27,6 +27,7 @@ class Config {
         return array(
             'enable_responsive_preload' => array('type' => 'checkbox', 'default' => true, 'description' => 'Preload different image sizes for mobile and tablet devices.'),
             'enable_foreground_conversion' => array('type' => 'checkbox', 'default' => false, 'description' => 'Add CSS to convert background images to foreground images for better performance.'),
+            'enable_lcp_foreground_injection' => array('type' => 'checkbox', 'default' => false, 'description' => 'Inject a native &lt;img fetchpriority=&quot;high&quot;&gt; into any Elementor section/container that has the CSS class <code>cb-lcp</code>. Add this class in the Elementor section&rsquo;s Advanced &rarr; CSS Classes field. Eliminates Elementor JS as a dependency for LCP paint.'),
             'enable_hero_preload_extraction' => array('type' => 'checkbox', 'default' => true, 'description' => 'Extract and preload hero images configured in page-specific images for improved LCP performance.'),
             'hero_preload_cache_ttl' => array('type' => 'select', 'default' => 2592000, 'description' => 'How long to cache preload detection results. Longer cache = better performance, but requires manual cache clear if images change.', 'options' => array(86400 => '1 Day', 604800 => '7 Days', 2592000 => '30 Days')),
             'enable_script_defer' => array('type' => 'checkbox', 'default' => true, 'description' => 'Enable automatic script deferring for better performance.'),
