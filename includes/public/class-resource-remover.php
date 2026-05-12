@@ -352,7 +352,8 @@ class Resource_Remover {
      * @return string Modified HTML.
      */
     private function inject_lcp_foreground_image($html) {
-        $preload_url = null;
+        $preload_url       = null;
+        $elementor_meta_url = null; // Lazy cache for Level 4 _elementor_data post meta read
 
         // Simpler outer regex — no subcapture groups.
         // Matches any opening tag that contains "cb-lcp" anywhere in its attributes.
@@ -360,7 +361,7 @@ class Resource_Remover {
         // attribute is ever outside the search scope due to PCRE backtracking.
         $html = preg_replace_callback(
             '/<[a-z][a-z0-9]*\s[^>]*\bcb-lcp\b[^>]*>/i',
-            function($matches) use (&$preload_url) {
+            function($matches) use (&$preload_url, &$elementor_meta_url) {
                 $full_tag  = $matches[0];
                 $image_url = null;
 
@@ -394,10 +395,42 @@ class Resource_Remover {
                 // Per Elementor's architecture the video fallback image is applied as a CSS
                 // background shorthand directly on the section/container wrapper element:
                 //   style="background: url('...') 50% 50%; background-size: cover;"
-                // This is always present in the rendered HTML regardless of data-settings state.
+                // Present when the inline style is rendered server-side by PHP.
                 if (!$image_url && preg_match('/\bstyle\s*=\s*"([^"]+)"/', $full_tag, $st)) {
                     if (preg_match('/\bbackground(?:-image)?\s*:[^;]*url\s*\(\s*["\']?([^"\')\s]+)["\']?\s*\)/', $st[1], $bg)) {
                         $image_url = $bg[1];
+                    }
+                }
+
+                // Level 4: _elementor_data post meta (Method A from research doc).
+                // Final fallback when Levels 1–3 all miss — e.g. when the inline style is
+                // applied by Elementor JS rather than server-side PHP. Reads the page's
+                // Elementor JSON from the database and scans the first 5 top-level elements
+                // for background_video_fallback.url. Result is cached in $elementor_meta_url
+                // so the DB query only runs once even if multiple cb-lcp elements are present.
+                if (!$image_url && defined('ELEMENTOR_VERSION')) {
+                    global $post;
+                    if ($post && $elementor_meta_url === null) {
+                        $elementor_meta_url = false; // Sentinel — prevents re-querying on next element
+                        $raw = get_post_meta($post->ID, '_elementor_data', true);
+                        if ($raw) {
+                            $meta_elements = json_decode($raw, true);
+                            if (is_array($meta_elements)) {
+                                foreach (array_slice($meta_elements, 0, 5) as $el) {
+                                    if (!empty($el['settings']['background_video_fallback']['url'])) {
+                                        $elementor_meta_url = $el['settings']['background_video_fallback']['url'];
+                                        break;
+                                    }
+                                    if (!empty($el['settings']['background_image']['url'])) {
+                                        $elementor_meta_url = $el['settings']['background_image']['url'];
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if ($elementor_meta_url) {
+                        $image_url = $elementor_meta_url;
                     }
                 }
 

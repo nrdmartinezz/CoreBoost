@@ -105,6 +105,16 @@ class Hero_Optimizer {
         if (isset($methods[$method])) {
             $this->{$methods[$method]}();
         }
+
+        // When LCP foreground injection (cb-lcp) is active, always preload the Elementor
+        // video fallback from _elementor_data via wp_head — regardless of preload_method.
+        // This implements Method A from the research doc: an unconditional wp_head priority-1
+        // preload tied to the enable_lcp_foreground_injection feature flag, not to preload_method.
+        // output_preload_tag() deduplication prevents a duplicate tag if video_hero/video_fallback
+        // is already the active preload_method.
+        if (!empty($this->options['enable_lcp_foreground_injection'])) {
+            $this->preload_video_hero();
+        }
     }
     
     /**

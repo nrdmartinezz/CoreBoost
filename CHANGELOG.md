@@ -5,6 +5,43 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.7] - 2026-05-12
+
+### 🐛 Fixed - LCP Preload Not Firing When `preload_method` Is Not `video_hero`
+
+#### Root Cause
+
+`preload_video_hero()` — which reads `_elementor_data` from the database and emits a
+`<link rel="preload" fetchpriority="high">` at `wp_head` priority 1 — was only called when
+`preload_method` was explicitly set to `video_hero` or `video_fallback`. Sites using any
+other preload method (e.g. `automatic`, `css_class`) received no `<head>` preload for the
+video fallback image, causing the LCP resource load delay to remain.
+
+Additionally, `inject_lcp_foreground_image()` Levels 1–3 could all miss when Elementor
+applies the fallback `background` as an inline style via JavaScript (client-side) rather than
+server-side PHP — so no URL was ever found and `cb-lcp-img` was not injected.
+
+#### Changes
+
+- **`preload_hero_images()` (Hero_Optimizer)**: after the normal `preload_method` dispatch,
+  always calls `preload_video_hero()` when `enable_lcp_foreground_injection` is on. This
+  implements Method A from the Manus AI research: an unconditional `wp_head` priority-1 preload
+  tied to the `enable_lcp_foreground_injection` feature flag. `output_preload_tag()` deduplication
+  prevents a double tag if `video_hero` is also the active `preload_method`.
+- **`inject_lcp_foreground_image()` — Level 4 added (Resource_Remover)**: when Levels 1–3 all
+  fail, reads `_elementor_data` post meta directly and scans the first 5 top-level Elementor
+  elements for `background_video_fallback.url` (then `background_image.url`). This is the same
+  database-level lookup used by `preload_video_hero()` and is immune to whether Elementor applies
+  the inline style via PHP or JS. Result cached in closure scope — DB query runs at most once
+  per page even when multiple `cb-lcp` elements are present.
+
+#### Files Modified
+
+- `includes/public/class-hero-optimizer.php` — `preload_hero_images()` secondary dispatch
+- `includes/public/class-resource-remover.php` — `inject_lcp_foreground_image()` Level 4
+
+---
+
 ## [3.3.6] - 2026-05-12
 
 ### 🐛 Fixed - LCP Foreground Injection (cb-lcp) Not Firing
