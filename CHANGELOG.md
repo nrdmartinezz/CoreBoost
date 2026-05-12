@@ -5,6 +5,19 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.3] - 2026-05-11
+
+### 🐛 Fixed - Tag Manager Breaking Google Analytics & Third-Party Scripts
+
+- **`<script type='text/template'>` wrapper replaced with `<template>` for delayed head/body/footer tags.** The HTML spec treats every `<script>` element as raw text terminated by the first `</script>` string it encounters, regardless of the `type` attribute. This caused the CoreBoost delay wrapper to be prematurely closed by the first `</script>` present inside a stored snippet (e.g. a GA4 / GTM tag that contains its own `</script>`). All content after that closing tag was emitted as loose, malformed HTML — breaking Google Analytics and any other multi-tag tracking snippets. Replacing the wrapper with a `<template>` element resolves this because `<template>` content is parsed as real HTML (not raw text), so inner `</script>` tags do not terminate the container. `<template>` is valid in `<head>`, its content is inert until explicitly moved, and it is universally supported.
+- **Inline delay script updated to read `innerHTML` from `<template>` elements.** The three `loadCoreBoostTags()` content reads (`headTags`, `bodyTags`, `footerTags`) previously used `.textContent || .innerText`, which is the correct API for `<script>` raw text. `<template>` exposes its parsed document fragment via `.innerHTML`, so all three reads are updated accordingly.
+
+#### Files Modified
+
+- `includes/public/class-tag-manager.php` — `output_head_tags()`, `output_body_tags()`, `output_footer_tags()` PHP wrappers; `output_delay_script()` JS content reads
+
+---
+
 ## [3.3.2] - 2026-05-11
 
 ### ✨ Added - LCP Foreground Injection (`cb-lcp`)

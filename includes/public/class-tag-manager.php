@@ -108,9 +108,9 @@ class Tag_Manager {
         } else {
             // For delayed strategies, wrap in a container that will be processed later
             echo "\n<!-- CoreBoost Head Tags (Delayed) -->\n";
-            echo "<script id='coreboost-head-tags' type='text/template'>\n";
+            echo "<template id='coreboost-head-tags'>\n";
             echo $this->options['tag_head_scripts'] . "\n";
-            echo "</script>\n";
+            echo "</template>\n";
         }
     }
 
@@ -134,9 +134,9 @@ class Tag_Manager {
             // For delayed strategies, wrap in a template script to prevent execution
             // Using type='text/template' prevents browser from parsing content as JS/HTML
             echo "\n<!-- CoreBoost Body Tags (Delayed) -->\n";
-            echo "<script id='coreboost-body-tags' type='text/template'>\n";
+            echo "<template id='coreboost-body-tags'>\n";
             echo $this->options['tag_body_scripts'] . "\n";
-            echo "</script>\n";
+            echo "</template>\n";
         }
     }
 
@@ -159,9 +159,9 @@ class Tag_Manager {
         } else {
             // For delayed strategies, wrap in a container
             echo "\n<!-- CoreBoost Footer Tags (Delayed) -->\n";
-            echo "<script id='coreboost-footer-tags' type='text/template'>\n";
+            echo "<template id='coreboost-footer-tags'>\n";
             echo $this->options['tag_footer_scripts'] . "\n";
-            echo "</script>\n";
+            echo "</template>\n";
         }
     }
 
@@ -196,7 +196,7 @@ class Tag_Manager {
                 // Load head tags
                 var headTags = document.getElementById('coreboost-head-tags');
                 if (headTags) {
-                    var headContent = headTags.textContent || headTags.innerText;
+                    var headContent = headTags.innerHTML;
                     var headTemp = document.createElement('div');
                     headTemp.innerHTML = headContent;
                     
@@ -238,7 +238,7 @@ class Tag_Manager {
                 // Load body tags
                 var bodyTags = document.getElementById('coreboost-body-tags');
                 if (bodyTags) {
-                    var bodyContent = bodyTags.textContent || bodyTags.innerText;
+                    var bodyContent = bodyTags.innerHTML;
                     var bodyTemp = document.createElement('div');
                     bodyTemp.innerHTML = bodyContent;
                     
@@ -275,7 +275,7 @@ class Tag_Manager {
                 // Load footer tags
                 var footerTags = document.getElementById('coreboost-footer-tags');
                 if (footerTags) {
-                    var footerContent = footerTags.textContent || footerTags.innerText;
+                    var footerContent = footerTags.innerHTML;
                     var footerTemp = document.createElement('div');
                     footerTemp.innerHTML = footerContent;
                     
