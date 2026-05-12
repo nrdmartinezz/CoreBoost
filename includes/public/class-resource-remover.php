@@ -341,12 +341,14 @@ class Resource_Remover {
     }
     
     /**
-     * Inject an LCP foreground <img> into elements marked with the cb-lcp CSS class.
+     * Scan elements marked with the cb-lcp CSS class, extract the background image URL
+     * via a 4-level cascade, and inject a <link rel="preload" fetchpriority="high"> into
+     * <head>. No <img> element is injected — the preload alone fixes the PSI
+     * "resource load delay" metric by ensuring the browser's preload scanner discovers
+     * the image URL during initial HTML parsing, before any CSS is downloaded.
      *
-     * When a user adds `cb-lcp` to an Elementor section/container's CSS Classes field,
-     * CoreBoost injects an absolutely-positioned <img fetchpriority="high"> as the first
-     * child of that element. This gives the browser a native <img> element as the LCP
-     * target instead of a CSS background-image whose paint is gated on Elementor JS.
+     * Elementor's video fallback is always present as an inline style="background: url(...)"
+     * rendered by PHP — it paints without JS, so a native <img> is not needed.
      *
      * @param string $html Full page HTML.
      * @return string Modified HTML.
@@ -438,17 +440,13 @@ class Resource_Remover {
                     return $full_tag;
                 }
 
-                // Track the first resolved URL so we can emit a <link rel="preload"> in
-                // <head> below, making head preload independent of Hero_Optimizer.
+                // Capture the first resolved URL so we can emit a <link rel="preload">
+                // into <head> below. The tag itself is not modified — no <img> injected.
                 if ($preload_url === null) {
                     $preload_url = $image_url;
                 }
 
-                $img = '<img src="' . esc_url($image_url) . '" '
-                     . 'fetchpriority="high" loading="eager" decoding="async" '
-                     . 'alt="" class="cb-lcp-img" aria-hidden="true">';
-
-                return $full_tag . $img;
+                return $full_tag;
             },
             $html
         );

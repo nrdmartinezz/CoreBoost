@@ -74,7 +74,6 @@ class Hero_Optimizer {
      */
     private function define_hooks() {
         $this->loader->add_action('wp_head', $this, 'preload_hero_images', 1);
-        $this->loader->add_action('wp_head', $this, 'output_lcp_img_styles', 1);
         $this->loader->add_action('wp_enqueue_scripts', $this, 'enqueue_optimization_styles');
     }
     
@@ -665,30 +664,6 @@ class Hero_Optimizer {
             wp_add_inline_style('wp-block-library', $this->get_foreground_conversion_css());
         }
     }
-
-    /**
-     * Output cb-lcp / cb-lcp-img CSS directly into <head> via wp_head.
-     *
-     * Intentionally bypasses wp_enqueue_scripts / wp_add_inline_style so the rules
-     * are always present even on Elementor sites that never enqueue wp-block-library.
-     * Without these styles the injected <img> renders inline, doubling section height
-     * on desktop and overlaying at the wrong size on mobile.
-     */
-    public function output_lcp_img_styles() {
-        if (empty($this->options['enable_lcp_foreground_injection'])) {
-            return;
-        }
-        if (Context_Helper::should_skip_optimization()) {
-            return;
-        }
-        echo '<style id="coreboost-cb-lcp">' .
-            /* Guarantee the parent is a positioning context and clips overflow */
-            '.cb-lcp{position:relative!important;overflow:hidden;}' .
-            /* Absolutely fill the container — identical to a CSS background-image */
-            '.cb-lcp-img{position:absolute;inset:0;width:100%;height:100%;' .
-            'object-fit:cover;z-index:0;pointer-events:none;display:block;}' .
-            "</style>\n";
-    }
     
     /**
      * Get foreground conversion CSS
@@ -722,8 +697,7 @@ class Hero_Optimizer {
         }
 
         .cb-lcp-img {
-            /* Styles now output via output_lcp_img_styles() -> wp_head to guarantee
-               delivery on Elementor sites where wp-block-library is not enqueued. */
+            /* cb-lcp-img img injection removed in v3.3.9 — preload tag only */
         }
         ';
     }

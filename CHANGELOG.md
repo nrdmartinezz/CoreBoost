@@ -5,6 +5,53 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.9] - 2026-05-12
+
+### 🔄 Reworked - cb-lcp Strategy: Preload-Only (Remove `<img>` Injection)
+
+#### Root Cause Analysis
+
+The `<img>` injection approach was based on a false premise. Elementor's video background
+fallback image is applied as `style="background: url(...) 50% 50%; background-size: cover;"`
+via server-side PHP (`Group_Control_Background` selectors). This means:
+
+1. The CSS background **paints immediately without JS** — it is not lazy-loaded or gated
+   on Elementor adding `.e-lazyloaded`.
+2. The PSI "resource load delay" metric measures **image discovery time**, not paint-blocking
+   JS. The browser only discovers CSS `background-image` URLs after downloading and parsing
+   the stylesheet — this is what causes the delay.
+3. A `<link rel="preload" fetchpriority="high">` in `<head>` is the **direct and correct fix** —
+   the preload scanner finds it during initial HTML tokenisation, before any CSS is fetched.
+4. Injecting a `<img>` as a child of the Elementor section was fighting Elementor's flex
+   layout unnecessarily, causing double-height sections on desktop and size/overlap issues
+   on mobile, with no benefit to the LCP metric.
+
+#### Changes
+
+- **`inject_lcp_foreground_image()` (Resource_Remover)**: removed `<img>` construction and
+  injection entirely. The function now only extracts the image URL (via the 4-level cascade)
+  and emits a `<link rel="preload" as="image" fetchpriority="high">` before `</head>`. The
+  section's opening tag is returned **unmodified**. No DOM changes, no layout impact.
+- **`output_lcp_img_styles()` (Hero_Optimizer)**: removed method and `wp_head` hook — no
+  `<img>` element exists to style.
+- **`define_hooks()`**: removed `output_lcp_img_styles` registration.
+- **`get_foreground_conversion_css()`**: `.cb-lcp-img` block updated to note removal.
+
+#### What Still Fires
+
+- `preload_video_hero()` at `wp_head` priority 1 (via both `preload_method` dispatch and the
+  unconditional `enable_lcp_foreground_injection` guard added in v3.3.7) — reads
+  `_elementor_data` from DB and emits the preload tag early.
+- Output-buffer preload fallback in `inject_lcp_foreground_image()` — covers cases where
+  `preload_video_hero()` misses the URL (e.g. non-standard Elementor structures).
+
+#### Files Modified
+
+- `includes/public/class-resource-remover.php` — `inject_lcp_foreground_image()` img injection removed
+- `includes/public/class-hero-optimizer.php` — `output_lcp_img_styles()` removed; `define_hooks()` updated
+
+---
+
 ## [3.3.8] - 2026-05-12
 
 ### 🐛 Fixed - cb-lcp-img Causing Double Height on Desktop / Wrong Size on Mobile
