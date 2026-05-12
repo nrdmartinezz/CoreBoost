@@ -81,6 +81,8 @@ class Script_Optimizer {
      */
     private function define_hooks() {
         $this->loader->add_filter('script_loader_tag', $this, 'defer_scripts', 10, 2);
+        // Priority 0: shim must appear before any wp-i18n after-scripts that call wp.i18n.setLocaleData()
+        $this->loader->add_action('wp_head', $this, 'inject_wp_core_shims', 0);
         $this->loader->add_action('wp_head', $this, 'add_script_resource_hints', 2);
         $this->loader->add_action('wp_footer', $this, 'flush_defer_count', 99);
     }
@@ -104,16 +106,13 @@ class Script_Optimizer {
         if (!$this->options['enable_script_defer'] || is_admin()) return $tag;
         
         // WordPress Core Script Defer - handle wp-hooks, wp-i18n, wp-dom-ready
-        // These are deferred separately to break critical request chains
+        // These are deferred separately to break critical request chains.
+        // The wp_core shim (injected at wp_head priority 0) proxies wp.hooks / wp.i18n /
+        // wp.domReady so that any after-inline-scripts that depend on these globals will
+        // queue their calls and replay them once the real module finishes loading.
         if (!empty($this->options['enable_wp_core_defer'])) {
             $wp_core_handles = array('wp-hooks', 'wp-i18n', 'wp-dom-ready');
             if (in_array($handle, $wp_core_handles)) {
-                // Skip deferring if the script has inline scripts attached
-                // Inline scripts execute immediately and would fail if parent is deferred
-                if ($this->has_inline_scripts($handle)) {
-                    return $tag;
-                }
-                
                 // Only add defer if not already present
                 if (strpos($tag, ' defer') === false && strpos($tag, ' async') === false) {
                     return str_replace(' src', ' defer src', $tag);
@@ -169,6 +168,78 @@ class Script_Optimizer {
         return $tag;
     }
     
+    /**
+     * Inject a JavaScript shim for WordPress core globals that may be called by
+     * after-inline-scripts before the deferred module files have loaded.
+     *
+     * When enable_wp_core_defer defers wp-hooks, wp-i18n, and wp-dom-ready, any
+     * plugin that called wp_set_script_translations() or wp_add_inline_script()
+     * with position 'after' will have those inline scripts run synchronously at
+     * HTML-parse time — before the deferred module executes. Without the shim those
+     * calls (e.g. wp.i18n.setLocaleData(), wp.hooks.addFilter()) would throw a
+     * TypeError because the globals are not yet defined.
+     *
+     * The shim installs a property descriptor with a setter on each global. Inline
+     * callers see a lightweight proxy that queues their calls. When the deferred
+     * module finally sets the real value (window.wp.i18n = …) the setter fires,
+     * replays every queued call against the real implementation, and then removes
+     * itself so subsequent accesses go directly to the module.
+     */
+    public function inject_wp_core_shims() {
+        if (empty($this->options['enable_wp_core_defer'])) {
+            return;
+        }
+        if (Context_Helper::should_skip_optimization()) {
+            return;
+        }
+        ?>
+<script id="coreboost-wp-core-shims">
+(function(){
+    if(typeof window.wp==='undefined')window.wp={};
+    var wp=window.wp;
+
+    /**
+     * Install a setter-based proxy on window.wp[prop].
+     * queue  – method calls to replay once the real module loads.
+     * extras – extra method stubs beyond the minimal ones needed.
+     */
+    function installShim(prop, stubs) {
+        if (wp[prop] && !wp[prop].__cbShim) return; // real module already loaded
+        var _real = null;
+        var _queue = [];
+        var _shim = { __cbShim: true };
+        stubs.forEach(function(fn) {
+            _shim[fn] = function() {
+                _queue.push({ fn: fn, args: Array.prototype.slice.call(arguments) });
+            };
+        });
+        Object.defineProperty(wp, prop, {
+            get: function() { return _real || _shim; },
+            set: function(real) {
+                _real = real;
+                // Flush queued calls into the now-loaded real module
+                _queue.forEach(function(item) {
+                    if (typeof real[item.fn] === 'function') {
+                        real[item.fn].apply(real, item.args);
+                    }
+                });
+                _queue = [];
+                // Replace with a simple value property so future sets work normally
+                Object.defineProperty(wp, prop, { value: real, writable: true, configurable: true, enumerable: true });
+            },
+            configurable: true,
+            enumerable: true
+        });
+    }
+
+    installShim('i18n',    ['setLocaleData', 'resetLocaleData', '__', '_x', '_n', '_nx', 'sprintf', 'isRTL']);
+    installShim('hooks',   ['addFilter', 'removeFilter', 'applyFilters', 'addAction', 'removeAction', 'doAction', 'currentFilter', 'hasFilter']);
+    installShim('domReady', ['default']);
+})();
+</script>
+        <?php
+    }
+
     /**
      * Add resource hints for critical scripts
      */

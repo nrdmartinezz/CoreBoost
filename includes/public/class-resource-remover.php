@@ -357,23 +357,34 @@ class Resource_Remover {
                 $full_tag = $matches[0];
                 $attrs    = $matches[2];
 
-                // Extract Elementor data-settings JSON (HTML-entity encoded by WordPress)
-                if (!preg_match('/data-settings=["\']([^"\']+)["\']/', $attrs, $ds)) {
-                    return $full_tag;
-                }
-
-                $settings = json_decode(html_entity_decode($ds[1], ENT_QUOTES | ENT_HTML5), true);
-                if (!is_array($settings)) {
-                    return $full_tag;
-                }
-
-                // Prefer the video fallback image — shown before the video loads,
-                // making it the true LCP candidate.
                 $image_url = null;
-                if (!empty($settings['background_video_fallback']['url'])) {
-                    $image_url = $settings['background_video_fallback']['url'];
-                } elseif (!empty($settings['background_image']['url'])) {
-                    $image_url = $settings['background_image']['url'];
+
+                // Primary: extract Elementor data-settings JSON (HTML-entity encoded by WordPress)
+                if (preg_match('/data-settings=["\']([^"\']+)["\']/', $attrs, $ds)) {
+                    $settings = json_decode(html_entity_decode($ds[1], ENT_QUOTES | ENT_HTML5), true);
+                    if (is_array($settings)) {
+                        // Prefer the video fallback image — shown before the video loads,
+                        // making it the true LCP candidate.
+                        if (!empty($settings['background_video_fallback']['url'])) {
+                            $image_url = $settings['background_video_fallback']['url'];
+                        } elseif (!empty($settings['background_image']['url'])) {
+                            $image_url = $settings['background_image']['url'];
+                        }
+                    }
+                }
+
+                // Fallback: when remove_youtube_background_iframes() has already stripped
+                // background_video_fallback from data-settings, read it from the
+                // data-coreboost-deferred-youtube attribute that was injected in its place.
+                if (!$image_url && preg_match('/data-coreboost-deferred-youtube=["\']([^"\']+)["\']/', $attrs, $dyt)) {
+                    $deferred = json_decode(html_entity_decode($dyt[1], ENT_QUOTES | ENT_HTML5), true);
+                    if (is_array($deferred)) {
+                        if (is_array($deferred['fallback']) && !empty($deferred['fallback']['url'])) {
+                            $image_url = $deferred['fallback']['url'];
+                        } elseif (is_string($deferred['fallback']) && !empty($deferred['fallback'])) {
+                            $image_url = $deferred['fallback'];
+                        }
+                    }
                 }
 
                 if (!$image_url) {
@@ -944,14 +955,14 @@ SCRIPT;
                 'jquery-ui-core',
                 'jquery-ui.min.js',
                 'wp-embed',
-                // Critical WordPress dist scripts with inline "after" setup
-                '/dist/i18n',
-                '/dist/hooks',
-                '/dist/dom-ready',
-                '/dist/url',
-                '/dist/api-fetch',
-                '/dist/data',
-                '/dist/element',
+                // WordPress core dist scripts — use full WP path so Elementor's own
+                // dist/i18n.min.js (served under /plugins/elementor/) is NOT skipped.
+                // wp-hooks, wp-i18n, wp-dom-ready are intentionally omitted here;
+                // they are deferred by Script_Optimizer when enable_wp_core_defer is on.
+                '/wp-includes/js/dist/url',
+                '/wp-includes/js/dist/api-fetch',
+                '/wp-includes/js/dist/data',
+                '/wp-includes/js/dist/element',
                 'wp-polyfill',
             )
         );
@@ -980,11 +991,11 @@ SCRIPT;
         }
         
         // Exclude critical WordPress core scripts that have inline "after" setup scripts
-        // These MUST load synchronously or inline scripts referencing 'wp' will fail
+        // These MUST load synchronously OR be explicitly deferred by enable_wp_core_defer
+        // (which injects a shim that safely queues dependent calls).
+        // wp-hooks, wp-i18n, wp-dom-ready are intentionally left OUT here —
+        // Script_Optimizer::defer_scripts() handles them when enable_wp_core_defer is on.
         $critical_wp_scripts = array(
-            '/wp-includes/js/dist/i18n',           // wp-i18n - defines wp.i18n
-            '/wp-includes/js/dist/hooks',          // wp-hooks - defines wp.hooks  
-            '/wp-includes/js/dist/dom-ready',      // wp-dom-ready
             '/wp-includes/js/dist/url',            // wp-url
             '/wp-includes/js/dist/api-fetch',      // wp-api-fetch
             '/wp-includes/js/dist/data',           // wp-data

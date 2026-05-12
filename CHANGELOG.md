@@ -5,6 +5,28 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.5] - 2026-05-12
+
+### 🐛 Fixed - LCP Resource Load Delay & Critical Request Chain
+
+#### LCP Resource Load Delay (cb-lcp + YouTube video backgrounds)
+
+- **`inject_lcp_foreground_image()` now reads the fallback URL from `data-coreboost-deferred-youtube` when `data-settings` has been cleared.** `process_inline_assets()` calls `remove_youtube_background_iframes()` first, which strips `background_video_fallback` out of `data-settings` and moves it into the `data-coreboost-deferred-youtube` attribute. The subsequent `inject_lcp_foreground_image()` call then saw only `{"background_background":"video"}` in `data-settings` — no image URL — so no `<img fetchpriority="high">` was injected into the LCP element. Without that native `<img>` the browser had no early signal to start fetching the fallback image, resulting in the 1,260 ms LCP resource load delay reported by PageSpeed Insights. The fix adds a secondary lookup: when `data-settings` yields no image URL, the function decodes `data-coreboost-deferred-youtube` and reads its `fallback.url` field. This ensures the high-priority LCP `<img>` is always injected on video-background containers that carry the `cb-lcp` class, moving LCP time from "resource load delay" into "resource load duration" where it belongs.
+
+#### Critical Request Chain (`dist/i18n.min.js`)
+
+- **`wp.i18n` / `wp.hooks` / `wp.domReady` compatibility shim injected at `wp_head` priority 0.** When `enable_wp_core_defer` is on, the `wp-i18n`, `wp-hooks`, and `wp-dom-ready` scripts are deferred, but plugins like Elementor attach `after`-inline-scripts (via `wp_set_script_translations()` / `wp_add_inline_script(..., 'after')`) that call e.g. `wp.i18n.setLocaleData()` synchronously — before the deferred modules execute — causing a TypeError. The new `inject_wp_core_shims()` method (hooked at `wp_head` priority 0) installs a `Object.defineProperty` setter-based proxy on each global (`wp.i18n`, `wp.hooks`, `wp.domReady`). Inline callers see a lightweight stub that queues their calls; when the deferred module writes the real implementation to the property the setter fires, replays every queued call, then removes itself so the property behaves normally from that point.
+- **Removed the `has_inline_scripts()` guard from the `enable_wp_core_defer` defer path.** Previously, the presence of ANY inline script attached to `wp-i18n` (including just localized data) blocked deferral entirely, leaving `dist/i18n.min.js` as a render-blocking resource in the critical request chain. The shim now handles the safety concern, so the guard is removed and the scripts are always deferred when `enable_wp_core_defer` is enabled.
+- **`/dist/i18n`, `/dist/hooks`, `/dist/dom-ready` removed from URL-level skip list in `get_url_exclusions()`.** The old broad patterns accidentally prevented Elementor's own `dist/i18n.min.js` (served under `/plugins/elementor/`) from being deferred by `defer_scripts_by_url`. Replaced with full `/wp-includes/js/dist/` paths so only the actual WordPress core files are skipped at the URL level; Elementor's i18n bundle is now correctly deferred by the `/elementor/` pattern in `should_defer`.
+- **`/wp-includes/js/dist/i18n`, `/wp-includes/js/dist/hooks`, `/wp-includes/js/dist/dom-ready` removed from the hard-coded `$critical_wp_scripts` array in `process_inline_script_callback()`.** With the shim in place these scripts are safe to defer; the URL-level guard was redundant and was preventing URL-based deferral when the handle-based path didn't fire.
+
+#### Files Modified
+
+- `includes/public/class-resource-remover.php` — `inject_lcp_foreground_image()`: fallback lookup from `data-coreboost-deferred-youtube`; `get_url_exclusions()`: tightened `/dist/i18n|hooks|dom-ready` skip patterns; `process_inline_script_callback()`: removed `wp-i18n`/`wp-hooks`/`wp-dom-ready` from `$critical_wp_scripts`
+- `includes/public/class-script-optimizer.php` — `define_hooks()`: new `wp_head` priority-0 hook; new `inject_wp_core_shims()` method; `defer_scripts()`: removed `has_inline_scripts()` guard for `enable_wp_core_defer` handles
+
+---
+
 ## [3.3.4] - 2026-05-11
 
 ### 🐛 Fixed - Tag Manager Plain Text Output & GTM Detection Failure
