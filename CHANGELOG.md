@@ -5,6 +5,57 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.6] - 2026-05-12
+
+### 🐛 Fixed - LCP Foreground Injection (cb-lcp) Not Firing
+
+#### Root Cause
+
+`inject_lcp_foreground_image()` used a subcapture group for attribute extraction:
+`([^>]*\bclass=["\'][^"\']*\bcb-lcp\b[^"\']*["\'][^>]*)`. PCRE backtracking on the trailing
+`[^>]*` could cause attributes such as `data-coreboost-deferred-youtube` or the inline `style`
+to fall outside `$matches[2]`, resulting in the function finding no image URL and silently
+returning the original tag — so `cb-lcp-img` never appeared in the source.
+
+A second cascading failure: even when smart_youtube_blocking was ON, the image URL was not being
+found because Elementor applies the fallback as an inline CSS background on the wrapper element
+(not in `data-settings`) and that path was never checked.
+
+A third latent bug: `start_output_buffer()` only ran the output buffer when `smart_youtube_blocking`
+or a script/CSS defer feature was active. If only `enable_lcp_foreground_injection` was on,
+the buffer never started and injection never ran.
+
+#### Changes
+
+- **`inject_lcp_foreground_image()` fully rewritten.** Outer regex simplified to
+  `/<[a-z][a-z0-9]*\s[^>]*\bcb-lcp\b[^>]*>/i` — no subcapture groups. All four attribute
+  extractions run directly on `$matches[0]` (the full opening tag string), eliminating the
+  PCRE backtracking failure mode entirely.
+- **3-level image URL cascade:**
+  1. `data-settings` JSON → `background_video_fallback.url` then `background_image.url`
+     (present when smart_youtube_blocking is OFF).
+  2. `data-coreboost-deferred-youtube` JSON → `fallback.url` / `fallback` (string)
+     (present when smart_youtube_blocking has stripped data-settings).
+  3. **Inline `style` attribute** — per Elementor's architecture, the video fallback is
+     rendered as `style="background: url('...') 50% 50%; background-size: cover;"` on the
+     wrapper element by the `Group_Control_Background` CSS selector. This level is always
+     present in the rendered HTML and was previously never read.
+- **`<link rel="preload">` now injected directly from `inject_lcp_foreground_image()`.** After
+  the `preg_replace_callback` pass, the first resolved image URL is injected as a
+  `<link rel="preload" fetchpriority="high">` before `</head>`. This makes the head preload
+  independent of `Hero_Optimizer::preload_video_hero()` and the `preload_method` setting —
+  so it fires correctly regardless of which hero detection method is configured.
+- **`start_output_buffer()` gate extended** to include
+  `!empty($this->options['enable_lcp_foreground_injection'])`. Previously the output buffer
+  only ran when a script/CSS defer or smart_youtube_blocking feature was also active; disabling
+  those features would silently prevent LCP injection from running at all.
+
+#### Files Modified
+
+- `includes/public/class-resource-remover.php` — `inject_lcp_foreground_image()` full rewrite; `start_output_buffer()` buffer-start condition
+
+---
+
 ## [3.3.5] - 2026-05-12
 
 ### 🐛 Fixed - LCP Resource Load Delay & Critical Request Chain

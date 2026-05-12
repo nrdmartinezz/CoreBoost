@@ -269,9 +269,10 @@ class Resource_Remover {
         if (Context_Helper::should_skip_optimization()) {
             return;
         }
-        if ($this->options['enable_css_defer'] || $this->options['enable_script_defer'] || 
+        if ($this->options['enable_css_defer'] || $this->options['enable_script_defer'] ||
             $this->options['enable_inline_script_removal'] || $this->options['enable_inline_style_removal'] ||
-            (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking'])) {
+            (isset($this->options['smart_youtube_blocking']) && $this->options['smart_youtube_blocking']) ||
+            !empty($this->options['enable_lcp_foreground_injection'])) {
             ob_start(array($this, 'process_inline_assets'));
         }
     }
@@ -351,20 +352,23 @@ class Resource_Remover {
      * @return string Modified HTML.
      */
     private function inject_lcp_foreground_image($html) {
-        return preg_replace_callback(
-            '/<([a-z][a-z0-9]*)\b([^>]*\bclass=["\'][^"\']*\bcb-lcp\b[^"\']*["\'][^>]*)>/i',
-            function($matches) {
-                $full_tag = $matches[0];
-                $attrs    = $matches[2];
+        $preload_url = null;
 
+        // Simpler outer regex — no subcapture groups.
+        // Matches any opening tag that contains "cb-lcp" anywhere in its attributes.
+        // All attribute extraction runs on $matches[0] (the full tag string) so no
+        // attribute is ever outside the search scope due to PCRE backtracking.
+        $html = preg_replace_callback(
+            '/<[a-z][a-z0-9]*\s[^>]*\bcb-lcp\b[^>]*>/i',
+            function($matches) use (&$preload_url) {
+                $full_tag  = $matches[0];
                 $image_url = null;
 
-                // Primary: extract Elementor data-settings JSON (HTML-entity encoded by WordPress)
-                if (preg_match('/data-settings=["\']([^"\']+)["\']/', $attrs, $ds)) {
+                // Level 1: data-settings JSON — present when smart_youtube_blocking is OFF
+                // (background_video_fallback has not yet been stripped from this attribute).
+                if (preg_match('/\bdata-settings\s*=\s*"([^"]+)"/', $full_tag, $ds)) {
                     $settings = json_decode(html_entity_decode($ds[1], ENT_QUOTES | ENT_HTML5), true);
                     if (is_array($settings)) {
-                        // Prefer the video fallback image — shown before the video loads,
-                        // making it the true LCP candidate.
                         if (!empty($settings['background_video_fallback']['url'])) {
                             $image_url = $settings['background_video_fallback']['url'];
                         } elseif (!empty($settings['background_image']['url'])) {
@@ -373,10 +377,9 @@ class Resource_Remover {
                     }
                 }
 
-                // Fallback: when remove_youtube_background_iframes() has already stripped
-                // background_video_fallback from data-settings, read it from the
-                // data-coreboost-deferred-youtube attribute that was injected in its place.
-                if (!$image_url && preg_match('/data-coreboost-deferred-youtube=["\']([^"\']+)["\']/', $attrs, $dyt)) {
+                // Level 2: data-coreboost-deferred-youtube — present when smart_youtube_blocking
+                // IS on and has already moved background_video_fallback out of data-settings.
+                if (!$image_url && preg_match('/\bdata-coreboost-deferred-youtube\s*=\s*"([^"]+)"/', $full_tag, $dyt)) {
                     $deferred = json_decode(html_entity_decode($dyt[1], ENT_QUOTES | ENT_HTML5), true);
                     if (is_array($deferred)) {
                         if (is_array($deferred['fallback']) && !empty($deferred['fallback']['url'])) {
@@ -387,8 +390,25 @@ class Resource_Remover {
                     }
                 }
 
+                // Level 3: inline style attribute.
+                // Per Elementor's architecture the video fallback image is applied as a CSS
+                // background shorthand directly on the section/container wrapper element:
+                //   style="background: url('...') 50% 50%; background-size: cover;"
+                // This is always present in the rendered HTML regardless of data-settings state.
+                if (!$image_url && preg_match('/\bstyle\s*=\s*"([^"]+)"/', $full_tag, $st)) {
+                    if (preg_match('/\bbackground(?:-image)?\s*:[^;]*url\s*\(\s*["\']?([^"\')\s]+)["\']?\s*\)/', $st[1], $bg)) {
+                        $image_url = $bg[1];
+                    }
+                }
+
                 if (!$image_url) {
                     return $full_tag;
+                }
+
+                // Track the first resolved URL so we can emit a <link rel="preload"> in
+                // <head> below, making head preload independent of Hero_Optimizer.
+                if ($preload_url === null) {
+                    $preload_url = $image_url;
                 }
 
                 $img = '<img src="' . esc_url($image_url) . '" '
@@ -399,6 +419,16 @@ class Resource_Remover {
             },
             $html
         );
+
+        // Emit a <link rel="preload"> into <head> for the resolved LCP image so the
+        // browser discovers it during head parsing. Skip if Hero_Optimizer already
+        // emitted a preload tag for this URL during wp_head (prevents duplicate).
+        if ($preload_url && !Hero_Optimizer::is_url_preloaded($preload_url)) {
+            $preload_tag = '<link rel="preload" href="' . esc_url($preload_url) . '" as="image" fetchpriority="high">' . "\n";
+            $html = str_replace('</head>', $preload_tag . '</head>', $html);
+        }
+
+        return $html;
     }
 
     /**
