@@ -5,6 +5,43 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.8] - 2026-05-12
+
+### 🐛 Fixed - cb-lcp-img Causing Double Height on Desktop / Wrong Size on Mobile
+
+#### Root Cause
+
+`enqueue_optimization_styles()` registered `.cb-lcp-img` CSS via
+`wp_add_inline_style('wp-block-library', ...)`. On Elementor sites `wp-block-library` is
+typically never enqueued, so WordPress silently discarded the inline style. Without
+`position: absolute; inset: 0; width: 100%; height: 100%` the injected `<img>` rendered
+as a normal block element — adding its full intrinsic dimensions to the section height
+(doubling it on desktop) and appearing as an overlaid, under-sized image on mobile.
+
+Additionally, the parent element needed an explicit `position: relative` guarantee. Elementor
+sections are usually `position: relative`, but without an enforced rule the absolute positioning
+had no reliable containing block.
+
+#### Changes
+
+- **`output_lcp_img_styles()` added (Hero_Optimizer)** — new `wp_head` priority-1 method that
+  outputs a `<style id="coreboost-cb-lcp">` tag directly into the document `<head>`. Bypasses
+  `wp_enqueue_scripts` entirely, so the CSS is always delivered regardless of which stylesheets
+  are registered. Only runs when `enable_lcp_foreground_injection` is on and not in admin/preview.
+- **CSS rules**: `.cb-lcp { position: relative !important; overflow: hidden; }` and
+  `.cb-lcp-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  z-index: 0; pointer-events: none; display: block; }`. The `!important` on `position: relative`
+  prevents any theme or Elementor rule from stripping the containing-block guarantee.
+- **`define_hooks()`** — wired `output_lcp_img_styles` at `wp_head` priority 1.
+- **`get_foreground_conversion_css()`** — `.cb-lcp-img` block emptied (styles now owned by
+  `output_lcp_img_styles`; legacy `.hero-foreground-image` / `.heroimg` rules unchanged).
+
+#### Files Modified
+
+- `includes/public/class-hero-optimizer.php` — `define_hooks()`, new `output_lcp_img_styles()`, `get_foreground_conversion_css()`
+
+---
+
 ## [3.3.7] - 2026-05-12
 
 ### 🐛 Fixed - LCP Preload Not Firing When `preload_method` Is Not `video_hero`
