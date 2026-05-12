@@ -5,6 +5,19 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.4] - 2026-05-11
+
+### 🐛 Fixed - Tag Manager Plain Text Output & GTM Detection Failure
+
+- **`document.importNode(template.content, true)` replaces `template.innerHTML` + `div.innerHTML` round-trip in `output_delay_script()`.** Reading `.innerHTML` from a `<template>` element serializes its inert DocumentFragment back to an HTML string. Re-assigning that string to a `div.innerHTML` re-parses it in the live (scripting-enabled) document, where `<noscript>` is treated as a raw-text element — its child `<iframe>` becomes a literal text node that renders as visible markup on the page. `document.importNode(template.content, true)` clones nodes directly from the inert fragment with no serialization, preserving `<noscript>` structure correctly. Applied to all three tag blocks (head, body, footer).
+- **`.textContent` replaces `.innerHTML` for inline script content copies.** When recreating `<script>` elements in the delay injector, content was read/written via `.innerHTML`. The HTML serializer encodes characters such as `&` (present in GTM's `'&l='+l` snippet) to `&amp;`, corrupting the script and causing Google Tag Assistant to fail to detect the tag. Switching to `.textContent` bypasses HTML serialization entirely.
+
+#### Files Modified
+
+- `includes/public/class-tag-manager.php` — `output_delay_script()` head, body, and footer tag injection blocks
+
+---
+
 ## [3.3.3] - 2026-05-11
 
 ### 🐛 Fixed - Tag Manager Breaking Google Analytics & Third-Party Scripts

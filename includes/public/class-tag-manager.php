@@ -196,9 +196,7 @@ class Tag_Manager {
                 // Load head tags
                 var headTags = document.getElementById('coreboost-head-tags');
                 if (headTags) {
-                    var headContent = headTags.innerHTML;
-                    var headTemp = document.createElement('div');
-                    headTemp.innerHTML = headContent;
+                    var headTemp = document.importNode(headTags.content, true);
                     
                     // Process all child elements (scripts, links, styles, meta, etc.)
                     while (headTemp.firstChild) {
@@ -211,8 +209,8 @@ class Tag_Manager {
                                 if (node.src) {
                                     script.src = node.src;
                                 }
-                                if (node.innerHTML) {
-                                    script.innerHTML = node.innerHTML;
+                                if (node.textContent) {
+                                    script.textContent = node.textContent;
                                 }
                                 // Copy attributes
                                 for (var j = 0; j < node.attributes.length; j++) {
@@ -238,9 +236,7 @@ class Tag_Manager {
                 // Load body tags
                 var bodyTags = document.getElementById('coreboost-body-tags');
                 if (bodyTags) {
-                    var bodyContent = bodyTags.innerHTML;
-                    var bodyTemp = document.createElement('div');
-                    bodyTemp.innerHTML = bodyContent;
+                    var bodyTemp = document.importNode(bodyTags.content, true);
                     
                     // Process script tags separately to ensure they execute
                     var scripts = bodyTemp.querySelectorAll('script');
@@ -249,8 +245,8 @@ class Tag_Manager {
                         if (oldScript.src) {
                             newScript.src = oldScript.src;
                         }
-                        if (oldScript.innerHTML) {
-                            newScript.innerHTML = oldScript.innerHTML;
+                        if (oldScript.textContent) {
+                            newScript.textContent = oldScript.textContent;
                         }
                         // Copy attributes
                         for (var j = 0; j < oldScript.attributes.length; j++) {
@@ -275,9 +271,7 @@ class Tag_Manager {
                 // Load footer tags
                 var footerTags = document.getElementById('coreboost-footer-tags');
                 if (footerTags) {
-                    var footerContent = footerTags.innerHTML;
-                    var footerTemp = document.createElement('div');
-                    footerTemp.innerHTML = footerContent;
+                    var footerTemp = document.importNode(footerTags.content, true);
                     
                     // Process script tags separately to ensure they execute AND delay network requests
                     var scripts = footerTemp.querySelectorAll('script');
@@ -286,8 +280,8 @@ class Tag_Manager {
                         if (oldScript.src) {
                             newScript.src = oldScript.src;
                         }
-                        if (oldScript.innerHTML) {
-                            newScript.innerHTML = oldScript.innerHTML;
+                        if (oldScript.textContent) {
+                            newScript.textContent = oldScript.textContent;
                         }
                         // Copy attributes
                         for (var j = 0; j < oldScript.attributes.length; j++) {
