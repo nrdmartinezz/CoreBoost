@@ -5,6 +5,15 @@ All notable changes to CoreBoost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.10] - 2026-05-13
+
+### 🐛 Fixed - wp-core-shim Script Delayed Preload Discovery
+
+- Moved `inject_wp_core_shims()` hook from `wp_head` priority `0` to priority `3`
+- The shim script was the first element output in `<head>`, pushing all preload/preconnect `<link>` tags lower in the HTML and delaying browser preload scanner discovery
+- New head order: preloads + preconnects (priority 1) → jQuery/font preloads (priority 2) → shim script (priority 3) → `wp_print_scripts` (priority 8)
+- Shim still fires well before after-inline-scripts (priority 8), preserving `wp.i18n`/`wp.hooks`/`wp.domReady` queue behaviour
+
 ## [3.3.9] - 2026-05-12
 
 ### 🔄 Reworked - cb-lcp Strategy: Preload-Only (Remove `<img>` Injection)

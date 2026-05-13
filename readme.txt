@@ -4,7 +4,7 @@ Tags: performance, optimization, lcp, core web vitals, css defer, lazy loading, 
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 3.3.9
+Stable tag: 3.3.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -146,6 +146,9 @@ Enable debug mode to see detailed optimization comments in your page source. You
 6. PageSpeed Insights results showing LCP improvements
 
 == Changelog ==
+
+= 3.3.10 =
+* Fixed: wp-core-shim script moved from wp_head priority 0 to priority 3 — previously the shim was the first element output in <head>, pushing all preload/preconnect <link> tags lower in the HTML and delaying browser preload scanner discovery. Shim still fires before wp_print_scripts (priority 8), preserving wp.i18n/wp.hooks/wp.domReady queue behaviour for deferred core scripts
 
 = 3.3.1 =
 * Fixed: smart_youtube_blocking default was only corrected in class-config.php (UI) in v3.3.0 — the runtime defaults in class-activator.php, class-coreboost.php, and class-migration.php still had false, so the feature never activated on any installed site. All three defaults are now true and a migration step enables it for existing installs upgrading from < 3.3.1

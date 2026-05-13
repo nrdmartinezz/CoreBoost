@@ -81,8 +81,8 @@ class Script_Optimizer {
      */
     private function define_hooks() {
         $this->loader->add_filter('script_loader_tag', $this, 'defer_scripts', 10, 2);
-        // Priority 0: shim must appear before any wp-i18n after-scripts that call wp.i18n.setLocaleData()
-        $this->loader->add_action('wp_head', $this, 'inject_wp_core_shims', 0);
+        // Priority 3: shim must appear before wp_print_scripts (priority 8) but after preloads (priorities 1-2)
+        $this->loader->add_action('wp_head', $this, 'inject_wp_core_shims', 3);
         $this->loader->add_action('wp_head', $this, 'add_script_resource_hints', 2);
         $this->loader->add_action('wp_footer', $this, 'flush_defer_count', 99);
     }
